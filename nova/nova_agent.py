@@ -4,14 +4,13 @@ import inspect
 import json
 import requests
 import ConfigParser
+import ast
 from nova.thread import ThreadWithReturnValue
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
-SITES = config.get('Clouds','sites').strip(' ').split(',')
-SITES = map (lambda x : x.strip(' '), SITES)
+SITES = ast.literal_eval(config.get('Clouds','sites'))
 print SITES
-
 
 # Token authentication with scoped authorization
 def compute_list_servers(env):
@@ -26,11 +25,11 @@ def compute_list_servers(env):
 	# Deliver request to clouds 
 	# Create urls of clouds
 	urls = []
-	for site in SITES:
+	for site in SITES.values():
 		url = site + ':' + config.get('Nova','nova_public_interface') + '/v2.1/' + TENANT_ID + '/servers' 
 		urls.append(url)
 	headers ={'X-Auth-Token':X_AUTH_TOKEN}
-	
+
 	# Create threads
 	threads = [None] * len(urls)
 	for i in range(len(threads)):
@@ -40,22 +39,37 @@ def compute_list_servers(env):
 	for i in range(len(threads)):
 		threads[i].start()
 
-	response = []	
+	response = ''	
 	# Wait until threads terminate
 	for i in range(len(threads)):
-		response.append(threads[i].join())
-	print response
-	print '!'*50
+		
+		# Parse response from site	
+		parsed_json = json.loads(threads[i].join())
+		# Servers exist in site
+		if len(parsed_json['servers']) != 0:
 
-	#show_response(inspect.stack()[0][3],res)
-	
+			for i in range(len(parsed_json['servers'])):
+				# Retrive server name
+				server_name = parsed_json['servers'][i]['name']
+				# Retrive server id
+				server_id = parsed_json['servers'][i]['id']
+				# Retrive site url via regular expression
+				cloud_pattern = re.compile(r'http://.*(?=:)')
+				match = cloud_pattern.search(parsed_json['servers'][i]['links'][0]['href'])
+				# Find site by url
+				site = SITES.keys()[SITES.values().index(match.group())]
+				# Create response message to client
+				response = response + response_message(server_name, server_id, site)
+		# No server exist in site
+		else:
+			print 'NO SERVERS IN CLOUD!'
+		
+	return response
 
+# Send request to cloud
 def request_to_cloud(url, headers):
 	res = requests.get(url, headers = headers)
 	return res.text
-	#show_response(inspect.stack()[0][3],res)
-
-
 
 # Print out status code and response from Keystone
 def show_response(functionname,response):
@@ -69,19 +83,19 @@ def show_response(functionname,response):
 	elif response.status_code == 403:
 		print 'Forbidden!'
 	elif response.status_code == 404:
-		print 'Not FOund!'
+		print 'Not Found!'
 	elif response.status_code == 405:
 		print 'Bad Method!!'
 	print '-'*60
-	'''
-	parsed_json = json.loads(res.text)
-	print 'user name: %s' % parsed_json['token']['user']['name']
-	print 'user id: %s' % parsed_json['token']['user']['id']
-	print 'token: %s' % res.headers['X-Subject-Token']
-	print 'domain name: %s' % parsed_json['token']['user']['domain']['name']
-	print 'domain id: %s' % parsed_json['token']['user']['domain']['id']
-	print 'project name: %s' % parsed_json['token']['project']['name']
-	print 'project id: %s' % parsed_json['token']['project']['id']
-	print 'issued_at: %s' % parsed_json['token']['issued_at']
-	print 'expires_at: %s' % parsed_json['token']['expires_at']
-	'''
+
+# Response message to client
+def response_message(server_name, server_id, site):
+	
+	# Construct response to client 	
+	response = '-'*60 + '\r\n' + 'server name: %s\r\n'% server_name
+	response = response + 'server id: %s\r\n' % server_id
+	response = response + 'site: %s\r\n' % site
+	response = response + '-'*60 + '\r\n'
+	
+	return response 
+

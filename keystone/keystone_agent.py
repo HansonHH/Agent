@@ -118,6 +118,7 @@ def show_response(function_name, status_code, user_name, user_id, token, domain_
 def response_message(user_name, user_id, token, domain_name, domain_id, project_name, project_id, issued_at, expires_at):
 	
 	# Print information at agent side
+	'''
 	print 'user name: %s' % user_name
 	print 'user id: %s' % user_id
 	print 'token: %s' % token
@@ -128,6 +129,7 @@ def response_message(user_name, user_id, token, domain_name, domain_id, project_
 		print 'project id: %s' % project_id
 	print 'issued_at: %s' % issued_at
 	print 'expires_at: %s' % expires_at
+	'''
 
 	# Construct response to client 	
 	response = 'user name: %s\r\n'% user_name

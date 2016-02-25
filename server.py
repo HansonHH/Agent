@@ -58,44 +58,11 @@ def hello_world(env, start_response):
 		print '*'*30
 		print 'Identity API v3 START WITH /v3'
 		print '*'*30
-		'''
-		parsed_json = json.loads(PostData)
-		AUTHENTICATION_METHOD = parsed_json['auth']['identity']['methods'][0]
-		#print AUTHENTICATION_METHOD
-		SCOPED = None
-		try:
-			SCOPED = parsed_json['auth']['scope']
-			if SCOPED is not None:
-				SCOPED = True
-		except:
-			SCOPED = False
-		#print SCOPED
-		'''
 
 		# Authentication and token management (Identity API v3)
 		if PATH_INFO == '/v3/auth/tokens':
-			#print '='*60
 			
 			response = keystone_authentication_v3(env)
-			
-			'''	
-			# Password authentication with unscoped authorization
-			if not SCOPED and AUTHENTICATION_METHOD == 'password':
-				response = authenticate_password_unscoped_v3(PostData)
-			
-			# Password authentication with scoped authorization
-			elif SCOPED and AUTHENTICATION_METHOD == 'password':
-				response = authenticate_password_scoped_v3(PostData)
-		     	
-			# Token authentication with unscoped authorization	
-			elif not SCOPED and AUTHENTICATION_METHOD == 'token':
-				response = authenticate_token_unscoped_v3(PostData)	
-			
-			# Token authentication with scoped authorization
-			elif SCOPED and AUTHENTICATION_METHOD == 'token':
-				response = authenticate_token_scoped_v3(PostData)
-			'''
-			#print '='*60
 		
 		elif PATH_INFO == '':
 			pass
@@ -107,20 +74,14 @@ def hello_world(env, start_response):
 		print 'Compute API v2.1 START WITH /v2.1'
 		print '*'*30
 		
-		X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-		TENANT_ID = '98bdf671dfc74d51ba4969f4e963acca'
-		
 		# List servers
 		if env['REQUEST_METHOD'] == 'GET':
-			#response = compute_list_servers(X_AUTH_TOKEN, TENANT_ID)
 			response = compute_list_servers(env)
-		
-	print '*'*150
-
+	
+	print response	
+	
 	start_response('200 OK', [('Content-TYpe','text/plain')])
 	#return ['Hello, World!\r\nSecond line\r\n']
 	return response
-
-
 
 wsgi.server(eventlet.listen(('',LISTEN_PORT)),hello_world)
