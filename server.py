@@ -73,10 +73,20 @@ def hello_world(env, start_response):
 		print '*'*30
 		print 'Compute API v2.1 START WITH /v2.1'
 		print '*'*30
+	
+		#pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
+		#match = pattern.search(env['PATH_INFO'])
+		#TENANT_ID = match.group()
 		
 		# List servers
 		if env['REQUEST_METHOD'] == 'GET':
-			response = compute_list_servers(env)
+			# List details for servers
+			if env['PATH_INFO'].endswith('/detail'):
+				print 'ENDSWITH /detail'
+				response = compute_list_details_servers(env)
+			# List servers
+			else:
+				response = compute_list_servers(env)
 	
 	print response	
 	
