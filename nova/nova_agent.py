@@ -13,7 +13,7 @@ SITES = ast.literal_eval(config.get('Clouds','sites'))
 print SITES
 
 # List servers
-def compute_list_servers(env):
+def nova_list_servers(env):
 
 	# Retrive token from request
 	X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
@@ -60,7 +60,7 @@ def compute_list_servers(env):
 
 
 # List details for servers
-def compute_list_details_servers(env):
+def nova_list_details_servers(env):
 	
 	# Retrive token from request
 	X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
@@ -104,6 +104,64 @@ def compute_list_details_servers(env):
 	response = json.dumps(json_data)
 		
 	return response
+
+
+# Show server details
+def nova_show_server_details(env):
+	print '!'*80	
+	# Retrive token from request
+	X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+	# Retrive tenant id by regular expression 
+	tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
+	match = tenant_id_pattern.search(env['PATH_INFO'])
+	TENANT_ID = match.group()
+	
+	# Deliver request to clouds 
+	# Create urls of clouds
+	urls = []
+	for site in SITES.values():
+		url = site + ':' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
+		urls.append(url)
+	headers ={'X-Auth-Token':X_AUTH_TOKEN}
+
+	# Create threads
+	threads = [None] * len(urls)
+	for i in range(len(threads)):
+		threads[i] = ThreadWithReturnValue(target = GET_request_to_cloud, args=(urls[i], headers,))
+	
+	# Launch threads
+	for i in range(len(threads)):
+		threads[i].start()
+	
+	# Initiate response data structure
+	json_data = {}	
+	
+	# Wait until threads terminate
+	for i in range(len(threads)):
+		
+		# Parse response from site	
+		parsed_json = json.loads(threads[i].join())
+		try:
+			print parsed_json['server']	
+			# Get cloud site information by using regualr expression	
+			site_pattern = re.compile(r'(?<=http://).*(?=:)')
+			match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
+			# IP address of cloud
+			site_ip = match.group()
+			# Find name of cloud
+			site = SITES.keys()[SITES.values().index('http://'+site_ip)]
+			# Add site information to json response
+			parsed_json['site_ip'] = site_ip
+			parsed_json['site'] = site
+		
+			response = json.dumps(parsed_json)
+
+			return response
+			
+		except:
+			pass	
+
+	return 'Failed to find the VM\r\n'
 
 # Send request to cloud
 def GET_request_to_cloud(url, headers):

@@ -6,33 +6,12 @@ import requests
 import ConfigParser
 from keystone.keystone_agent import *
 from nova.nova_agent import *
+from glance.glance_agent import *
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
 LISTEN_PORT = int(config.get('Agent','listen_port'))
 
-'''
-print os.getenv('OS_PROJECT_DOMAIN_ID')
-print os.getenv('OS_USER_DOMAIN_ID')
-print os.getenv('OS_PROJECT_NAME')
-print os.getenv('OS_TENANT_NAME')
-print os.getenv('OS_USERNAME')
-print os.getenv('OS_PASSWORD')
-print os.getenv('OS_AUTH_URL')
-print os.getenv('OS_IDENTITY_API_VERSION')
-print os.getenv('OS_IMAGE_API_VERSION')
-print os.getenv('OS_TOKEN')
-OS_PROJECT_DOMAIN_ID = os.getenv('OS_PROJECT_DOMAIN_ID')
-OS_USER_DOMAIN_ID = os.getenv('OS_USER_DOMAIN_ID')
-OS_PROJECT_NAME = os.getenv('OS_PROJECT_NAME')
-OS_TENANT_NAME = os.getenv('OS_TENANT_NAME')
-OS_USERNAME = os.getenv('OS_USERNAME')
-OS_PASSWORD = os.getenv('OS_PASSWORD')
-OS_AUTH_URL = os.getenv('OS_AUTH_URL')
-OS_IDENTITY_API_VERSION = os.getenv('OS_IDENTITY_API_VERSION')
-OS_IMAGE_API_VERSION = os.getenv('OS_IMAGE_API_VERSION')
-OS_TOKEN = os.getenv('OS_TOKEN')
-'''
 
 def hello_world(env, start_response):
 	print env
@@ -83,20 +62,42 @@ def hello_world(env, start_response):
 		#match = pattern.search(env['PATH_INFO'])
 		#TENANT_ID = match.group()
 		
-		# List servers
+		# GET request
 		if env['REQUEST_METHOD'] == 'GET':
 			# List details for servers
 			if env['PATH_INFO'].endswith('/detail'):
 				print 'ENDSWITH /detail'
-				response = compute_list_details_servers(env)
+				response = nova_list_details_servers(env)
 			# List servers
+			elif env['PATH_INFO'].endswith('/servers'):
+				response = nova_list_servers(env)
+			# Show server details
 			else:
-				response = compute_list_servers(env)
-	
+				response = nova_show_server_details(env)
+
 			headers = [('Content-Type','application/json')]	
 			start_response('200 OK', headers)
-			#start_response('200 OK', [('Content-Type','application/json')])
-			#start_response('200 OK', [('Content-Type','text/plain')])
 			return response
+	
+	# Image API v2
+	elif PATH_INFO.startswith('/v2'):
+		print '*'*30
+		print 'Image API v2 START WITH /v2'
+		print '*'*30
+
+		# GET request
+		if env['REQUEST_METHOD'] == 'GET':
+			# Show image details
+			if PATH_INFO.startswith('/v2/images/'):
+				print 'SHOW IMAGE DETAILS'
+				response = glance_show_image_details(env)
+			# List images
+			else:
+				print 'LIST IMAGES'
+				response = glance_list_images(env)
+		
+		headers = [('Content-Type','application/json')]	
+		start_response('200 OK', headers)
+		return response
 
 wsgi.server(eventlet.listen(('',LISTEN_PORT)),hello_world)

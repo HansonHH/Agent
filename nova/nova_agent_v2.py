@@ -47,7 +47,7 @@ def compute_list_servers(env):
 		parsed_json = json.loads(threads[i].join())
 		if parsed_json["servers"] != []:
 			jsson_data["servers"].append(parsed_json["servers"][i])
-		'''
+
 		# Servers exist in site
 		if len(parsed_json['servers']) != 0:
 
@@ -66,7 +66,7 @@ def compute_list_servers(env):
 		# No server exist in site
 		else:
 			print 'NO SERVERS IN SITE!'
-		'''
+		
 	response = json.dumps(json_data)
 	return response
 
