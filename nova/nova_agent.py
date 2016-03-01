@@ -108,7 +108,7 @@ def nova_list_details_servers(env):
 
 # Show server details
 def nova_show_server_details(env):
-	print '!'*80	
+
 	# Retrive token from request
 	X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
 	# Retrive tenant id by regular expression 
