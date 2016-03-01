@@ -61,9 +61,14 @@ def hello_world(env, start_response):
 
 		# Authentication and token management (Identity API v3)
 		if PATH_INFO == '/v3/auth/tokens':
+			# Get json data and token	
+			response, token = keystone_authentication_v3(env)
+			headers = [('Content-Type','application/json'),('X-Subject-Token',token)]	
+			# Forward response to end-user
+			start_response('200 OK', headers)
 			
-			response = keystone_authentication_v3(env)
-		
+			return response
+
 		elif PATH_INFO == '':
 			pass
 
@@ -88,10 +93,10 @@ def hello_world(env, start_response):
 			else:
 				response = compute_list_servers(env)
 	
-	print response	
-	
-	start_response('200 OK', [('Content-TYpe','text/plain')])
-	#return ['Hello, World!\r\nSecond line\r\n']
-	return response
+			headers = [('Content-Type','application/json')]	
+			start_response('200 OK', headers)
+			#start_response('200 OK', [('Content-Type','application/json')])
+			#start_response('200 OK', [('Content-Type','text/plain')])
+			return response
 
 wsgi.server(eventlet.listen(('',LISTEN_PORT)),hello_world)
