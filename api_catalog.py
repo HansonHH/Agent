@@ -45,11 +45,11 @@ def api_catalog(env, start_response):
 		# GET request
 		if env['REQUEST_METHOD'] == 'GET':
 			# List details for servers
-			if env['PATH_INFO'].endswith('/detail'):
+			if PATH_INFO.endswith('/detail'):
 				print 'ENDSWITH /detail'
 				response = nova_list_details_servers(env)
 			# List servers
-			elif env['PATH_INFO'].endswith('/servers'):
+			elif PATH_INFO.endswith('/servers'):
 				response = nova_list_servers(env)
 			# Show server details
 			else:
@@ -92,6 +92,7 @@ def api_catalog(env, start_response):
 				return response
 
 	# Network API v2.0
+        # Network
 	elif PATH_INFO.startswith('/v2.0/networks'):
 		print '*'*30
 		print 'Network API v2.0 START WITH /v2.0'
@@ -99,17 +100,49 @@ def api_catalog(env, start_response):
 	
                 # GET request
                 if env['REQUEST_METHOD'] == 'GET':
-                    # List networks
-                    if env['PATH_INFO'].endswith('/networks'):
-                        response = neutron_list_networks(env)
-                    # SHow network details
-                    else:
+		    
+                    site_pattern = re.compile(r'(?<=/v2.0/networks/).*')
+		    match = site_pattern.search(env['PATH_INFO'])
+                    
+                    try:
+		        # network id 
+		        network_id = match.group()
+                        # Show network details
                         response = neutron_show_network_details(env)
-
-		headers = [('Content-Type','application/json')]	
+                    except:
+                        # List networks
+                        response = neutron_list_networks(env)
+		
+                headers = [('Content-Type','application/json')]	
 		start_response('200 OK', headers)
                 return response
-
+        
+        # Subnet
+        elif PATH_INFO.startswith('/v2.0/subnets'):
+                print '*'*30
+                print 'Network API v2.0 START WITH /v2.0'
+                print '*'*30
+        
+                # GET request
+                if env['REQUEST_METHOD'] == 'GET':
+                    
+                    site_pattern = re.compile(r'(?<=/v2.0/subnets/).*')
+                    match = site_pattern.search(env['PATH_INFO'])
+                    
+                    try:
+                        # network id 
+                        subnet_id = match.group()
+                        # Show subnet details
+                        response = neutron_show_subnet_details(env)
+                    except:
+                        # List subnets
+                        response = neutron_list_subnets(env)
+                
+                headers = [('Content-Type','application/json')]	
+                start_response('200 OK', headers)
+                return response
+        
+        
 
 
 

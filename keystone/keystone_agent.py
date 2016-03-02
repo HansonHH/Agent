@@ -46,24 +46,10 @@ def keystone_authentication_v3(env):
 	PostData = env['wsgi.input'].read()
 	request_json = json.loads(PostData)
 	
-	'''
-	SCOPED = None
-	response = None
-
-	# Is unscoped or scoped authorization? 
-	try:
-		SCOPED = request_json['auth']['scope']
-		if SCOPED is not None:
-			SCOPED = True
-	except:
-		SCOPED = False
-	'''
-
 	# Construct Keystone's url
 	url = KEYSTONE_ENDPOINT_PUBLIC + '/v3/auth/tokens' 
 	# Deliver request to Keystone
 	res = requests.post(url, data = PostData)
-	
 	# json response from Keystone
 	response = json.dumps(res.json())
 	# Get X-Subject-Token
@@ -71,29 +57,6 @@ def keystone_authentication_v3(env):
 
 	return (response, token)
 
-	'''	
-	user_name = parsed_json['token']['user']['name']
-	user_id = parsed_json['token']['user']['id']
-	token = res.headers['X-Subject-Token']
-	domain_name = parsed_json['token']['user']['domain']['name']
-	domain_id = parsed_json['token']['user']['domain']['id']
-	if SCOPED:
-		project_name = parsed_json['token']['project']['name']
-		project_id = parsed_json['token']['project']['id']
-	else:
-		project_name = None
-		project_id = None
-	issued_at = parsed_json['token']['issued_at']
-	expires_at = parsed_json['token']['expires_at']
-	
-	# Print response from Keystone
-	show_response(inspect.stack()[0][3], res.status_code, user_name, user_id, token, domain_name, domain_id, project_name, project_id, issued_at, expires_at)
-	
-	# Construct response to client	
-	response = response_message(user_name, user_id, token, domain_name, domain_id, project_name, project_id, issued_at, expires_at)
-
-	return response
-	'''
 
 # Print out status code and response from Keystone
 def show_response(function_name, status_code, user_name, user_id, token, domain_name, domain_id, project_name, project_id, issued_at, expires_at):
