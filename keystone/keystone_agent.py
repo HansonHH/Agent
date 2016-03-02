@@ -1,8 +1,9 @@
-import os
-import inspect
-import json
-import requests
-import ConfigParser
+#import os
+#import inspect
+#import json
+#import requests
+#import ConfigParser
+from nova.nova_agent import *
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')

@@ -2,6 +2,8 @@ import json
 from keystone.keystone_agent import *
 from nova.nova_agent import *
 from glance.glance_agent import *
+from neutron.neutron_agent import *
+
 
 def api_catalog(env, start_response):
 	
@@ -9,18 +11,9 @@ def api_catalog(env, start_response):
 	PATH_INFO = env['PATH_INFO']
 	
 	# API catalog
-	# Identity API v2
-	if PATH_INFO.startswith('/v2.0'):
-		print '*'*30
-		print 'Identity API v2 START WITH /v2.0'
-		print '*'*30
-		
-		# Authenticate user's token (Identity API v2)
-		if PATH_INFO == '/v2.0/tokens':
-			authenticate_token_v2(PostData)
-	
+
 	# Identity API v3
-	elif PATH_INFO.startswith('/v3'):
+	if PATH_INFO.startswith('/v3'):
 		print '*'*30
 		print 'Identity API v3 START WITH /v3'
 		print '*'*30
@@ -67,7 +60,7 @@ def api_catalog(env, start_response):
 			return response
 	
 	# Image API v2
-	elif PATH_INFO.startswith('/v2'):
+	elif PATH_INFO.startswith('/v2/'):
 		print '*'*30
 		print 'Image API v2 START WITH /v2'
 		print '*'*30
@@ -81,6 +74,10 @@ def api_catalog(env, start_response):
 			else:
 				response = glance_list_images(env)
 		
+		        headers = [('Content-Type','application/json')]	
+		        start_response('200 OK', headers)
+                        return response
+
 		# DELETE request	
 		if env['REQUEST_METHOD'] == 'DELETE':
 			response = glance_delete_image(env)	
@@ -93,5 +90,26 @@ def api_catalog(env, start_response):
 				return response['text']
 			except:
 				return response
+
+	# Network API v2.0
+	elif PATH_INFO.startswith('/v2.0/networks'):
+		print '*'*30
+		print 'Network API v2.0 START WITH /v2.0'
+		print '*'*30
+	
+                # GET request
+                if env['REQUEST_METHOD'] == 'GET':
+                    # List networks
+                    if env['PATH_INFO'].endswith('/networks'):
+                        response = neutron_list_networks(env)
+                    # SHow network details
+                    else:
+                        response = neutron_show_network_details(env)
+
+		headers = [('Content-Type','application/json')]	
+		start_response('200 OK', headers)
+                return response
+
+
 
 
