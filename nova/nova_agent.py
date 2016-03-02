@@ -52,6 +52,18 @@ def nova_list_servers(env):
 		if len(parsed_json['servers']) != 0:
 			# Recursively look up VMs
 			for i in range(len(parsed_json['servers'])):
+			
+				# Get cloud site information by using regualr expression	
+				site_pattern = re.compile(r'(?<=http://).*(?=:)')
+				match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
+				# IP address of cloud
+				site_ip = match.group()
+				# Find name of cloud
+				site = SITES.keys()[SITES.values().index('http://'+site_ip)]
+				# Add site information to json response
+				parsed_json['servers'][i]['site_ip'] = site_ip
+				parsed_json['servers'][i]['site'] = site
+		
 				json_data['servers'].append(parsed_json['servers'][i])
 	
 	response = json.dumps(json_data)
@@ -99,6 +111,18 @@ def nova_list_details_servers(env):
 		if len(parsed_json['servers']) != 0:
 			# Recursively look up VMs
 			for i in range(len(parsed_json['servers'])):
+				
+				# Get cloud site information by using regualr expression	
+				site_pattern = re.compile(r'(?<=http://).*(?=:)')
+				match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
+				# IP address of cloud
+				site_ip = match.group()
+				# Find name of cloud
+				site = SITES.keys()[SITES.values().index('http://'+site_ip)]
+				# Add site information to json response
+				parsed_json['servers'][i]['site_ip'] = site_ip
+				parsed_json['servers'][i]['site'] = site
+				
 				json_data['servers'].append(parsed_json['servers'][i])
 		
 	response = json.dumps(json_data)
@@ -142,7 +166,7 @@ def nova_show_server_details(env):
 		# Parse response from site	
 		parsed_json = json.loads(threads[i].join())
 		try:
-			print parsed_json['server']	
+				
 			# Get cloud site information by using regualr expression	
 			site_pattern = re.compile(r'(?<=http://).*(?=:)')
 			match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
@@ -163,10 +187,17 @@ def nova_show_server_details(env):
 
 	return 'Failed to find the VM\r\n'
 
-# Send request to cloud
+# GET request to cloud
 def GET_request_to_cloud(url, headers):
 	res = requests.get(url, headers = headers)
 	return res.text
+
+# DELETE request to cloud
+def DELETE_request_to_cloud(url, headers):
+	res = requests.delete(url, headers = headers)
+	dic = {'status_code':res.status_code, 'headers':str(res.headers), 'text':res.text}
+	json_data = json.dumps(dic)
+	return json_data
 
 # Print out status code and response from Keystone
 def show_response(functionname,response):

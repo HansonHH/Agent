@@ -106,8 +106,45 @@ def glance_show_image_details(env):
 		except:
 			return 'Failed to find the image'
 			
-
+# Delete image
+def glance_delete_image(env):
 	
+	# Retrive token from request
+	X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+	
+	# Deliver request to clouds 
+	# Create urls of clouds
+	urls = []
+	for site in SITES.values():
+		url = site + ':' + config.get('Glance','glance_public_interface') + env['PATH_INFO']
+		urls.append(url)
+	headers ={'X-Auth-Token':X_AUTH_TOKEN}
+	
+	# Create threads
+	threads = [None] * len(urls)
+	for i in range(len(threads)):
+		threads[i] = ThreadWithReturnValue(target = DELETE_request_to_cloud, args=(urls[i], headers,))
+	
+	# Launch threads
+	for i in range(len(threads)):
+		threads[i].start()
+
+	threads_json = []
+	# Wait until threads terminate
+	for i in range(len(threads)):
+	
+		# Parse response from site	
+		parsed_json = json.loads(threads[i].join())
+		threads_json.append(parsed_json)
+
+	for i in range(len(threads_json)):
+		if threads_json[i]['status_code'] == 204:
+			return threads_json[i]
+		
+ 	if len(threads_json) != 0:
+		return threads_json[0] 
+	else:
+		return 'Failed to delete image! \r\n'
 
 
 
