@@ -7,20 +7,12 @@ def glance_list_images(env):
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
 	
-    # Deliver request to clouds 
-    # Create urls of clouds
-    urls = []
-    for site in SITES.values():
-	url = site + ':' + config.get('Glance','glance_public_interface') + '/v2/images'
-	urls.append(url)
+    # Create suffix of service url
+    url_suffix = config.get('Glance', 'glance_public_interface') + '/v2/images' 
     
-    headers ={'X-Auth-Token':X_AUTH_TOKEN}
-
-    # Create threads
-    threads = [None] * len(urls)
-    for i in range(len(threads)):
-	threads[i] = ThreadWithReturnValue(target = GET_request_to_cloud, args=(urls[i], headers,))
-	
+    # Get generated threads 
+    threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
+    
     # Launch threads
     for i in range(len(threads)):
 	threads[i].start()
@@ -61,21 +53,13 @@ def glance_show_image_details(env):
 	
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-	
-    # Deliver request to clouds 
-    # Create urls of clouds
-    urls = []
-    for site in SITES.values():
-	url = site + ':' + config.get('Glance','glance_public_interface') + env['PATH_INFO']
-	urls.append(url)
-
-    headers ={'X-Auth-Token':X_AUTH_TOKEN}
-	
-    # Create threads
-    threads = [None] * len(urls)
-    for i in range(len(threads)):
-	threads[i] = ThreadWithReturnValue(target = GET_request_to_cloud, args=(urls[i], headers,))
-	
+    
+    # Create suffix of service url
+    url_suffix = config.get('Glance', 'glance_public_interface') + env['PATH_INFO'] 
+    
+    # Get generated threads 
+    threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
+    
     # Launch threads
     for i in range(len(threads)):
 	threads[i].start()
@@ -113,21 +97,13 @@ def glance_delete_image(env):
 	
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-	
-    # Deliver request to clouds 
-    # Create urls of clouds
-    urls = []
-    for site in SITES.values():
-	url = site + ':' + config.get('Glance','glance_public_interface') + env['PATH_INFO']
-	urls.append(url)
     
-    headers ={'X-Auth-Token':X_AUTH_TOKEN}
-	
-    # Create threads
-    threads = [None] * len(urls)
-    for i in range(len(threads)):
-	threads[i] = ThreadWithReturnValue(target = DELETE_request_to_cloud, args=(urls[i], headers,))
-	
+    # Create suffix of service url
+    url_suffix = config.get('Glance', 'glance_public_interface') + env['PATH_INFO'] 
+    
+    # Get generated threads 
+    threads = generate_threads(X_AUTH_TOKEN, url_suffix, DELETE_request_to_cloud)
+
     # Launch threads
     for i in range(len(threads)):
 	threads[i].start()

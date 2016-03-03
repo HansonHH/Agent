@@ -15,28 +15,21 @@ print SITES
 
 # List servers
 def nova_list_servers(env):
-
+    
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+    
     # Retrive tenant id by regular expression 
     tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
     match = tenant_id_pattern.search(env['PATH_INFO'])
     TENANT_ID = match.group()
-	
-    # Deliver request to clouds 
-    # Create urls of clouds
-    urls = []
-    for site in SITES.values():
-	url = site + ':' + config.get('Nova','nova_public_interface') + '/v2.1/' + TENANT_ID + '/servers' 
-	urls.append(url)
     
-    headers ={'X-Auth-Token':X_AUTH_TOKEN}
-
-    # Create threads
-    threads = [None] * len(urls)
-    for i in range(len(threads)):
-	threads[i] = ThreadWithReturnValue(target = GET_request_to_cloud, args=(urls[i], headers,))
-	
+    # Create suffix of service url
+    url_suffix = config.get('Nova', 'nova_public_interface') + '/v2.1/' + TENANT_ID + '/servers'
+    
+    # Get generated threads 
+    threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
+    
     # Launch threads
     for i in range(len(threads)):
 	threads[i].start()
@@ -78,25 +71,18 @@ def nova_list_details_servers(env):
 	
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+    
     # Retrive tenant id by regular expression 
     tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
     match = tenant_id_pattern.search(env['PATH_INFO'])
     TENANT_ID = match.group()
 	
-    # Deliver request to clouds 
-    # Create urls of clouds
-    urls = []
-    for site in SITES.values():
-	url = site + ':' + config.get('Nova','nova_public_interface') + '/v2.1/' + TENANT_ID + '/servers/detail' 
-	urls.append(url)
+    # Create suffix of service url
+    url_suffix = config.get('Nova', 'nova_public_interface') + '/v2.1/' + TENANT_ID + '/servers/detail'
     
-    headers ={'X-Auth-Token':X_AUTH_TOKEN}
-
-    # Create threads
-    threads = [None] * len(urls)
-    for i in range(len(threads)):
-	threads[i] = ThreadWithReturnValue(target = GET_request_to_cloud, args=(urls[i], headers,))
-	
+    # Get generated threads 
+    threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
+    
     # Launch threads
     for i in range(len(threads)):
 	threads[i].start()
@@ -143,20 +129,12 @@ def nova_show_server_details(env):
     match = tenant_id_pattern.search(env['PATH_INFO'])
     TENANT_ID = match.group()
 	
-    # Deliver request to clouds 
-    # Create urls of clouds
-    urls = []
-    for site in SITES.values():
-	url = site + ':' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
-	urls.append(url)
+    # Create suffix of service url
+    url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO'] 
     
-    headers ={'X-Auth-Token':X_AUTH_TOKEN}
-
-    # Create threads
-    threads = [None] * len(urls)
-    for i in range(len(threads)):
-	threads[i] = ThreadWithReturnValue(target = GET_request_to_cloud, args=(urls[i], headers,))
-	
+    # Get generated threads 
+    threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
+    
     # Launch threads
     for i in range(len(threads)):
 	threads[i].start()
@@ -195,20 +173,6 @@ def nova_show_server_details(env):
 	
     return response
 
-'''
-# GET request to cloud
-def GET_request_to_cloud(url, headers):
-    res = requests.get(url, headers = headers)
-    return res.text
-
-# DELETE request to cloud
-def DELETE_request_to_cloud(url, headers):
-    res = requests.delete(url, headers = headers)
-    res.headers['Content-Length'] = str(len(str(res)))
-    dic = {'status_code':res.status_code, 'headers':str(res.headers), 'text':res.text}
-    json_data = json.dumps(dic)
-    return json_data
-'''
 
 # Print out status code and response from Keystone
 def show_response(functionname,response):

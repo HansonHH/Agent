@@ -80,18 +80,8 @@ def api_catalog(env, start_response):
 
 	# DELETE request	
         elif env['REQUEST_METHOD'] == 'DELETE':
+            #print type(glance_delete_image(env))
 	    response = glance_delete_image(env)	
-            '''
-	    headers = ast.literal_eval(response['headers']).items()
-	    try:
-		if response['status_code'] == 404:
-		    start_response('404', headers)
-		elif response['status_code'] == 204:
-		    start_response('204', headers)
-		return response['text']
-	    except:
-		return response
-            '''
 	    headers = ast.literal_eval(response['headers']).items()
 	    start_response(str(response['status_code']), headers)
             return response
