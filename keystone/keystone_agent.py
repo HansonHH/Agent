@@ -1,9 +1,5 @@
-#import os
-#import inspect
-#import json
-#import requests
-#import ConfigParser
 from nova.nova_agent import *
+from request import *
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
@@ -35,8 +31,6 @@ def authenticate_token_v2(PostData):
     show_response(inspect.stack()[0][3],res)
 
 
-
-
 ###############################################
 ###########   Identity API v3   ###############
 ###############################################
@@ -44,7 +38,7 @@ def authenticate_token_v2(PostData):
 def keystone_authentication_v3(env):
     # request data 
     PostData = env['wsgi.input'].read()
-    request_json = json.loads(PostData)
+    #request_json = json.loads(PostData)
 	
     # Construct Keystone's url
     url = KEYSTONE_ENDPOINT_PUBLIC + '/v3/auth/tokens' 

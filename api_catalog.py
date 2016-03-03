@@ -79,8 +79,9 @@ def api_catalog(env, start_response):
             return response
 
 	# DELETE request	
-	if env['REQUEST_METHOD'] == 'DELETE':
+        elif env['REQUEST_METHOD'] == 'DELETE':
 	    response = glance_delete_image(env)	
+            '''
 	    headers = ast.literal_eval(response['headers']).items()
 	    try:
 		if response['status_code'] == 404:
@@ -90,6 +91,10 @@ def api_catalog(env, start_response):
 		return response['text']
 	    except:
 		return response
+            '''
+	    headers = ast.literal_eval(response['headers']).items()
+	    start_response(str(response['status_code']), headers)
+            return response
 
     # Network API v2.0
     # Network
@@ -112,15 +117,27 @@ def api_catalog(env, start_response):
             except:
                 # List networks
                 response = neutron_list_networks(env)
+        
+            headers = [('Content-Type','application/json')]	
+	    start_response('200 OK', headers)
+            return response
 		
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':
-            response = neutron_create_network(env)
+            response, X_Openstack_Request_Id = neutron_create_network(env)
+	    
+            headers = [('Content-Type','application/json'),('X-Openstack-Request-Id',X_Openstack_Request_Id)]	
+            start_response('200 OK', headers)
+            return response
         
-        headers = [('Content-Type','application/json')]	
-	start_response('200 OK', headers)
-        return response
-        
+	# DELETE request	
+	elif env['REQUEST_METHOD'] == 'DELETE':
+            response = neutron_delete_network(env)
+	    headers = ast.literal_eval(response['headers']).items()
+	    start_response(str(response['status_code']), headers)
+            return response
+
+
     # Subnet
     elif PATH_INFO.startswith('/v2.0/subnets'):
         print '*'*30

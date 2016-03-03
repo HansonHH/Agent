@@ -6,6 +6,7 @@ import requests
 import ConfigParser
 import ast
 from nova.thread import ThreadWithReturnValue
+from request import *
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
@@ -194,7 +195,7 @@ def nova_show_server_details(env):
 	
     return response
 
-
+'''
 # GET request to cloud
 def GET_request_to_cloud(url, headers):
     res = requests.get(url, headers = headers)
@@ -203,9 +204,11 @@ def GET_request_to_cloud(url, headers):
 # DELETE request to cloud
 def DELETE_request_to_cloud(url, headers):
     res = requests.delete(url, headers = headers)
+    res.headers['Content-Length'] = str(len(str(res)))
     dic = {'status_code':res.status_code, 'headers':str(res.headers), 'text':res.text}
     json_data = json.dumps(dic)
     return json_data
+'''
 
 # Print out status code and response from Keystone
 def show_response(functionname,response):

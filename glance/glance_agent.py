@@ -1,4 +1,5 @@
 from nova.nova_agent import *
+from request import *
 
 # List images
 def glance_list_images(env):
@@ -140,6 +141,7 @@ def glance_delete_image(env):
 	threads_json.append(parsed_json)
 
     for i in range(len(threads_json)):
+        # Image delete successfully
 	if threads_json[i]['status_code'] == 204:
 	    return threads_json[i]
 		
