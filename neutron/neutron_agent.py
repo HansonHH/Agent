@@ -156,3 +156,57 @@ def neutron_list_subnets(env):
 	response = json.dumps(json_data)
 	
 	return response
+
+# Show subnet details
+def neutron_show_subnet_details(env):
+	
+	# Retrive token from request
+	X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+	
+	# Deliver request to clouds 
+	# Create urls of clouds
+	urls = []
+	for site in SITES.values():
+		url = site + ':' + config.get('Neutron','neutron_public_interface') + env['PATH_INFO']
+		urls.append(url)
+	headers ={'X-Auth-Token':X_AUTH_TOKEN}
+        print urls	
+        # Create threads
+	threads = [None] * len(urls)
+	for i in range(len(threads)):
+		threads[i] = ThreadWithReturnValue(target = GET_request_to_cloud, args=(urls[i], headers,))
+	
+	# Launch threads
+	for i in range(len(threads)):
+		threads[i].start()
+	
+	# Initiate response data structure
+	response = ''	
+
+	# Wait until threads terminate
+	for i in range(len(threads)):
+		
+		# Parse response from site	
+		try:
+			parsed_json = json.loads(threads[i].join())
+                        try:
+                            error = parsed_json['NeutronError']
+                            pass
+                        # No NeutronError return
+                        except:
+			    # Get cloud site information by using regualr expression	
+			    site_pattern = re.compile(r'(?<=http://).*(?=:)')
+			    match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
+			    # IP address of cloud
+			    site_ip = match.group()
+			    # Find name of cloud
+			    site = SITES.keys()[SITES.values().index('http://'+site_ip)]
+			    # Add site information to json response
+			    parsed_json['site_ip'] = site_ip
+			    parsed_json['site'] = site
+			
+			    response = json.dumps(parsed_json)		
+		except:
+			return 'Failed to find subnet details'
+	
+        return response
