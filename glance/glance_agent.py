@@ -1,4 +1,4 @@
-from nova.nova_agent import *
+#from nova.nova_agent import *
 from request import *
 
 # List images

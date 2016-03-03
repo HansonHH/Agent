@@ -1,17 +1,4 @@
-import os
-import re
-import inspect
-import json
-import requests
-import ConfigParser
-import ast
-from nova.thread import ThreadWithReturnValue
 from request import *
-
-config = ConfigParser.ConfigParser()
-config.read('agent.conf')
-SITES = ast.literal_eval(config.get('Clouds','sites'))
-print SITES
 
 # List servers
 def nova_list_servers(env):

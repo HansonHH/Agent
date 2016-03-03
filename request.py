@@ -3,16 +3,18 @@
 #
 # Copyright © 2016 Xin Han <hxinhan@gmail.com>
 #
+
 import ConfigParser
 from nova.thread import ThreadWithReturnValue
 import ast
 import requests
 import json
+import re
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
 SITES = ast.literal_eval(config.get('Clouds','sites'))
-
+print SITES
 
 # GET request to cloud
 def GET_request_to_cloud(url, headers):
