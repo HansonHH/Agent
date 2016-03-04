@@ -39,18 +39,16 @@ def keystone_authentication_v3(env):
     # request data 
     PostData = env['wsgi.input'].read()
     #request_json = json.loads(PostData)
-	
+
     # Construct Keystone's url
     url = KEYSTONE_ENDPOINT_PUBLIC + '/v3/auth/tokens' 
-    # Deliver request to Keystone
-    res = requests.post(url, data = PostData)
-    # json response from Keystone
-    response = json.dumps(res.json())
-    # Get X-Subject-Token
-    token = res.headers['X-Subject-Token']
-
-    return (response, token)
-
+    # Create header
+    headers = {'Content-Type': 'application/json'}
+    
+    response = POST_request_to_cloud(url, headers, PostData)
+    
+    return response
+    
 
 # Print out status code and response from Keystone
 def show_response(function_name, status_code, user_name, user_id, token, domain_name, domain_id, project_name, project_id, issued_at, expires_at):

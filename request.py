@@ -16,6 +16,11 @@ config.read('agent.conf')
 SITES = ast.literal_eval(config.get('Clouds','sites'))
 print SITES
 
+# POST request t cloud
+def POST_request_to_cloud(url, headers, PostData):
+    res = requests.post(url, headers = headers, data = PostData)
+    return res
+
 # GET request to cloud
 def GET_request_to_cloud(url, headers):
     res = requests.get(url, headers = headers)

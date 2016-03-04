@@ -20,18 +20,15 @@ def api_catalog(env, start_response):
 
 	# Authentication and token management (Identity API v3)
 	if PATH_INFO == '/v3/auth/tokens':
-			
-	    # Get json data and token	
-	    response, token = keystone_authentication_v3(env)
-	    headers = [('Content-Type','application/json'),('X-Subject-Token',token)]	
-	    # Forward response to end-user
-	    start_response('200 OK', headers)
-			
-	    return response
+	    
+            response = keystone_authentication_v3(env)
+            # Shift dictionary to tuple
+	    headers = ast.literal_eval(str(response.headers)).items()
+            # Respond to end user
+	    start_response(str(response.status_code), headers)
 
-	elif PATH_INFO == '':
-	    pass
-
+            return json.dumps(response.json())
+            
     # Compute API v2.1
     elif PATH_INFO.startswith('/v2.1'):
 	print '*'*30
@@ -46,7 +43,6 @@ def api_catalog(env, start_response):
 	if env['REQUEST_METHOD'] == 'GET':
 	    # List details for servers
 	    if PATH_INFO.endswith('/detail'):
-		print 'ENDSWITH /detail'
 		response = nova_list_details_servers(env)
 	    # List servers
 	    elif PATH_INFO.endswith('/servers'):
@@ -114,12 +110,16 @@ def api_catalog(env, start_response):
 		
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':
-            response, X_Openstack_Request_Id = neutron_create_network(env)
-	    
-            headers = [('Content-Type','application/json'),('X-Openstack-Request-Id',X_Openstack_Request_Id)]	
-            start_response('200 OK', headers)
-            return response
-        
+
+            response = neutron_create_network(env)
+            # Shift dictionary to tuple
+	    headers = ast.literal_eval(str(response.headers)).items()
+            # Respond to end user
+	    start_response(str(response.status_code), headers)
+
+            return json.dumps(response.json())
+
+
 	# DELETE request	
 	elif env['REQUEST_METHOD'] == 'DELETE':
             response = neutron_delete_network(env)
@@ -153,6 +153,16 @@ def api_catalog(env, start_response):
             start_response('200 OK', headers)
             return response
         
+        # POST request
+        elif env['REQUEST_METHOD'] == 'POST':
+
+            response = neutron_create_subnet(env)
+            # Shift dictionary to tuple
+	    headers = ast.literal_eval(str(response.headers)).items()
+            # Respond to end user
+	    start_response(str(response.status_code), headers)
+
+            return json.dumps(response.json())
         
 
 
