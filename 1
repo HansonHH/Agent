@@ -23,16 +23,8 @@ SITES = ast.literal_eval(config.get('Clouds','sites'))
 AGENT_SITE_NAME = config.get('Agent', 'site')
 AGENT_SITE_IP = SITES[AGENT_SITE_NAME]
 
-# Configuration of DB engine connection
-GLANCE_IMAGE_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/glance' % (DATABASE_USERNAME, DATABASE_PASSWORD)
-NOVA_FLAVOR_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/nova' % (DATABASE_USERNAME, DATABASE_PASSWORD)
-NEUTRON_NETWORK_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/neutron' % (DATABASE_USERNAME, DATABASE_PASSWORD)
-NEUTRON_SUBNET_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/neutron' % (DATABASE_USERNAME, DATABASE_PASSWORD)
-
-# Agent DB engine
 agentDB_engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME), echo = True)
 #agentDB_engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME), pool_recycle=3600, echo = True)
-
 
 # Create tables in database
 def create_tables():
@@ -41,60 +33,37 @@ def create_tables():
     except exc:
         print exc.message
 
-# Read data from database
-def read_from_DB(connection, table_name, obj):
-    # Read uuid of images from glance databse
-    read_engine = create_engine(connection, echo = True)
-    
-    metadata = MetaData(read_engine)
-    read_table = Table(table_name, metadata, autoload = True)
-    mapper(obj, read_table)
-    
-    DBSession = sessionmaker(bind = read_engine)
-    R_session = DBSession()
-
-    res = R_session.query(obj).all()
-    R_session.close()
-
-    return res
 
 # Synchorize agent table with glance (images talbe in glance DB) in terms of uuid
 def Sync_Image():
+   
+    # Read uuid of images from glance databse
+    glance_engine = create_engine('mysql+mysqldb://%s:%s@localhost/glance'%(DATABASE_USERNAME, DATABASE_PASSWORD), echo = True)
     
-    # Read data of image from database  
-    res = read_from_DB(GLANCE_IMAGE_ENGINE_CONNECTION, 'images', GlanceImage)
+    metadata = MetaData(glance_engine)
+    glance_images = Table('images', metadata, autoload = True)
+    mapper(GlanceImage, glance_images)
+    
+    DBSession = sessionmaker(bind = glance_engine)
+    R_session = DBSession()
+
+    GlanceImage_Res = R_session.query(GlanceImage).all()
+    R_session.close()
 
     # Write to image table of agent DB 
     # Create session of image table of agetn DB
     DBSession = sessionmaker(bind = agentDB_engine)
     W_session = DBSession()
     
-    for image in res:
-        print '-'*100 
-        print image.id
-        print image.name
-        print '-'*100 
+    for image in GlanceImage_Res:
         
         # Synchorize image uuid to data table of agent 
         new_image = Image(uuid_agent = uuid.uuid4(), uuid_cloud = image.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
-        # Add instance to session
+
         W_session.add(new_image)
-    '''    
-    try:
-        # Commit session    
-        W_session.commit()
-    except:
-        W_session.rollback()
-    finally:
-        # Close session
-        W_session.close()
-    '''
-    
-    '''
+        
+    # Commit session    
     W_session.commit()
-    W_session.close()
-    '''
-    
     '''
         except sqlalchemy.exc.IntegrityError, exc:
             reason = exc.message
@@ -102,92 +71,127 @@ def Sync_Image():
                 print "%s already exists" % exc.params[0]
                 W_session.rollback()
     '''
+   # Close session
+    W_session.close()
+
 
 # Synchorize agent table with flavor table (instance_types table in nova DB) in terms of uuid
 def Sync_Flavor():
    
-    # Read data of flavor from database  
-    res = read_from_DB(NOVA_FLAVOR_ENGINE_CONNECTION, 'instance_types', NovaFlavor)
+    print '*' * 100
+
+    # Read uuid of flavors from nova databse
+    flavor_engine = create_engine('mysql+mysqldb://%s:%s@localhost/nova'%(DATABASE_USERNAME, DATABASE_PASSWORD), echo = True)
+    
+    metadata = MetaData(flavor_engine)
+    nova_flavors = Table('instance_types', metadata, autoload = True)
+    mapper(NovaFlavor, nova_flavors)
+    
+    DBSession = sessionmaker(bind = flavor_engine)
+    R_session = DBSession()
+
+    NovaFlavor_Res = R_session.query(NovaFlavor).all()
+    R_session.close()
 
     # Write to image table of agent DB 
     # Create session of image table of agetn DB
     DBSession = sessionmaker(bind = agentDB_engine)
     W_session = DBSession()
     
-    for flavor in res:
+    for flavor in NovaFlavor_Res:
         
         # Synchorize flavor uuid to data table of agent 
         new_flavor = Flavor(uuid_agent = uuid.uuid4(), uuid_cloud = flavor.flavorid, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
-        # Add instance to session
+
         W_session.add(new_flavor)
 
-    try:
-        # Commit session    
-        W_session.commit()
-    except:
-        W_session.rollback()
-    finally:
-        # Close session
-        W_session.close()
+    # Commit session    
+    W_session.commit()
+
+   # Close session
+    W_session.close()
+
 
 # Synchorize agent table with network table (networks table in neutron DB) in terms of uuid
 def Sync_Network():
-    
-    # Read data of network from database  
-    res = read_from_DB(NEUTRON_NETWORK_ENGINE_CONNECTION, 'networks', NeutronNetwork)
    
+    # Read uuid of networks from nova databse
+    network_engine = create_engine('mysql+mysqldb://%s:%s@localhost/neutron'%(DATABASE_USERNAME, DATABASE_PASSWORD), echo = True)
+    
+    metadata = MetaData(network_engine)
+    neutron_network = Table('networks', metadata, autoload = True)
+    mapper(NeutronNetwork, neutron_network)
+    
+    DBSession = sessionmaker(bind = network_engine)
+    R_session = DBSession()
+
+    NeutronNetwork_Res = R_session.query(NeutronNetwork).all()
+    R_session.close()
+
     # Write to subnet table of agent DB 
     # Create session of subnet table of agetn DB
     DBSession = sessionmaker(bind = agentDB_engine)
     W_session = DBSession()
     
-    for network in res:
+    for subnet in NeutronNetwork_Res:
+        
         # Synchorize subnet uuid to data table of agent 
-        new_network = Network(uuid_agent = uuid.uuid4(), uuid_cloud = network.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+        new_network = Network(uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
         # Add instance to session
         W_session.add(new_network)
 
-    try:
-        # Commit session    
-        W_session.commit()
-    except:
-        W_session.rollback()
-    finally:
-        # Close session
-        W_session.close()
+   
+    # Commit session    
+    W_session.commit()
+    
+    # Close session
+    W_session.close()
 
 
 # Synchorize agent table with subnet table (subnets table in neutron DB) in terms of uuid
 def Sync_Subnet():
+   
+    # Read uuid of subnets from nova databse
+    subnet_engine = create_engine('mysql+mysqldb://%s:%s@localhost/neutron'%(DATABASE_USERNAME, DATABASE_PASSWORD), echo = True)
     
-    # Read data of subnet from database  
-    res = read_from_DB(NEUTRON_SUBNET_ENGINE_CONNECTION, 'subnets', NeutronSubnet)
+    metadata = MetaData(subnet_engine)
+    neutron_subnet = Table('subnets', metadata, autoload = True)
+    mapper(NeutronSubnet, neutron_subnet)
+    
+    DBSession = sessionmaker(bind = subnet_engine)
+    R_session = DBSession()
+
+    NeutronSubnet_Res = R_session.query(NeutronSubnet).all()
+    R_session.close()
 
     # Write to subnet table of agent DB 
     # Create session of subnet table of agetn DB
     DBSession = sessionmaker(bind = agentDB_engine)
     W_session = DBSession()
     
-    for subnet in res:
+    for subnet in NeutronSubnet_Res:
+        
         # Synchorize subnet uuid to data table of agent 
-        new_subnet = Subnet(uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+        try:
+            new_subnet = Subnet(uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
 
-        # Add instance to session
-        W_session.add(new_subnet)
+            W_session.add(new_subnet)
+            W_session.commit()
+
+        except sqlalchemy.exc.IntegrityError, exc:
+            reason = exc.message
+            if reason.endswith('is not unique'):
+                print "%s already exists" % exc.params[0]
+                W_session.rollback()
+   
+   # Close session
+    W_session.close()
     
-    try:
-        # Commit session    
-        W_session.commit()
-    except:
-        W_session.rollback()
-    finally:
-        # Close session
-        W_session.close()
-    
+
 
 if __name__ == '__main__':
     create_tables()
     Sync_Image()
-    Sync_Flavor()
-    Sync_Network()
-    Sync_Subnet()
+    #Sync_Flavor()
+    #Sync_Network()
+    #Sync_Subnet()
