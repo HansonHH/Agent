@@ -10,8 +10,8 @@ from sqlalchemy.orm import *
 from sqlalchemy.ext.declarative import declarative_base
 
 TABLE_ARGS = {
-    'mysql_engine': 'InnoDB',
-    'mysql_charset': 'utf8'
+    #'mysql_engine': 'InnoDB',
+    #'mysql_charset': 'utf8'
 }
 
 

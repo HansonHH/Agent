@@ -30,7 +30,7 @@ NEUTRON_NETWORK_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/neutron' % 
 NEUTRON_SUBNET_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/neutron' % (DATABASE_USERNAME, DATABASE_PASSWORD)
 
 # Agent DB engine
-agentDB_engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME), echo = True)
+agentDB_engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME), echo = False)
 #agentDB_engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME), pool_recycle=3600, echo = True)
 
 
@@ -58,6 +58,7 @@ def read_from_DB(connection, table_name, obj):
 
     return res
 
+
 # Synchorize agent table with glance (images talbe in glance DB) in terms of uuid
 def Sync_Image():
     
@@ -70,38 +71,26 @@ def Sync_Image():
     W_session = DBSession()
     
     for image in res:
-        print '-'*100 
-        print image.id
-        print image.name
-        print '-'*100 
         
-        # Synchorize image uuid to data table of agent 
-        new_image = Image(uuid_agent = uuid.uuid4(), uuid_cloud = image.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
-        # Add instance to session
-        W_session.add(new_image)
-    '''    
+        # Check if image already exists in agent DB, if image does not exist in agent DB then add it 
+        if image.status == "active" and len(W_session.query(Image).filter_by(uuid_cloud=image.id).all()) == 0:
+            # Synchorize image uuid to data table of agent 
+            new_image = Image(uuid_agent = uuid.uuid4(), uuid_cloud = image.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            # Add instance to session
+            W_session.add(new_image)
+
     try:
         # Commit session    
         W_session.commit()
-    except:
-        W_session.rollback()
+    except sqlalchemy.exc.IntegrityError, exc:
+        reason = exc.message
+        if reason.endswith('is not unique'):
+            print "%s already exists" % exc.params[0]
+            W_session.rollback()
     finally:
         # Close session
         W_session.close()
-    '''
-    
-    '''
-    W_session.commit()
-    W_session.close()
-    '''
-    
-    '''
-        except sqlalchemy.exc.IntegrityError, exc:
-            reason = exc.message
-            if reason.endswith('is not unique'):
-                print "%s already exists" % exc.params[0]
-                W_session.rollback()
-    '''
+
 
 # Synchorize agent table with flavor table (instance_types table in nova DB) in terms of uuid
 def Sync_Flavor():
@@ -188,6 +177,6 @@ def Sync_Subnet():
 if __name__ == '__main__':
     create_tables()
     Sync_Image()
-    Sync_Flavor()
-    Sync_Network()
-    Sync_Subnet()
+    #Sync_Flavor()
+    #Sync_Network()
+    #Sync_Subnet()
