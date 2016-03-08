@@ -64,32 +64,39 @@ def neutron_show_network_details(env):
 	threads[i].start()
 	
     # Initiate response data structure
-    json_data = {}	
-
+    response = ''	
+    
     # Wait until threads terminate
     for i in range(len(threads)):
-		
+        
 	# Parse response from site	
 	try:
 	    parsed_json = json.loads(threads[i].join())
-		   		
-	    # Get cloud site information by using regualr expression	
-	    site_pattern = re.compile(r'(?<=http://).*(?=:)')
-	    match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-	    # IP address of cloud
-	    site_ip = match.group()
-	    # Find name of cloud
-	    site = SITES.keys()[SITES.values().index('http://'+site_ip)]
-	    # Add site information to json response
-	    parsed_json['site_ip'] = site_ip
-	    parsed_json['site'] = site
-			
-	    response = json.dumps(parsed_json)
 	
-	    return response
+            try:
+	        NetworkNotFound = parsed_json['NeutronError']
+                pass
+            # Network found
+            except:
+		   		
+	        # Get cloud site information by using regualr expression	
+	        site_pattern = re.compile(r'(?<=http://).*(?=:)')
+	        match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
+	        # IP address of cloud
+	        site_ip = match.group()
+	        # Find name of cloud
+	        site = SITES.keys()[SITES.values().index('http://'+site_ip)]
+	        # Add site information to json response
+	        parsed_json['site_ip'] = site_ip
+	        parsed_json['site'] = site
 			
+	        response = json.dumps(parsed_json)
+	
 	except:
 	    return 'Failed to find network details'
+	
+    return response
+
 
 # Create network                    
 def neutron_create_network(env):
@@ -101,7 +108,7 @@ def neutron_create_network(env):
     PostData = env['wsgi.input'].read()
     
     # Construct url for creating network
-    url = 'http://10.0.1.12:' + config.get('Neutron','neutron_public_interface') + '/v2.0/networks' 
+    url = 'http://10.0.1.11:' + config.get('Neutron','neutron_public_interface') + '/v2.0/networks' 
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
     
@@ -249,8 +256,8 @@ def neutron_create_subnet(env):
     # Request data 
     PostData = env['wsgi.input'].read()
     
-    # Construct url for creating network
-    url = 'http://10.0.1.12:' + config.get('Neutron','neutron_public_interface') + '/v2.0/subnets' 
+    # Construct url for creating subnet
+    url = 'http://10.0.1.11:' + config.get('Neutron','neutron_public_interface') + '/v2.0/subnets' 
     
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}

@@ -105,16 +105,21 @@ def Sync_Flavor():
     
     for flavor in res:
         
-        # Synchorize flavor uuid to data table of agent 
-        new_flavor = Flavor(uuid_agent = uuid.uuid4(), uuid_cloud = flavor.flavorid, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
-        # Add instance to session
-        W_session.add(new_flavor)
+        # Check if flavor already exists in agent DB, if flavor does not exist in agent DB then add it 
+        if flavor.deleted == 0 and len(W_session.query(Flavor).filter_by(uuid_cloud=flavor.flavorid).all()) == 0:
+            # Synchorize flavor uuid to data table of agent 
+            new_flavor = Flavor(uuid_agent = uuid.uuid4(), uuid_cloud = flavor.flavorid, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            # Add instance to session
+            W_session.add(new_flavor)
 
     try:
         # Commit session    
         W_session.commit()
-    except:
-        W_session.rollback()
+    except sqlalchemy.exc.IntegrityError, exc:
+        reason = exc.message
+        if reason.endswith('is not unique'):
+            print "%s already exists" % exc.params[0]
+            W_session.rollback()
     finally:
         # Close session
         W_session.close()
@@ -131,16 +136,22 @@ def Sync_Network():
     W_session = DBSession()
     
     for network in res:
-        # Synchorize subnet uuid to data table of agent 
-        new_network = Network(uuid_agent = uuid.uuid4(), uuid_cloud = network.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
-        # Add instance to session
-        W_session.add(new_network)
+        
+        # Check if network already exists in agent DB, if network does not exist in agent DB then add it 
+        if network.status == 'ACTIVE' and len(W_session.query(Network).filter_by(uuid_cloud=network.id).all()) == 0:
+            # Synchorize subnet uuid to data table of agent 
+            new_network = Network(uuid_agent = uuid.uuid4(), uuid_cloud = network.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            # Add instance to session
+            W_session.add(new_network)
 
     try:
         # Commit session    
         W_session.commit()
-    except:
-        W_session.rollback()
+    except sqlalchemy.exc.IntegrityError, exc:
+        reason = exc.message
+        if reason.endswith('is not unique'):
+            print "%s already exists" % exc.params[0]
+            W_session.rollback()
     finally:
         # Close session
         W_session.close()
@@ -158,17 +169,22 @@ def Sync_Subnet():
     W_session = DBSession()
     
     for subnet in res:
-        # Synchorize subnet uuid to data table of agent 
-        new_subnet = Subnet(uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
-
-        # Add instance to session
-        W_session.add(new_subnet)
+        
+        # Check if network already exists in agent DB, if network does not exist in agent DB then add it 
+        if subnet.status == 'ACTIVE' and len(W_session.query(Subnet).filter_by(uuid_cloud=subnet.id).all()) == 0:
+            # Synchorize subnet uuid to data table of agent 
+            new_subnet = Subnet(uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            # Add instance to session
+            W_session.add(new_subnet)
     
     try:
         # Commit session    
         W_session.commit()
-    except:
-        W_session.rollback()
+    except sqlalchemy.exc.IntegrityError, exc:
+        reason = exc.message
+        if reason.endswith('is not unique'):
+            print "%s already exists" % exc.params[0]
+            W_session.rollback()
     finally:
         # Close session
         W_session.close()
@@ -177,6 +193,6 @@ def Sync_Subnet():
 if __name__ == '__main__':
     create_tables()
     Sync_Image()
-    #Sync_Flavor()
-    #Sync_Network()
+    Sync_Flavor()
+    Sync_Network()
     #Sync_Subnet()
