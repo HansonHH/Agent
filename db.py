@@ -31,7 +31,6 @@ NEUTRON_SUBNET_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/neutron' % (
 
 # Agent DB engine
 agentDB_engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME), echo = False)
-#agentDB_engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME), pool_recycle=3600, echo = True)
 
 
 # Create tables in database
@@ -40,6 +39,7 @@ def create_tables():
         Base.metadata.create_all(agentDB_engine)
     except exc:
         print exc.message
+
 
 # Read data from database
 def read_from_DB(connection, table_name, obj):
@@ -57,6 +57,22 @@ def read_from_DB(connection, table_name, obj):
     R_session.close()
 
     return res
+
+
+# A function to commit session
+def session_commit(session):
+    try:
+        # Commit session    
+        session.commit()
+    except sqlalchemy.exc.IntegrityError, exc:
+        reason = exc.message
+        session.rollback()
+        #if reason.endswith('is not unique'):
+        #    print "%s already exists" % exc.params[0]
+        #    session.rollback()
+    finally:
+        # Close session
+        session.close()
 
 
 # Synchorize agent table with glance (images talbe in glance DB) in terms of uuid
@@ -79,17 +95,9 @@ def Sync_Image():
             # Add instance to session
             W_session.add(new_image)
 
-    try:
-        # Commit session    
-        W_session.commit()
-    except sqlalchemy.exc.IntegrityError, exc:
-        reason = exc.message
-        if reason.endswith('is not unique'):
-            print "%s already exists" % exc.params[0]
-            W_session.rollback()
-    finally:
-        # Close session
-        W_session.close()
+    # Commit session
+    session_commit(W_session)
+
 
 
 # Synchorize agent table with flavor table (instance_types table in nova DB) in terms of uuid
@@ -112,17 +120,9 @@ def Sync_Flavor():
             # Add instance to session
             W_session.add(new_flavor)
 
-    try:
-        # Commit session    
-        W_session.commit()
-    except sqlalchemy.exc.IntegrityError, exc:
-        reason = exc.message
-        if reason.endswith('is not unique'):
-            print "%s already exists" % exc.params[0]
-            W_session.rollback()
-    finally:
-        # Close session
-        W_session.close()
+    # Commit session
+    session_commit(W_session)
+    
 
 # Synchorize agent table with network table (networks table in neutron DB) in terms of uuid
 def Sync_Network():
@@ -144,18 +144,9 @@ def Sync_Network():
             # Add instance to session
             W_session.add(new_network)
 
-    try:
-        # Commit session    
-        W_session.commit()
-    except sqlalchemy.exc.IntegrityError, exc:
-        reason = exc.message
-        if reason.endswith('is not unique'):
-            print "%s already exists" % exc.params[0]
-            W_session.rollback()
-    finally:
-        # Close session
-        W_session.close()
-
+    # Commit session
+    session_commit(W_session)
+    
 
 # Synchorize agent table with subnet table (subnets table in neutron DB) in terms of uuid
 def Sync_Subnet():
@@ -171,23 +162,17 @@ def Sync_Subnet():
     for subnet in res:
         
         # Check if network already exists in agent DB, if network does not exist in agent DB then add it 
-        if subnet.status == 'ACTIVE' and len(W_session.query(Subnet).filter_by(uuid_cloud=subnet.id).all()) == 0:
+        if len(W_session.query(Subnet).filter_by(uuid_cloud=subnet.id).all()) == 0:
+            
             # Synchorize subnet uuid to data table of agent 
-            new_subnet = Subnet(uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            new_subnet = Subnet(uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP, network_uuid_cloud = subnet.network_id)
             # Add instance to session
             W_session.add(new_subnet)
     
-    try:
-        # Commit session    
-        W_session.commit()
-    except sqlalchemy.exc.IntegrityError, exc:
-        reason = exc.message
-        if reason.endswith('is not unique'):
-            print "%s already exists" % exc.params[0]
-            W_session.rollback()
-    finally:
-        # Close session
-        W_session.close()
+    network_uuid_cloud = Column(String(36), ForeignKey('network.uuid_cloud'))
+    
+    # Commit session
+    session_commit(W_session)
     
 
 if __name__ == '__main__':
@@ -195,4 +180,4 @@ if __name__ == '__main__':
     Sync_Image()
     Sync_Flavor()
     Sync_Network()
-    #Sync_Subnet()
+    Sync_Subnet()
