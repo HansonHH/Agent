@@ -2,6 +2,7 @@ from eventlet import wsgi
 import eventlet
 import ConfigParser
 from api_catalog import api_catalog
+from models import *
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')

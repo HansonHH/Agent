@@ -4,52 +4,56 @@
 #
 # Copyright © 2016 Xin Han <hxinhan@gmail.com>
 #
+'''
+A file to initiate databse
+'''
 
 import ConfigParser
-from sqlalchemy import *
-from sqlalchemy.orm import *
-
-engine = create_engine('mysql+mysqldb://root:password@localhost/openstack_agent', pool_recycle=3600, echo= True)
-
-#engine.connect()
-
-metadata = MetaData(engine)
-
-user_table = Table('users', metadata, 
-        Column('id', Integer, primary_key=True),
-        Column('name', String(40)),
-        Column('email', String(120)))
-
-user_table.create()
-
-
-
-
-'''
-import MySQLdb
+from models import *
+import sqlalchemy.exc
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
+DATABASE_NAME = config.get('Database', 'DATABASE_NAME')
+DATABASE_USERNAME = config.get('Database', 'DATABASE_USERNAME')
 DATABASE_PASSWORD = config.get('Database', 'DATABASE_PASSWORD')
-print DATABASE_PASSWORD 
+
+engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME), pool_recycle=3600, echo= True)
+
+# Create tables in database
+def create_tables():
+    try:
+        Base.metadata.create_all(engine)
+    except exc:
+        print exc.message
 
 
-try:
 
-    con = MySQLdb.connect(host="localhost", user="root", passwd=DATABASE_PASSWORD, db="openstack_agent")
-    #con.query("SELECT VERSION()")
-    #res = con.use_result()
-    #print "MySQL version: %s" % res.fetch_row()[0]
-    cur = con.cursor()
-    cur.execute("SELECT VERSION()")
-    res = cur.fetchone()
-    print "MySQL version: %s" % res
+def create_test():
+    DBSession = sessionmaker(bind=engine)
 
-except _mysql.Error,e :
-    print "Error %d: %s" % (e.args[0], e.args[1])
+    session = DBSession()
+    
+    new_image = Image(uuid_agent='agent_2', uuid_cloud='cloud_2', name='image2', visibility='public', image_file='/v2/images/1bea47ed-f6a9-463b-b423-14b9cca9ad27/file', owner='5ef70662f8b34079a6eddb8da9d75fe8', protected=False)
+
+    try:
+        session.add(new_image)
+        session.commit()
+    except sqlalchemy.exc.IntegrityError, exc:
+        reason = exc.message
+        if reason.endswith('is not unique'):
+            print "%s already exists" % exc.params[0]
+            session.rollback()
+    finally:
+        session.close()
 
 
-finally:
-    if con:
-        con.close()
-'''
+#create_test()
+
+
+
+if __name__ == '__main__':
+    #create_tables()
+    create_test()
+
+
