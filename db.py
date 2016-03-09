@@ -24,10 +24,9 @@ AGENT_SITE_NAME = config.get('Agent', 'site')
 AGENT_SITE_IP = SITES[AGENT_SITE_NAME]
 
 # Configuration of DB engine connection
-GLANCE_IMAGE_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/glance' % (DATABASE_USERNAME, DATABASE_PASSWORD)
-NOVA_FLAVOR_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/nova' % (DATABASE_USERNAME, DATABASE_PASSWORD)
-NEUTRON_NETWORK_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/neutron' % (DATABASE_USERNAME, DATABASE_PASSWORD)
-NEUTRON_SUBNET_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/neutron' % (DATABASE_USERNAME, DATABASE_PASSWORD)
+GLANCE_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/glance' % (DATABASE_USERNAME, DATABASE_PASSWORD)
+NOVA_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/nova' % (DATABASE_USERNAME, DATABASE_PASSWORD)
+NEUTRON_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/neutron' % (DATABASE_USERNAME, DATABASE_PASSWORD)
 
 # Agent DB engine
 agentDB_engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME), echo = False)
@@ -79,7 +78,7 @@ def session_commit(session):
 def Sync_Image():
     
     # Read data of image from database  
-    res = read_from_DB(GLANCE_IMAGE_ENGINE_CONNECTION, 'images', GlanceImage)
+    res = read_from_DB(GLANCE_ENGINE_CONNECTION, 'images', GlanceImage)
 
     # Write to image table of agent DB 
     # Create session of image table of agetn DB
@@ -91,7 +90,7 @@ def Sync_Image():
         # Check if image already exists in agent DB, if image does not exist in agent DB then add it 
         if image.status == "active" and len(W_session.query(Image).filter_by(uuid_cloud=image.id).all()) == 0:
             # Synchorize image uuid to data table of agent 
-            new_image = Image(uuid_agent = uuid.uuid4(), uuid_cloud = image.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            new_image = Image(uuid_agent = uuid.uuid4(), uuid_cloud = image.id, image_name = image.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
             # Add instance to session
             W_session.add(new_image)
 
@@ -104,7 +103,7 @@ def Sync_Image():
 def Sync_Flavor():
    
     # Read data of flavor from database  
-    res = read_from_DB(NOVA_FLAVOR_ENGINE_CONNECTION, 'instance_types', NovaFlavor)
+    res = read_from_DB(NOVA_ENGINE_CONNECTION, 'instance_types', NovaFlavor)
 
     # Write to image table of agent DB 
     # Create session of image table of agetn DB
@@ -116,7 +115,7 @@ def Sync_Flavor():
         # Check if flavor already exists in agent DB, if flavor does not exist in agent DB then add it 
         if flavor.deleted == 0 and len(W_session.query(Flavor).filter_by(uuid_cloud=flavor.flavorid).all()) == 0:
             # Synchorize flavor uuid to data table of agent 
-            new_flavor = Flavor(uuid_agent = uuid.uuid4(), uuid_cloud = flavor.flavorid, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            new_flavor = Flavor(uuid_agent = uuid.uuid4(), uuid_cloud = flavor.flavorid, flavor_name = flavor.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
             # Add instance to session
             W_session.add(new_flavor)
 
@@ -128,7 +127,7 @@ def Sync_Flavor():
 def Sync_Network():
     
     # Read data of network from database  
-    res = read_from_DB(NEUTRON_NETWORK_ENGINE_CONNECTION, 'networks', NeutronNetwork)
+    res = read_from_DB(NEUTRON_ENGINE_CONNECTION, 'networks', NeutronNetwork)
    
     # Write to subnet table of agent DB 
     # Create session of subnet table of agetn DB
@@ -140,7 +139,7 @@ def Sync_Network():
         # Check if network already exists in agent DB, if network does not exist in agent DB then add it 
         if network.status == 'ACTIVE' and len(W_session.query(Network).filter_by(uuid_cloud=network.id).all()) == 0:
             # Synchorize subnet uuid to data table of agent 
-            new_network = Network(uuid_agent = uuid.uuid4(), uuid_cloud = network.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            new_network = Network(uuid_agent = uuid.uuid4(), uuid_cloud = network.id, network_name = network.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
             # Add instance to session
             W_session.add(new_network)
 
@@ -152,7 +151,7 @@ def Sync_Network():
 def Sync_Subnet():
     
     # Read data of subnet from database  
-    res = read_from_DB(NEUTRON_SUBNET_ENGINE_CONNECTION, 'subnets', NeutronSubnet)
+    res = read_from_DB(NEUTRON_ENGINE_CONNECTION, 'subnets', NeutronSubnet)
 
     # Write to subnet table of agent DB 
     # Create session of subnet table of agetn DB
@@ -165,7 +164,7 @@ def Sync_Subnet():
         if len(W_session.query(Subnet).filter_by(uuid_cloud=subnet.id).all()) == 0:
             
             # Synchorize subnet uuid to data table of agent 
-            new_subnet = Subnet(uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP, network_uuid_cloud = subnet.network_id)
+            new_subnet = Subnet(uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, subnet_name = subnet.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP, network_uuid_cloud = subnet.network_id)
             # Add instance to session
             W_session.add(new_subnet)
     
@@ -174,6 +173,28 @@ def Sync_Subnet():
     # Commit session
     session_commit(W_session)
     
+# Synchorize agent table with instance table (instances table in nova DB) in terms of uuid
+def Sync_VM():
+   
+    # Read data of flavor from database  
+    res = read_from_DB(NOVA_ENGINE_CONNECTION, 'instances', NovaVM)
+
+    # Write to image table of agent DB 
+    # Create session of image table of agetn DB
+    DBSession = sessionmaker(bind = agentDB_engine)
+    W_session = DBSession()
+    
+    for vm in res:
+        
+        # Check if flavor already exists in agent DB, if flavor does not exist in agent DB then add it 
+        if vm.deleted == 0 and len(W_session.query(VM).filter_by(uuid_cloud=vm.uuid).all()) == 0:
+            # Synchorize flavor uuid to data table of agent 
+            new_vm = VM(uuid_agent = uuid.uuid4(), uuid_cloud = vm.uuid, vm_name = vm.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            # Add instance to session
+            W_session.add(new_vm)
+
+    # Commit session
+    session_commit(W_session)
 
 if __name__ == '__main__':
     create_tables()
@@ -181,3 +202,4 @@ if __name__ == '__main__':
     Sync_Flavor()
     Sync_Network()
     Sync_Subnet()
+    Sync_VM()
