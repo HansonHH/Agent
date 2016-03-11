@@ -23,6 +23,7 @@ def nova_list_servers(env):
     
     # Initiate response data structure
     json_data = {'servers':[]}	
+    headers = [('Content-Type','application/json')]	
 
     # Wait until threads terminate
     for i in range(len(threads)):
@@ -33,7 +34,7 @@ def nova_list_servers(env):
 	# If VM exists in cloud
 	if len(parsed_json['servers']) != 0:
 	    # Recursively look up VMs
-	    for i in range(len(parsed_json['servers'])):
+	    for j in range(len(parsed_json['servers'])):
 			
 		# Get cloud site information by using regualr expression	
 		site_pattern = re.compile(r'(?<=http://).*(?=:)')
@@ -43,14 +44,20 @@ def nova_list_servers(env):
 		# Find name of cloud
 		site = SITES.keys()[SITES.values().index('http://'+site_ip)]
 		# Add site information to json response
-	        parsed_json['servers'][i]['site_ip'] = site_ip
-		parsed_json['servers'][i]['site'] = site
+	        parsed_json['servers'][j]['site_ip'] = site_ip
+		parsed_json['servers'][j]['site'] = site
 		
-		json_data['servers'].append(parsed_json['servers'][i])
+		json_data['servers'].append(parsed_json['servers'][j])
 	
-    response = json.dumps(json_data)
-	
-    return response
+    # Create status code response
+    if len(json_data['servers']) != 0:
+        status_code = '200'
+        response = json.dumps(json_data)
+    else:
+        status_code = ''
+        response = ''
+    
+    return response, status_code, headers
 
 
 # List details for servers

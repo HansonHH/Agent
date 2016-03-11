@@ -22,6 +22,7 @@ def api_catalog(env, start_response):
 	if PATH_INFO == '/v3/auth/tokens':
 	    
             response = keystone_authentication_v3(env)
+            
             # Shift dictionary to tuple
 	    headers = ast.literal_eval(str(response.headers)).items()
             # Respond to end user
@@ -35,10 +36,6 @@ def api_catalog(env, start_response):
 	print 'Compute API v2.1 START WITH /v2.1'
 	print '*'*30
 	
-	#pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
-	#match = pattern.search(env['PATH_INFO'])
-	#TENANT_ID = match.group()
-		
 	# GET request
 	if env['REQUEST_METHOD'] == 'GET':
 	    # List details for servers
@@ -46,14 +43,16 @@ def api_catalog(env, start_response):
 		response = nova_list_details_servers(env)
 	    # List servers
 	    elif PATH_INFO.endswith('/servers'):
-		response = nova_list_servers(env)
+		response, status_code, headers = nova_list_servers(env)
 	    # Show server details
 	    else:
 		response = nova_show_server_details(env)
 
-	    headers = [('Content-Type','application/json')]	
-	    start_response('200 OK', headers)
-	    return response
+	    #headers = [('Content-Type','application/json')]	
+	    start_response(status_code, headers)
+	    #start_response(status_code, headers)
+	    
+            return response
 	
     # Image API v2
     elif PATH_INFO.startswith('/v2/'):
@@ -68,10 +67,38 @@ def api_catalog(env, start_response):
 		response = glance_show_image_details(env)
 	    # List images
 	    else:
-		response = glance_list_images(env)
+		response, status_code, headers = glance_list_images(env)
 		
-	    headers = [('Content-Type','application/json')]	
-	    start_response('200 OK', headers)
+                print status_code
+	        #headers = [('Content-Type','application/json')]	
+	        start_response(status_code, headers)
+                    
+                return response
+
+        # POST request
+        elif env['REQUEST_METHOD'] == 'POST':
+            # Create image
+            response = glance_create_image(env)
+            
+            # Shift dictionary to tuple
+	    headers = ast.literal_eval(str(response.headers)).items()
+            # Respond to end user
+	    start_response(str(response.status_code), headers)
+            
+            return response
+
+        # PUT request
+        elif env['REQUEST_METHOD'] == 'PUT':
+            
+            response = glance_upload_binary_image_data(env)
+            
+            # Shift dictionary to tuple
+	    headers = ast.literal_eval(str(response.headers)).items()
+            # Respond to end user
+	    start_response(str(response.status_code), headers)
+
+	    #headers = [('Content-Type','application/json')]	
+	    #start_response('200 OK', headers)
             return response
 
 	# DELETE request	
@@ -123,8 +150,10 @@ def api_catalog(env, start_response):
 	# DELETE request	
 	elif env['REQUEST_METHOD'] == 'DELETE':
             response = neutron_delete_network(env)
-	    headers = ast.literal_eval(response['headers']).items()
+	    
+            headers = ast.literal_eval(response['headers']).items()
 	    start_response(str(response['status_code']), headers)
+            
             return response
 
 

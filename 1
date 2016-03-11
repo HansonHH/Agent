@@ -19,51 +19,35 @@ def glance_list_images(env):
 	
     # Initiate response data structure
     json_data = {'images':[]}	
-    headers = [('Content-Type','application/json')]	
-    normal_status_code = ''
-    error_status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
 		
 	# Parse response from site	
-        try:
+	response = json.loads(threads[i].join())
 
-	    parsed_json = json.loads(threads[i].join()[0])
-            normal_status_code = str(threads[i].join()[1])
+	# Get cloud site information by using regualr expression	
+	site_pattern = re.compile(r'(?<=http://).*(?=:)')
+	match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
+	# IP address of cloud
+	site_ip = match.group()
+	# Find name of cloud
+	site = SITES.keys()[SITES.values().index('http://'+site_ip)]
 
-	    # If image exists in cloud
-	    if len(parsed_json['images']) != 0:
-
-	        # Recursively look up images
-	        for j in range(len(parsed_json['images'])):
-	
-                    # Get cloud site information by using regualr expression	
-	            site_pattern = re.compile(r'(?<=http://).*(?=:)')
-	            match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-	            # IP address of cloud
-	            site_ip = match.group()
-	            # Find name of cloud
-	            site = SITES.keys()[SITES.values().index('http://'+site_ip)]
-		    # Add site information to json response
-		    parsed_json['images'][j]['site_ip'] = site_ip
-		    parsed_json['images'][j]['site'] = site
+	# If VM exists in cloud
+	if len(response['images']) != 0:
+	    # Recursively look up VMs
+	    for i in range(len(response['images'])):
+		response['images'][i]['site_ip'] = site_ip
+		response['images'][i]['site'] = site
 				
-		    json_data['images'].append(parsed_json['images'][j])
-        except:
-            error_status_code = str(threads[i].join()[1])
-
-    # Create status code response
-    # If there exists at least one image
-    if len(json_data['images']) != 0:
-        status_code = normal_status_code
-        response = json.dumps(json_data)
-    # No image exists
-    else:
-        status_code = error_status_code
-        response = {'images':[]}
-
-    return (response, status_code, headers)
+		json_data['images'].append(response['images'][i])
+	
+    #return res, json_data
+    
+    res = json.dumps(json_data)
+	
+    return res
 
 
 # Show image details

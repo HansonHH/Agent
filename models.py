@@ -97,23 +97,23 @@ class Subnet(Base):
         return "<Subnet (uuid_agent=%s, uuid_cloud=%s, subnet_name, cloud_name=%s, cloud_address=%s)>" % (self.uuid_agent, self.uuid_cloud, self.subnet_name, self.cloud_name, self.cloud_address)
 
 
-# Define Image class
-class VM(Base):
+# Define Instance class
+class Instance(Base):
 
     # Name of table
-    __tablename__ = 'vm'
+    __tablename__ = 'instance'
     # Table configuration
     __table_args__ = TABLE_ARGS
 
     # Data structure of table
     uuid_agent = Column(String(36))
     uuid_cloud = Column(String(36), primary_key = True)
-    vm_name = Column(String(40))
+    instance_name = Column(String(40))
     cloud_name = Column(String(40))
     cloud_address = Column(String(40))
 
     def __repr__(self):
-        return "<VM (uuid_agent=%s, uuid_cloud=%s, vm_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.uuid_agent, self.uuid_cloud, self.vm_name, self.cloud_name, self.cloud_address)
+        return "<Instance (uuid_agent=%s, uuid_cloud=%s, instance_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.uuid_agent, self.uuid_cloud, self.instance_name, self.cloud_name, self.cloud_address)
 
 # Data structure of Glance Image
 class GlanceImage(object):
@@ -132,6 +132,6 @@ class NeutronSubnet(object):
     pass
 
 # Data structure of Nova VM
-class NovaVM(object):
+class NovaInstance(object):
     pass
 

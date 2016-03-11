@@ -16,15 +16,20 @@ config.read('agent.conf')
 SITES = ast.literal_eval(config.get('Clouds','sites'))
 print SITES
 
-# POST request t cloud
+# POST request cloud
 def POST_request_to_cloud(url, headers, PostData):
     res = requests.post(url, headers = headers, data = PostData)
+    return res
+
+# PUT request t cloud
+def PUT_request_to_cloud(url, headers, PutData):
+    res = requests.put(url, headers = headers, data = PutData)
     return res
 
 # GET request to cloud
 def GET_request_to_cloud(url, headers):
     res = requests.get(url, headers = headers)
-    return res.text
+    return res.text, res.status_code
 
 # DELETE request to cloud
 def DELETE_request_to_cloud(url, headers):

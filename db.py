@@ -174,24 +174,24 @@ def Sync_Subnet():
     session_commit(W_session)
     
 # Synchorize agent table with instance table (instances table in nova DB) in terms of uuid
-def Sync_VM():
+def Sync_Instance():
    
-    # Read data of flavor from database  
-    res = read_from_DB(NOVA_ENGINE_CONNECTION, 'instances', NovaVM)
-
+    # Read data of instance from database
+    res = read_from_DB(NOVA_ENGINE_CONNECTION, 'instances', NovaInstance)
+    
     # Write to image table of agent DB 
     # Create session of image table of agetn DB
     DBSession = sessionmaker(bind = agentDB_engine)
     W_session = DBSession()
     
-    for vm in res:
+    for instance in res:
         
         # Check if flavor already exists in agent DB, if flavor does not exist in agent DB then add it 
-        if vm.deleted == 0 and len(W_session.query(VM).filter_by(uuid_cloud=vm.uuid).all()) == 0:
-            # Synchorize flavor uuid to data table of agent 
-            new_vm = VM(uuid_agent = uuid.uuid4(), uuid_cloud = vm.uuid, vm_name = vm.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+        if instance.deleted == 0 and len(W_session.query(Instance).filter_by(uuid_cloud=instance.uuid).all()) == 0:
+            # Synchorize instance uuid to data table of agent 
+            new_instance = Instance(uuid_agent = uuid.uuid4(), uuid_cloud = instance.uuid, instance_name = instance.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
             # Add instance to session
-            W_session.add(new_vm)
+            W_session.add(new_instance)
 
     # Commit session
     session_commit(W_session)
@@ -202,4 +202,4 @@ if __name__ == '__main__':
     Sync_Flavor()
     Sync_Network()
     Sync_Subnet()
-    Sync_VM()
+    Sync_Instance()
