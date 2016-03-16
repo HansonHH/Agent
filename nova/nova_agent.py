@@ -7,6 +7,9 @@ def nova_list_servers(env):
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
+    url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO']
+    
+    '''
     # Retrive tenant id by regular expression 
     tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
     match = tenant_id_pattern.search(env['PATH_INFO'])
@@ -14,6 +17,7 @@ def nova_list_servers(env):
     
     # Create suffix of service url
     url_suffix = config.get('Nova', 'nova_public_interface') + '/v2.1/' + TENANT_ID + '/servers'
+    '''
     
     # Get generated threads 
     threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
@@ -25,8 +29,7 @@ def nova_list_servers(env):
     # Initiate response data structure
     json_data = {'servers':[]}	
     headers = [('Content-Type','application/json')]	
-    normal_status_code = ''
-    error_status_code = ''
+    status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
@@ -35,7 +38,7 @@ def nova_list_servers(env):
         try:
 
 	    response = json.loads(threads[i].join()[0])
-            normal_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 
 	    # If image exists in cloud
 	    if len(response['servers']) != 0:
@@ -47,17 +50,15 @@ def nova_list_servers(env):
 		    json_data['servers'].append(new_response)
                     
         except:
-            error_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 
     # Create status code response
     # If there exists at least one image
     if len(json_data['servers']) != 0:
-        status_code = normal_status_code
         res = json.dumps(json_data)
     # No image exists
-    else:
-        status_code = error_status_code
-        res = {'servers':[]}
+    elif len(json_data['servers']) == 0:
+        res = json.dumps({'servers':[]})
 
     return (res, status_code, headers)
 
@@ -69,13 +70,7 @@ def nova_list_details_servers(env):
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
-    # Retrive tenant id by regular expression 
-    tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
-    match = tenant_id_pattern.search(env['PATH_INFO'])
-    TENANT_ID = match.group()
-	
-    # Create suffix of service url
-    url_suffix = config.get('Nova', 'nova_public_interface') + '/v2.1/' + TENANT_ID + '/servers/detail'
+    url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO']
     
     # Get generated threads 
     threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
@@ -87,8 +82,7 @@ def nova_list_details_servers(env):
     # Initiate response data structure
     json_data = {'servers':[]}	
     headers = [('Content-Type','application/json')]	
-    normal_status_code = ''
-    error_status_code = ''
+    status_code = ''
 	
     # Wait until threads terminate
     for i in range(len(threads)):
@@ -97,7 +91,7 @@ def nova_list_details_servers(env):
         try:
 		
 	    response = json.loads(threads[i].join()[0])
-            normal_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 		
             # If VM exists in cloud
 	    if len(response['servers']) != 0:
@@ -108,18 +102,16 @@ def nova_list_details_servers(env):
 		    json_data['servers'].append(new_response)
                     
         except:
-            error_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 		
     # Create status code response
     # If there exists at least one image
     if len(json_data['servers']) != 0:
-        status_code = normal_status_code
         res = json.dumps(json_data)
     # No image exists
-    else:
-        status_code = error_status_code
-        res = {'servers':[]}
-
+    elif len(json_data['servers']) == 0:
+        res = json.dumps({'servers':[]})
+    
     return (res, status_code, headers)
     
 
@@ -129,10 +121,6 @@ def nova_show_server_details(env):
 
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-    # Retrive tenant id by regular expression 
-    tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
-    match = tenant_id_pattern.search(env['PATH_INFO'])
-    TENANT_ID = match.group()
 	
     # Create suffix of service url
     url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO'] 
@@ -147,8 +135,7 @@ def nova_show_server_details(env):
     # Initiate response data structure
     response = None
     headers = [('Content-Type','application/json')]	
-    normal_status_code = ''
-    error_status_code = ''
+    status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
@@ -160,23 +147,57 @@ def nova_show_server_details(env):
             try:
 	        itemNotFound = response['itemNotFound']
                 res = json.dumps(response)
-                error_status_code = str(threads[i].join()[1])
+                status_code = str(threads[i].join()[1])
             # VM found
             except:
                 
-                normal_status_code = str(threads[i].join()[1])
+                status_code = str(threads[i].join()[1])
                 # Add cloud info to response 
                 response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response)
-	    
                 res = json.dumps(response)
     
-                return (res, normal_status_code, headers)
+                return (res, status_code, headers)
 			
 	except:
-            error_status_code = str(threads[i].join()[1])
-            res = threads[i].join()[0]
+            status_code = str(threads[i].join()[1])
+            res = json.dumps(threads[i].join()[0])
     
-    return (res, error_status_code, headers)
+    return (res, status_code, headers)
+
+
+# Delete image
+def nova_delete_server(env):
+	
+    # Retrive token from request
+    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+    
+    # Create suffix of service url
+    url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO'] 
+    
+    # Get generated threads 
+    threads = generate_threads(X_AUTH_TOKEN, url_suffix, DELETE_request_to_cloud)
+
+    # Launch threads
+    for i in range(len(threads)):
+	threads[i].start()
+
+    threads_json = []
+    # Wait until threads terminate
+    for i in range(len(threads)):
+	
+	# Parse response from site	
+	parsed_json = json.loads(threads[i].join())
+	threads_json.append(parsed_json)
+
+    for i in range(len(threads_json)):
+        # Server delete successfully
+	if threads_json[i]['status_code'] == 204:
+	    return threads_json[i]
+		
+    if len(threads_json) != 0:
+	return threads_json[0] 
+    else:
+	return 'Failed to delete server! \r\n'
 
 
 # Print out status code and response from Keystone

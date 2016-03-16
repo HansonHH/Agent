@@ -21,8 +21,7 @@ def glance_list_images(env):
     # Initiate response data structure
     json_data = {'images':[]}	
     headers = [('Content-Type','application/json')]	
-    normal_status_code = ''
-    error_status_code = ''
+    status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
@@ -31,7 +30,7 @@ def glance_list_images(env):
         try:
 
 	    response = json.loads(threads[i].join()[0])
-            normal_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 
 	    # If image exists in cloud
 	    if len(response['images']) != 0:
@@ -43,7 +42,7 @@ def glance_list_images(env):
 		    json_data['images'].append(new_response)
 
         except:
-            error_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 
     # Create status code response
     # If there exists at least one image
@@ -51,9 +50,8 @@ def glance_list_images(env):
         status_code = normal_status_code
         res = json.dumps(json_data)
     # No image exists
-    else:
-        status_code = error_status_code
-        res = {'images':[]}
+    elif len(json_data['images']) == 0:
+        res = json.dumps({'servers':[]})
 
     return (res, status_code, headers)
 
@@ -78,8 +76,7 @@ def glance_show_image_details(env):
     # Initiate response data structure
     response = None
     headers = [('Content-Type','application/json')]	
-    normal_status_code = ''
-    error_status_code = ''
+    status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
@@ -88,19 +85,19 @@ def glance_show_image_details(env):
         # If found image
 	try:
 	    response = json.loads(threads[i].join()[0])
-            normal_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 	    # Add cloud info to response 
             response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response)
 
             res = json.dumps(response)
-            return (res, normal_status_code, headers)
+            return (res, status_code, headers)
 	
         # If not found image	
 	except:
-            error_status_code = str(threads[i].join()[1])
-            res = threads[i].join()[0]
+            status_code = str(threads[i].join()[1])
+            res = json.dumps(threads[i].join()[0])
     
-    return (res, error_status_code, headers)
+    return (res, status_code, headers)
 
 
 # Create image                    

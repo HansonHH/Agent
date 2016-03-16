@@ -9,7 +9,7 @@ def neutron_list_networks(env):
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
     # Create suffix of service url
-    url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks'
+    url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO']
     
     # Get generated threads 
     threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
@@ -21,8 +21,7 @@ def neutron_list_networks(env):
     # Initiate response data structure
     json_data = {'networks':[]}	
     headers = [('Content-Type','application/json')]	
-    normal_status_code = ''
-    error_status_code = ''
+    status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
@@ -31,7 +30,7 @@ def neutron_list_networks(env):
         try:
 
 	    response = json.loads(threads[i].join()[0])
-            normal_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 
 	    # If network exists in cloud
 	    if len(response['networks']) != 0:
@@ -43,17 +42,15 @@ def neutron_list_networks(env):
 		    json_data['networks'].append(new_response)
 
         except:
-            error_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 
     # Create status code response
     # If there exists at least one network
     if len(json_data['networks']) != 0:
-        status_code = normal_status_code
         res = json.dumps(json_data)
     # No network exists
-    else:
-        status_code = error_status_code
-        res = {'networks':[]}
+    elif len(json_data['networks']) == 0:
+        res = json.dumps({'networks':[]})
 
     return (res, status_code, headers)
 
@@ -77,8 +74,7 @@ def neutron_show_network_details(env):
     # Initiate response data structure
     response = None
     headers = [('Content-Type','application/json')]	
-    normal_status_code = ''
-    error_status_code = ''
+    status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
@@ -90,7 +86,7 @@ def neutron_show_network_details(env):
             try:
 	        networkNotFound = response['NeutronError']
                 res = json.dumps(response)
-                error_status_code = str(threads[i].join()[1])
+                status_code = str(threads[i].join()[1])
             # Network found
             except:
                 normal_status_code = str(threads[i].join()[1])
@@ -99,13 +95,13 @@ def neutron_show_network_details(env):
                 
                 res = json.dumps(response)
     
-                return (res, normal_status_code, headers)
+                return (res, status_code, headers)
 			
 	except:
-            error_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
             res = threads[i].join()[0]
 
-    return (res, error_status_code, headers)
+    return (res, status_code, headers)
 
 
 
@@ -170,7 +166,8 @@ def neutron_list_subnets(env):
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
     # Create suffix of service url
-    url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets'
+    #url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets'
+    url_suffix = config.get('Neutron', 'neutron_public_interface') + env['PATH_INFO']
     
     # Get generated threads 
     threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
@@ -182,8 +179,7 @@ def neutron_list_subnets(env):
     # Initiate response data structure
     json_data = {'subnets':[]}	
     headers = [('Content-Type','application/json')]	
-    normal_status_code = ''
-    error_status_code = ''
+    status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
@@ -192,7 +188,7 @@ def neutron_list_subnets(env):
         try:
 
 	    response = json.loads(threads[i].join()[0])
-            normal_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 
 	    # If subnet exists in cloud
 	    if len(response['subnets']) != 0:
@@ -203,17 +199,15 @@ def neutron_list_subnets(env):
                     new_response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response['subnets'][j])
 		    json_data['subnets'].append(new_response)
         except:
-            error_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
 
     # Create status code response
     # If there exists at least one subnet
     if len(json_data['subnets']) != 0:
-        status_code = normal_status_code
         res = json.dumps(json_data)
     # No subnet exists
-    else:
-        status_code = error_status_code
-        res = {'subnets':[]}
+    elif len(json_data['subnets']) == 0:
+        res = json.dumps({'subnets':[]})
 
     return (res, status_code, headers)
 
@@ -237,8 +231,7 @@ def neutron_show_subnet_details(env):
     # Initiate response data structure
     response = None
     headers = [('Content-Type','application/json')]	
-    normal_status_code = ''
-    error_status_code = ''
+    status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
@@ -250,22 +243,21 @@ def neutron_show_subnet_details(env):
             try:
 	        networkNotFound = response['NeutronError']
                 res = json.dumps(response)
-                error_status_code = str(threads[i].join()[1])
+                status_code = str(threads[i].join()[1])
             # Network found
             except:
                 normal_status_code = str(threads[i].join()[1])
 	        # Add cloud info to response 
                 response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response)
-                
                 res = json.dumps(response)
     
-                return (res, normal_status_code, headers)
+                return (res, status_code, headers)
 			
 	except:
-            error_status_code = str(threads[i].join()[1])
+            status_code = str(threads[i].join()[1])
             res = threads[i].join()[0]
 
-    return (res, error_status_code, headers)
+    return (res, status_code, headers)
 
 
 # Create subnet                    
@@ -288,7 +280,7 @@ def neutron_create_subnet(env):
     return response
 
 
-# Delete network
+# Delete subnet
 def neutron_delete_subnet(env):
 
     # Retrive token from request
@@ -320,4 +312,8 @@ def neutron_delete_subnet(env):
     if len(threads_json) != 0:
 	return threads_json[0] 
     else:
-	return 'Failed to delete network! \r\n'
+	return 'Failed to delete subnet! \r\n'
+
+
+
+

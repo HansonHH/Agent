@@ -46,11 +46,22 @@ def api_catalog(env, start_response):
 		response, status_code, headers = nova_list_servers(env)
 	    # Show server details
 	    else:
-		#response = nova_show_server_details(env)
 		response, status_code, headers = nova_show_server_details(env)
 
 	    start_response(status_code, headers)
-	    
+	   
+            return response
+	
+        # DELETE request	
+        elif env['REQUEST_METHOD'] == 'DELETE':
+	    # Delete server
+            response = nova_delete_server(env)	
+            
+            # Shift dictionary to tuple
+	    headers = ast.literal_eval(response['headers']).items()
+            # Respond to end user
+	    start_response(str(response['status_code']), headers)
+            
             return response
 	
     # Image API v2
@@ -146,6 +157,7 @@ def api_catalog(env, start_response):
 
 	# DELETE request	
 	elif env['REQUEST_METHOD'] == 'DELETE':
+            
             response = neutron_delete_network(env)
 	    
             headers = ast.literal_eval(response['headers']).items()
@@ -157,7 +169,7 @@ def api_catalog(env, start_response):
     # Subnet
     elif PATH_INFO.startswith('/v2.0/subnets'):
         print '*'*30
-        print 'Network API v2.0 START WITH /v2.0'
+        print 'Network API (Subnets) v2.0 START WITH /v2.0'
         print '*'*30
         
         # GET request
@@ -189,6 +201,15 @@ def api_catalog(env, start_response):
 
             return json.dumps(response.json())
         
+	# DELETE request	
+	elif env['REQUEST_METHOD'] == 'DELETE':
+            
+            response = neutron_delete_subnet(env)
+	    
+            headers = ast.literal_eval(response['headers']).items()
+	    start_response(str(response['status_code']), headers)
+            
+            return response
 
 
 
