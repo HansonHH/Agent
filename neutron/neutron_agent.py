@@ -1,5 +1,6 @@
 from nova.nova_agent import *
 from request import *
+from common import *
 
 # List networks
 def neutron_list_networks(env):
@@ -16,36 +17,46 @@ def neutron_list_networks(env):
     # Launch threads
     for i in range(len(threads)):
         threads[i].start()
-	
+
     # Initiate response data structure
     json_data = {'networks':[]}	
-        
+    headers = [('Content-Type','application/json')]	
+    normal_status_code = ''
+    error_status_code = ''
+
     # Wait until threads terminate
     for i in range(len(threads)):
 		
-        # Parse response from site	
-	parsed_json = json.loads(threads[i].join())
-                
-	# Get cloud site information by using regualr expression	
-	site_pattern = re.compile(r'(?<=http://).*(?=:)')
-	match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-	# IP address of cloud
-	site_ip = match.group()
-	# Find name of cloud
-	site = SITES.keys()[SITES.values().index('http://'+site_ip)]
+	# Parse response from site	
+        try:
 
-	# If network exists in cloud
-	if len(parsed_json['networks']) != 0:
-	    # Recursively look up networks
-	    for i in range(len(parsed_json['networks'])):
-		parsed_json['networks'][i]['site_ip'] = site_ip
-		parsed_json['networks'][i]['site'] = site
-				
-		json_data['networks'].append(parsed_json['networks'][i])
-	
-    response = json.dumps(json_data)
-	
-    return response
+	    response = json.loads(threads[i].join()[0])
+            normal_status_code = str(threads[i].join()[1])
+
+	    # If network exists in cloud
+	    if len(response['networks']) != 0:
+
+	        # Recursively look up networks
+	        for j in range(len(response['networks'])):
+                    # Add cloud info to response	
+                    new_response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response['networks'][j])
+		    json_data['networks'].append(new_response)
+
+        except:
+            error_status_code = str(threads[i].join()[1])
+
+    # Create status code response
+    # If there exists at least one network
+    if len(json_data['networks']) != 0:
+        status_code = normal_status_code
+        res = json.dumps(json_data)
+    # No network exists
+    else:
+        status_code = error_status_code
+        res = {'networks':[]}
+
+    return (res, status_code, headers)
+
 
 # Show network details
 def neutron_show_network_details(env):
@@ -64,38 +75,38 @@ def neutron_show_network_details(env):
 	threads[i].start()
 	
     # Initiate response data structure
-    response = ''	
-    
+    response = None
+    headers = [('Content-Type','application/json')]	
+    normal_status_code = ''
+    error_status_code = ''
+
     # Wait until threads terminate
     for i in range(len(threads)):
-        
-	# Parse response from site	
+        # Parse response from site	
 	try:
-	    parsed_json = json.loads(threads[i].join())
-	
+	    response = json.loads(threads[i].join()[0])
+            
+            # If network not found
             try:
-	        NetworkNotFound = parsed_json['NeutronError']
-                pass
+	        networkNotFound = response['NeutronError']
+                res = json.dumps(response)
+                error_status_code = str(threads[i].join()[1])
             # Network found
             except:
-		   		
-	        # Get cloud site information by using regualr expression	
-	        site_pattern = re.compile(r'(?<=http://).*(?=:)')
-	        match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-	        # IP address of cloud
-	        site_ip = match.group()
-	        # Find name of cloud
-	        site = SITES.keys()[SITES.values().index('http://'+site_ip)]
-	        # Add site information to json response
-	        parsed_json['site_ip'] = site_ip
-	        parsed_json['site'] = site
+                normal_status_code = str(threads[i].join()[1])
+	        # Add cloud info to response 
+                response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response)
+                
+                res = json.dumps(response)
+    
+                return (res, normal_status_code, headers)
 			
-	        response = json.dumps(parsed_json)
-	
 	except:
-	    return 'Failed to find network details'
-	
-    return response
+            error_status_code = str(threads[i].join()[1])
+            res = threads[i].join()[0]
+
+    return (res, error_status_code, headers)
+
 
 
 # Create network                    
@@ -170,33 +181,41 @@ def neutron_list_subnets(env):
 	
     # Initiate response data structure
     json_data = {'subnets':[]}	
-        
+    headers = [('Content-Type','application/json')]	
+    normal_status_code = ''
+    error_status_code = ''
+
     # Wait until threads terminate
     for i in range(len(threads)):
 		
 	# Parse response from site	
-	parsed_json = json.loads(threads[i].join())
-                 
-	# Get cloud site information by using regualr expression	
-	site_pattern = re.compile(r'(?<=http://).*(?=:)')
-	match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-	# IP address of cloud
-	site_ip = match.group()
-	# Find name of cloud
-	site = SITES.keys()[SITES.values().index('http://'+site_ip)]
+        try:
 
-	# If subnet exists in cloud
-	if len(parsed_json['subnets']) != 0:
-	    # Recursively look up subnets
-	    for i in range(len(parsed_json['subnets'])):
-		parsed_json['subnets'][i]['site_ip'] = site_ip
-		parsed_json['subnets'][i]['site'] = site
-				
-		json_data['subnets'].append(parsed_json['subnets'][i])
-	
-    response = json.dumps(json_data)
-	
-    return response
+	    response = json.loads(threads[i].join()[0])
+            normal_status_code = str(threads[i].join()[1])
+
+	    # If subnet exists in cloud
+	    if len(response['subnets']) != 0:
+
+	        # Recursively look up subnets
+	        for j in range(len(response['subnets'])):
+                    # Add cloud info to response	
+                    new_response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response['subnets'][j])
+		    json_data['subnets'].append(new_response)
+        except:
+            error_status_code = str(threads[i].join()[1])
+
+    # Create status code response
+    # If there exists at least one subnet
+    if len(json_data['subnets']) != 0:
+        status_code = normal_status_code
+        res = json.dumps(json_data)
+    # No subnet exists
+    else:
+        status_code = error_status_code
+        res = {'subnets':[]}
+
+    return (res, status_code, headers)
 
 
 # Show subnet details
@@ -216,35 +235,37 @@ def neutron_show_subnet_details(env):
 	threads[i].start()
 	
     # Initiate response data structure
-    response = ''	
+    response = None
+    headers = [('Content-Type','application/json')]	
+    normal_status_code = ''
+    error_status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
-		
-	# Parse response from site	
+        # Parse response from site	
 	try:
-	    parsed_json = json.loads(threads[i].join())
+	    response = json.loads(threads[i].join()[0])
+            
+            # If network not found
             try:
-                error = parsed_json['NeutronError']
-                pass
-            # No NeutronError return
+	        networkNotFound = response['NeutronError']
+                res = json.dumps(response)
+                error_status_code = str(threads[i].join()[1])
+            # Network found
             except:
-		# Get cloud site information by using regualr expression	
-		site_pattern = re.compile(r'(?<=http://).*(?=:)')
-		match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-		# IP address of cloud
-		site_ip = match.group()
-		# Find name of cloud
-		site = SITES.keys()[SITES.values().index('http://'+site_ip)]
-		# Add site information to json response
-		parsed_json['site_ip'] = site_ip
-		parsed_json['site'] = site
+                normal_status_code = str(threads[i].join()[1])
+	        # Add cloud info to response 
+                response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response)
+                
+                res = json.dumps(response)
+    
+                return (res, normal_status_code, headers)
 			
-		response = json.dumps(parsed_json)		
 	except:
-	    return 'Failed to find subnet details'
-	
-    return response
+            error_status_code = str(threads[i].join()[1])
+            res = threads[i].join()[0]
+
+    return (res, error_status_code, headers)
 
 
 # Create subnet                    
@@ -268,7 +289,7 @@ def neutron_create_subnet(env):
 
 
 # Delete network
-def neutron_delete_network(env):
+def neutron_delete_subnet(env):
 
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
@@ -292,7 +313,7 @@ def neutron_delete_network(env):
 	threads_json.append(parsed_json)
 
     for i in range(len(threads_json)):
-        # Network deleted successfully
+        # Subnet deleted successfully
 	if threads_json[i]['status_code'] == 204:
 	    return threads_json[i]
 		

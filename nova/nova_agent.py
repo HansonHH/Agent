@@ -1,4 +1,5 @@
 from request import *
+from common import *
 
 # List servers
 def nova_list_servers(env):
@@ -20,44 +21,46 @@ def nova_list_servers(env):
     # Launch threads
     for i in range(len(threads)):
 	threads[i].start()
-    
+
     # Initiate response data structure
     json_data = {'servers':[]}	
     headers = [('Content-Type','application/json')]	
+    normal_status_code = ''
+    error_status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
 		
 	# Parse response from site	
-	parsed_json = json.loads(threads[i].join())
-		
-	# If VM exists in cloud
-	if len(parsed_json['servers']) != 0:
-	    # Recursively look up VMs
-	    for j in range(len(parsed_json['servers'])):
-			
-		# Get cloud site information by using regualr expression	
-		site_pattern = re.compile(r'(?<=http://).*(?=:)')
-		match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-		# IP address of cloud
-		site_ip = match.group()
-		# Find name of cloud
-		site = SITES.keys()[SITES.values().index('http://'+site_ip)]
-		# Add site information to json response
-	        parsed_json['servers'][j]['site_ip'] = site_ip
-		parsed_json['servers'][j]['site'] = site
-		
-		json_data['servers'].append(parsed_json['servers'][j])
-	
+        try:
+
+	    response = json.loads(threads[i].join()[0])
+            normal_status_code = str(threads[i].join()[1])
+
+	    # If image exists in cloud
+	    if len(response['servers']) != 0:
+
+	        # Recursively look up images
+	        for j in range(len(response['servers'])):
+                    # Add cloud info to response	
+                    new_response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response['servers'][j])
+		    json_data['servers'].append(new_response)
+                    
+        except:
+            error_status_code = str(threads[i].join()[1])
+
     # Create status code response
+    # If there exists at least one image
     if len(json_data['servers']) != 0:
-        status_code = '200'
-        response = json.dumps(json_data)
+        status_code = normal_status_code
+        res = json.dumps(json_data)
+    # No image exists
     else:
-        status_code = ''
-        response = ''
-    
-    return response, status_code, headers
+        status_code = error_status_code
+        res = {'servers':[]}
+
+    return (res, status_code, headers)
+
 
 
 # List details for servers
@@ -83,34 +86,42 @@ def nova_list_details_servers(env):
 	
     # Initiate response data structure
     json_data = {'servers':[]}	
+    headers = [('Content-Type','application/json')]	
+    normal_status_code = ''
+    error_status_code = ''
 	
     # Wait until threads terminate
     for i in range(len(threads)):
+	
+        # Parse response from site	
+        try:
 		
-	# Parse response from site	
-	parsed_json = json.loads(threads[i].join())
+	    response = json.loads(threads[i].join()[0])
+            normal_status_code = str(threads[i].join()[1])
 		
-	# If VM exists in cloud
-	if len(parsed_json['servers']) != 0:
-	    # Recursively look up VMs
-	    for i in range(len(parsed_json['servers'])):
-				
-		# Get cloud site information by using regualr expression	
-		site_pattern = re.compile(r'(?<=http://).*(?=:)')
-		match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-		# IP address of cloud
-		site_ip = match.group()
-		# Find name of cloud
-		site = SITES.keys()[SITES.values().index('http://'+site_ip)]
-		# Add site information to json response
-		parsed_json['servers'][i]['site_ip'] = site_ip
-		parsed_json['servers'][i]['site'] = site
-				
-		json_data['servers'].append(parsed_json['servers'][i])
+            # If VM exists in cloud
+	    if len(response['servers']) != 0:
+	        # Recursively look up VMs
+	        for j in range(len(response['servers'])):
+		    # Add cloud info to response	
+                    new_response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response['servers'][j])
+		    json_data['servers'].append(new_response)
+                    
+        except:
+            error_status_code = str(threads[i].join()[1])
 		
-    response = json.dumps(json_data)
-		
-    return response
+    # Create status code response
+    # If there exists at least one image
+    if len(json_data['servers']) != 0:
+        status_code = normal_status_code
+        res = json.dumps(json_data)
+    # No image exists
+    else:
+        status_code = error_status_code
+        res = {'servers':[]}
+
+    return (res, status_code, headers)
+    
 
 
 # Show server details
@@ -132,40 +143,40 @@ def nova_show_server_details(env):
     # Launch threads
     for i in range(len(threads)):
 	threads[i].start()
-	
+    
     # Initiate response data structure
-    response = ''	
-	
+    response = None
+    headers = [('Content-Type','application/json')]	
+    normal_status_code = ''
+    error_status_code = ''
+
     # Wait until threads terminate
     for i in range(len(threads)):
-		
-	# Parse response from site	
+        # Parse response from site	
 	try:
-	    parsed_json = json.loads(threads[i].join())
-        
+	    response = json.loads(threads[i].join()[0])
+            
+            # If VM not found
             try:
-	        itemNotFound = parsed_json['itemNotFound']
-                pass
+	        itemNotFound = response['itemNotFound']
+                res = json.dumps(response)
+                error_status_code = str(threads[i].join()[1])
             # VM found
             except:
-
-	        # Get cloud site information by using regualr expression	
-	        site_pattern = re.compile(r'(?<=http://).*(?=:)')
-	        match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-	        # IP address of cloud
-	        site_ip = match.group()
-	        # Find name of cloud
-	        site = SITES.keys()[SITES.values().index('http://'+site_ip)]
-	        # Add site information to json response
-	        parsed_json['site_ip'] = site_ip
-	        parsed_json['site'] = site
-		
-	        response = json.dumps(parsed_json)
+                
+                normal_status_code = str(threads[i].join()[1])
+                # Add cloud info to response 
+                response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response)
+	    
+                res = json.dumps(response)
+    
+                return (res, normal_status_code, headers)
 			
 	except:
-	    return 'Failed to find server details'
-	
-    return response
+            error_status_code = str(threads[i].join()[1])
+            res = threads[i].join()[0]
+    
+    return (res, error_status_code, headers)
 
 
 # Print out status code and response from Keystone

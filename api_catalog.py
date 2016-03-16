@@ -40,17 +40,16 @@ def api_catalog(env, start_response):
 	if env['REQUEST_METHOD'] == 'GET':
 	    # List details for servers
 	    if PATH_INFO.endswith('/detail'):
-		response = nova_list_details_servers(env)
+		response, status_code, headers = nova_list_details_servers(env)
 	    # List servers
 	    elif PATH_INFO.endswith('/servers'):
 		response, status_code, headers = nova_list_servers(env)
 	    # Show server details
 	    else:
-		response = nova_show_server_details(env)
+		#response = nova_show_server_details(env)
+		response, status_code, headers = nova_show_server_details(env)
 
-	    #headers = [('Content-Type','application/json')]	
 	    start_response(status_code, headers)
-	    #start_response(status_code, headers)
 	    
             return response
 	
@@ -64,16 +63,14 @@ def api_catalog(env, start_response):
 	if env['REQUEST_METHOD'] == 'GET':
 	    # Show image details
 	    if PATH_INFO.startswith('/v2/images/'):
-		response = glance_show_image_details(env)
+		#response = glance_show_image_details(env)
+		response, status_code, headers = glance_show_image_details(env)
 	    # List images
 	    else:
 		response, status_code, headers = glance_list_images(env)
 		
-                print status_code
-	        #headers = [('Content-Type','application/json')]	
-	        start_response(status_code, headers)
-                    
-                return response
+	    start_response(status_code, headers)
+            return response
 
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':
@@ -89,7 +86,7 @@ def api_catalog(env, start_response):
 
         # PUT request
         elif env['REQUEST_METHOD'] == 'PUT':
-            
+            # Upload binary image data
             response = glance_upload_binary_image_data(env)
             
             # Shift dictionary to tuple
@@ -97,15 +94,16 @@ def api_catalog(env, start_response):
             # Respond to end user
 	    start_response(str(response.status_code), headers)
 
-	    #headers = [('Content-Type','application/json')]	
-	    #start_response('200 OK', headers)
             return response
 
 	# DELETE request	
         elif env['REQUEST_METHOD'] == 'DELETE':
-            #print type(glance_delete_image(env))
-	    response = glance_delete_image(env)	
+	    # Delete image
+            response = glance_delete_image(env)	
+            
+            # Shift dictionary to tuple
 	    headers = ast.literal_eval(response['headers']).items()
+            # Respond to end user
 	    start_response(str(response['status_code']), headers)
             return response
 
@@ -126,13 +124,12 @@ def api_catalog(env, start_response):
 		# network id 
 		network_id = match.group()
                 # Show network details
-                response = neutron_show_network_details(env)
+		response, status_code, headers = neutron_show_network_details(env)
             except:
                 # List networks
-                response = neutron_list_networks(env)
+		response, status_code, headers = neutron_list_networks(env)
         
-            headers = [('Content-Type','application/json')]	
-	    start_response('200 OK', headers)
+	    start_response(status_code, headers)
             return response
 		
         # POST request
@@ -173,13 +170,12 @@ def api_catalog(env, start_response):
                 # network id 
                 subnet_id = match.group()
                 # Show subnet details
-                response = neutron_show_subnet_details(env)
+		response, status_code, headers = neutron_show_subnet_details(env)
             except:
                 # List subnets
-                response = neutron_list_subnets(env)
-                
-            headers = [('Content-Type','application/json')]	
-            start_response('200 OK', headers)
+		response, status_code, headers = neutron_list_subnets(env)
+        
+	    start_response(status_code, headers)
             return response
         
         # POST request

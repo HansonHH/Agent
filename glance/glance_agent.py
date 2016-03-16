@@ -1,5 +1,6 @@
 #from nova.nova_agent import *
 from request import *
+from common import *
 
 # List images
 def glance_list_images(env):
@@ -29,27 +30,18 @@ def glance_list_images(env):
 	# Parse response from site	
         try:
 
-	    parsed_json = json.loads(threads[i].join()[0])
+	    response = json.loads(threads[i].join()[0])
             normal_status_code = str(threads[i].join()[1])
 
 	    # If image exists in cloud
-	    if len(parsed_json['images']) != 0:
+	    if len(response['images']) != 0:
 
 	        # Recursively look up images
-	        for j in range(len(parsed_json['images'])):
-	
-                    # Get cloud site information by using regualr expression	
-	            site_pattern = re.compile(r'(?<=http://).*(?=:)')
-	            match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-	            # IP address of cloud
-	            site_ip = match.group()
-	            # Find name of cloud
-	            site = SITES.keys()[SITES.values().index('http://'+site_ip)]
-		    # Add site information to json response
-		    parsed_json['images'][j]['site_ip'] = site_ip
-		    parsed_json['images'][j]['site'] = site
-				
-		    json_data['images'].append(parsed_json['images'][j])
+	        for j in range(len(response['images'])):
+                    # Add cloud info to response	            
+                    new_response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response['images'][j])
+		    json_data['images'].append(new_response)
+
         except:
             error_status_code = str(threads[i].join()[1])
 
@@ -57,13 +49,14 @@ def glance_list_images(env):
     # If there exists at least one image
     if len(json_data['images']) != 0:
         status_code = normal_status_code
-        response = json.dumps(json_data)
+        res = json.dumps(json_data)
     # No image exists
     else:
         status_code = error_status_code
-        response = {'images':[]}
+        res = {'images':[]}
 
-    return (response, status_code, headers)
+    return (res, status_code, headers)
+
 
 
 # Show image details
@@ -83,33 +76,33 @@ def glance_show_image_details(env):
 	threads[i].start()
 	
     # Initiate response data structure
-    json_data = {}	
+    response = None
+    headers = [('Content-Type','application/json')]	
+    normal_status_code = ''
+    error_status_code = ''
 
     # Wait until threads terminate
     for i in range(len(threads)):
 		
 	# Parse response from site	
+        # If found image
 	try:
-	    parsed_json = json.loads(threads[i].join())
-	    
-            # Get cloud site information by using regualr expression	
-	    site_pattern = re.compile(r'(?<=http://).*(?=:)')
-	    match = site_pattern.search(vars(threads[i])['_Thread__args'][0])
-	    # IP address of cloud
-	    site_ip = match.group()
-	    # Find name of cloud
-	    site = SITES.keys()[SITES.values().index('http://'+site_ip)]
-	    # Add site information to json response
-	    parsed_json['site_ip'] = site_ip
-	    parsed_json['site'] = site
-			
-	    response = json.dumps(parsed_json)
+	    response = json.loads(threads[i].join()[0])
+            normal_status_code = str(threads[i].join()[1])
+	    # Add cloud info to response 
+            response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response)
+
+            res = json.dumps(response)
+            return (res, normal_status_code, headers)
 	
-	    return response
-			
+        # If not found image	
 	except:
-	    pass
-			
+            error_status_code = str(threads[i].join()[1])
+            res = threads[i].join()[0]
+    
+    return (res, error_status_code, headers)
+
+
 # Create image                    
 def glance_create_image(env):
     
@@ -127,6 +120,7 @@ def glance_create_image(env):
     response = POST_request_to_cloud(url, headers, PostData)
     
     return response
+
 
 # Upload binary image data                    
 def glance_upload_binary_image_data(env):
@@ -146,6 +140,7 @@ def glance_upload_binary_image_data(env):
     response = PUT_request_to_cloud(url, headers, PutData)
 
     return response
+
 
 # Delete image
 def glance_delete_image(env):
@@ -180,6 +175,5 @@ def glance_delete_image(env):
 	return threads_json[0] 
     else:
 	return 'Failed to delete image! \r\n'
-
 
 
