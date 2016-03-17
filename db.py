@@ -90,7 +90,7 @@ def Sync_Image():
         # Check if image already exists in agent DB, if image does not exist in agent DB then add it 
         if image.status == "active" and len(W_session.query(Image).filter_by(uuid_cloud=image.id).all()) == 0:
             # Synchorize image uuid to data table of agent 
-            new_image = Image(uuid_agent = uuid.uuid4(), uuid_cloud = image.id, image_name = image.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            new_image = Image(tenant_id = image.owner, uuid_agent = uuid.uuid4(), uuid_cloud = image.id, image_name = image.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
             # Add instance to session
             W_session.add(new_image)
 
@@ -139,7 +139,7 @@ def Sync_Network():
         # Check if network already exists in agent DB, if network does not exist in agent DB then add it 
         if network.status == 'ACTIVE' and len(W_session.query(Network).filter_by(uuid_cloud=network.id).all()) == 0:
             # Synchorize subnet uuid to data table of agent 
-            new_network = Network(uuid_agent = uuid.uuid4(), uuid_cloud = network.id, network_name = network.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            new_network = Network(tenant_id = network.tenant_id, uuid_agent = uuid.uuid4(), uuid_cloud = network.id, network_name = network.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
             # Add instance to session
             W_session.add(new_network)
 
@@ -164,7 +164,7 @@ def Sync_Subnet():
         if len(W_session.query(Subnet).filter_by(uuid_cloud=subnet.id).all()) == 0:
             
             # Synchorize subnet uuid to data table of agent 
-            new_subnet = Subnet(uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, subnet_name = subnet.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP, network_uuid_cloud = subnet.network_id)
+            new_subnet = Subnet(tenant_id = subnet.tenant_id, uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, subnet_name = subnet.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP, network_uuid_cloud = subnet.network_id)
             # Add instance to session
             W_session.add(new_subnet)
     
@@ -189,7 +189,7 @@ def Sync_Instance():
         # Check if flavor already exists in agent DB, if flavor does not exist in agent DB then add it 
         if instance.deleted == 0 and len(W_session.query(Instance).filter_by(uuid_cloud=instance.uuid).all()) == 0:
             # Synchorize instance uuid to data table of agent 
-            new_instance = Instance(uuid_agent = uuid.uuid4(), uuid_cloud = instance.uuid, instance_name = instance.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            new_instance = Instance(tenant_id = instance.project_id, uuid_agent = uuid.uuid4(), uuid_cloud = instance.uuid, instance_name = instance.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
             # Add instance to session
             W_session.add(new_instance)
 

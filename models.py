@@ -28,6 +28,7 @@ class Image(Base):
     __table_args__ = TABLE_ARGS
 
     # Data structure of table
+    tenant_id = Column(String(36))
     uuid_agent = Column(String(36))
     uuid_cloud = Column(String(36), primary_key = True)
     image_name = Column(String(40))
@@ -35,7 +36,7 @@ class Image(Base):
     cloud_address = Column(String(40))
 
     def __repr__(self):
-        return "<Image (uuid_agent=%s, uuid_cloud=%s, image_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.uuid_agent, self.uuid_cloud, self.image_name, self.cloud_name, self.cloud_address)
+        return "<Image (tenant_id=%s, uuid_agent=%s, uuid_cloud=%s, image_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_agent, self.uuid_cloud, self.image_name, self.cloud_name, self.cloud_address)
 
 
 # Define Flavor class
@@ -66,6 +67,7 @@ class Network(Base):
     __table_args__ = TABLE_ARGS
 
     # Data structure of table
+    tenant_id = Column(String(36))
     uuid_agent = Column(String(36))
     uuid_cloud = Column(String(36), primary_key = True)
     network_name = Column(String(40))
@@ -74,7 +76,7 @@ class Network(Base):
     subnet = relationship("Subnet")
     
     def __repr__(self):
-        return "<Network (uuid_agent=%s, uuid_cloud=%s, network_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.uuid_agent, self.uuid_cloud, self.network_name, self.cloud_name, self.cloud_address)
+        return "<Network (tenant_id=%s, uuid_agent=%s, uuid_cloud=%s, network_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_agent, self.uuid_cloud, self.network_name, self.cloud_name, self.cloud_address)
 
 
 # Define Subnet class
@@ -86,6 +88,7 @@ class Subnet(Base):
     __table_args__ = TABLE_ARGS
     
     # Data structure of table
+    tenant_id = Column(String(36))
     uuid_agent = Column(String(36))
     uuid_cloud = Column(String(36), primary_key = True)
     subnet_name = Column(String(40))
@@ -94,7 +97,7 @@ class Subnet(Base):
     network_uuid_cloud = Column(String(36), ForeignKey('network.uuid_cloud'))
     
     def __repr__(self):
-        return "<Subnet (uuid_agent=%s, uuid_cloud=%s, subnet_name, cloud_name=%s, cloud_address=%s)>" % (self.uuid_agent, self.uuid_cloud, self.subnet_name, self.cloud_name, self.cloud_address)
+        return "<Subnet (tetnant_id=%s, uuid_agent=%s, uuid_cloud=%s, subnet_name, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_agent, self.uuid_cloud, self.subnet_name, self.cloud_name, self.cloud_address)
 
 
 # Define Instance class
@@ -106,6 +109,7 @@ class Instance(Base):
     __table_args__ = TABLE_ARGS
 
     # Data structure of table
+    tenant_id = Column(String(36))
     uuid_agent = Column(String(36))
     uuid_cloud = Column(String(36), primary_key = True)
     instance_name = Column(String(40))
@@ -113,7 +117,7 @@ class Instance(Base):
     cloud_address = Column(String(40))
 
     def __repr__(self):
-        return "<Instance (uuid_agent=%s, uuid_cloud=%s, instance_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.uuid_agent, self.uuid_cloud, self.instance_name, self.cloud_name, self.cloud_address)
+        return "<Instance (tenant_id=%s, uuid_agent=%s, uuid_cloud=%s, instance_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_agent, self.uuid_cloud, self.instance_name, self.cloud_name, self.cloud_address)
 
 # Data structure of Glance Image
 class GlanceImage(object):

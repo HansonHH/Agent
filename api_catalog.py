@@ -11,7 +11,6 @@ def api_catalog(env, start_response):
     PATH_INFO = env['PATH_INFO']
 	
     # API catalog
-
     # Identity API v3
     if PATH_INFO.startswith('/v3'):
 	print '*'*30
@@ -35,32 +34,82 @@ def api_catalog(env, start_response):
 	print '*'*30
 	print 'Compute API v2.1 START WITH /v2.1'
 	print '*'*30
-	
-	# GET request
-	if env['REQUEST_METHOD'] == 'GET':
-	    # List details for servers
-	    if PATH_INFO.endswith('/detail'):
-		response, status_code, headers = nova_list_details_servers(env)
-	    # List servers
-	    elif PATH_INFO.endswith('/servers'):
-		response, status_code, headers = nova_list_servers(env)
-	    # Show server details
-	    else:
-		response, status_code, headers = nova_show_server_details(env)
 
-	    start_response(status_code, headers)
+        site_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
+	match = site_pattern.search(env['PATH_INFO'])
+	
+        # GET request
+	if env['REQUEST_METHOD'] == 'GET':
+        
+            # APIs for servers
+            try:
+                res = match.group()
+            
+                # List details for servers
+	        if PATH_INFO.endswith('/servers/detail'):
+		    response, status_code, headers = nova_list_details_servers(env)
+	        # List servers
+	        elif PATH_INFO.endswith('/servers'):
+		    response, status_code, headers = nova_list_servers(env)
+	        # Show server details
+	        else:
+		    response, status_code, headers = nova_show_server_details(env)
+
+            # APIs for flavors
+            except:
+                # List details for flavors
+                if PATH_INFO.endswith('/flavors/detail'):
+                    response, status_code, headers = nova_list_details_flavors(env)
+	        # List flavors
+                elif PATH_INFO.endswith('/flavors'):
+                    response, status_code, headers = nova_list_flavors(env)
+	        # Show flavor details
+	        else:
+		    response, status_code, headers = nova_show_flavor_details(env)
+	    
+            start_response(status_code, headers)
 	   
+            return response
+            
+        # POST request
+        elif env['REQUEST_METHOD'] == 'POST':
+	    
+            # Create VM
+            if PATH_INFO.endswith('/servers'):
+
+                response = nova_create_server(env)
+
+            # Create flavor
+            elif PATH_INFO.endswith('/flavors'):
+                
+                response = nova_create_flavor(env)
+                
+            # Shift dictionary to tuple
+	    headers = ast.literal_eval(str(response.headers)).items()
+            # Respond to end user
+	    start_response(str(response.status_code), headers)
+            
             return response
 	
         # DELETE request	
         elif env['REQUEST_METHOD'] == 'DELETE':
-	    # Delete server
-            response = nova_delete_server(env)	
             
+            # API for server
+            try:
+                res = match.group()
+	    
+                # Delete server
+                response = nova_delete_server(env)	
+            
+            # API for flavor
+            except:
+                # Delete flavor
+                response = nova_delete_flavor(env)	
+                
             # Shift dictionary to tuple
 	    headers = ast.literal_eval(response['headers']).items()
-            # Respond to end user
-	    start_response(str(response['status_code']), headers)
+            # Respond to end user    
+            start_response(str(response['status_code']), headers)
             
             return response
 	
@@ -74,7 +123,6 @@ def api_catalog(env, start_response):
 	if env['REQUEST_METHOD'] == 'GET':
 	    # Show image details
 	    if PATH_INFO.startswith('/v2/images/'):
-		#response = glance_show_image_details(env)
 		response, status_code, headers = glance_show_image_details(env)
 	    # List images
 	    else:
@@ -87,7 +135,6 @@ def api_catalog(env, start_response):
         elif env['REQUEST_METHOD'] == 'POST':
             # Create image
             response = glance_create_image(env)
-            
             # Shift dictionary to tuple
 	    headers = ast.literal_eval(str(response.headers)).items()
             # Respond to end user
