@@ -58,3 +58,15 @@ def generate_threads(X_AUTH_TOKEN, url_suffix, target):
     
     return threads
 
+# A function to generate threads for multicasting user request to clouds
+def generate_threads_multicast(X_AUTH_TOKEN, urls, target):
+
+    # Create request header
+    headers = {'X-Auth-Token': X_AUTH_TOKEN}
+
+    # Create threads
+    threads = [None] * len(urls)
+    for i in range(len(threads)):
+            threads[i] = ThreadWithReturnValue(target = target, args = (urls[i], headers,))
+    
+    return threads

@@ -1,8 +1,9 @@
 from nova.nova_agent import *
 from request import *
 from common import *
-from models import *
 from db import *
+
+AGENT_NEUTRON_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/%s' % (DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
 # List networks
 def neutron_list_networks(env):
@@ -117,12 +118,27 @@ def neutron_create_network(env):
     PostData = env['wsgi.input'].read()
     
     # Construct url for creating network
-    url = 'http://10.0.1.11:' + config.get('Neutron','neutron_public_interface') + '/v2.0/networks' 
+    cloud_name = 'Cloud3'
+    cloud_address = 'http://10.0.1.12'
+    #url = cloud_address + ':' + config.get('Neutron','neutron_public_interface') + '/v2.0/networks' 
+    url = cloud_address + ':' + config.get('Neutron','neutron_public_interface') + env['PATH_INFO'] 
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
     
     response = POST_request_to_cloud(url, headers, PostData)
     
+    # If network is successfully created in cloud
+    if str(response.status_code) == '201':
+
+        # Retrive information from response
+        tenant_id = response.json()['network']['tenant_id'] 
+        network_id = response.json()['network']['id'] 
+        network_name = response.json()['network']['name']
+        
+        new_network = Network(tenant_id = tenant_id, uuid_agent = uuid.uuid4(), uuid_cloud = network_id, network_name = network_name, cloud_name = cloud_name, cloud_address = cloud_address)
+        # Add data to DB
+        add_to_DB(AGENT_NEUTRON_ENGINE_CONNECTION, new_network)
+
     return response
 
 
@@ -131,18 +147,29 @@ def neutron_delete_network(env):
 
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+   
+    site_pattern = re.compile(r'(?<=/networks/).*')
+    match = site_pattern.search(env['PATH_INFO'])
+    network_id = match.group()   
     
     # Create suffix of service url
-    url_suffix = config.get('Neutron', 'neutron_public_interface') + env['PATH_INFO']
+    url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/'  
     
+    res = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
+    
+    urls = []
+    for network in res:
+        urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
+
     # Get generated threads 
-    threads = generate_threads(X_AUTH_TOKEN, url_suffix, DELETE_request_to_cloud)
-    
+    threads = generate_threads_multicast(X_AUTH_TOKEN, urls, DELETE_request_to_cloud)
+
     # Launch threads
     for i in range(len(threads)):
 	threads[i].start()
 
     threads_json = []
+    
     # Wait until threads terminate
     for i in range(len(threads)):
 	
@@ -151,15 +178,24 @@ def neutron_delete_network(env):
 	threads_json.append(parsed_json)
 
     for i in range(len(threads_json)):
-        # Network deleted successfully
+        
+        # If Network deleted successfully
 	if threads_json[i]['status_code'] == 204:
-	    return threads_json[i]
+	   
+            # Retrive network uuuid at cloud side
+            request_url = vars(threads[i])['_Thread__args'][0]
+            match = site_pattern.search(request_url)
+            uuid_cloud = match.group()   
+            
+            # Delete network information in agetn DB 
+            delete_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_cloud, uuid_cloud)
+            return threads_json[i]
 		
     if len(threads_json) != 0:
 	return threads_json[0] 
     else:
 	return 'Failed to delete network! \r\n'
-
+    
 
 # List subnets
 def neutron_list_subnets(env):
@@ -272,7 +308,7 @@ def neutron_create_subnet(env):
     PostData = env['wsgi.input'].read()
     
     # Construct url for creating subnet
-    url = 'http://10.0.1.11:' + config.get('Neutron','neutron_public_interface') + '/v2.0/subnets' 
+    url = 'http://10.0.1.12:' + config.get('Neutron','neutron_public_interface') + '/v2.0/subnets' 
     
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}

@@ -42,20 +42,65 @@ def create_tables():
 
 # Read data from database
 def read_from_DB(connection, table_name, obj):
-    # Read uuid of images from glance databse
-    read_engine = create_engine(connection, echo = True)
     
-    metadata = MetaData(read_engine)
+    engine = create_engine(connection, echo = True)
+    
+    metadata = MetaData(engine)
     read_table = Table(table_name, metadata, autoload = True)
     mapper(obj, read_table)
     
-    DBSession = sessionmaker(bind = read_engine)
+    DBSession = sessionmaker(bind = engine)
     R_session = DBSession()
 
     res = R_session.query(obj).all()
     R_session.close()
 
     return res
+
+
+# Query data from database
+def query_from_DB(connection, obj, column, keyword):
+    
+    engine = create_engine(connection, echo = True)
+    
+    DBSession = sessionmaker(bind = engine)
+    session = DBSession()
+
+    res = session.query(obj).filter(column == keyword)
+    session.close()
+
+    return res
+
+
+# Add data from database
+def add_to_DB(connection, obj):
+    
+    engine = create_engine(connection, echo = True)
+    
+    # Write to network table of agent DB 
+    # Create session of network table of agent DB
+    DBSession = sessionmaker(bind = engine)
+    session = DBSession()
+            
+    # Add instance to session
+    session.add(obj)
+
+    # Commit session
+    session_commit(session)
+    session.close()
+    
+
+# Delete data from database
+def delete_from_DB(connection, obj, column, keyword):
+    
+    engine = create_engine(connection, echo = True)
+    
+    DBSession = sessionmaker(bind = engine)
+    session = DBSession()
+
+    session.query(obj).filter(column == keyword).delete()
+    session.commit()
+    session.close()
 
 
 # A function to commit session

@@ -211,8 +211,7 @@ def api_catalog(env, start_response):
 	    start_response(str(response['status_code']), headers)
             
             return response
-
-
+            
     # Subnet
     elif PATH_INFO.startswith('/v2.0/subnets'):
         print '*'*30
