@@ -34,10 +34,11 @@ def GET_request_to_cloud(url, headers):
 # DELETE request to cloud
 def DELETE_request_to_cloud(url, headers):
     res = requests.delete(url, headers = headers)
-    res.headers['Content-Length'] = str(len(str(res)))
-    dic = {'status_code':res.status_code, 'headers':str(res.headers), 'text':res.text}
-    json_data = json.dumps(dic)
-    return json_data
+    #res.headers['Content-Length'] = str(len(str(res)))
+    #dic = {'status_code':res.status_code, 'headers':str(res.headers), 'text':res.text}
+    #json_data = json.dumps(dic)
+    #return json_data
+    return res
 
 # A function to generate threads for boardcasting user request to clouds
 def generate_threads(X_AUTH_TOKEN, url_suffix, target):
@@ -70,3 +71,20 @@ def generate_threads_multicast(X_AUTH_TOKEN, urls, target):
             threads[i] = ThreadWithReturnValue(target = target, args = (urls[i], headers,))
     
     return threads
+
+
+# A function to generate threads for multicasting user request to clouds
+def generate_threads_multicast_POST(X_AUTH_TOKEN, urls, target, data_set):
+
+    # Create request header
+    headers = {'X-Auth-Token': X_AUTH_TOKEN}
+
+    # Create threads
+    threads = [None] * len(urls)
+    for i in range(len(threads)):
+            threads[i] = ThreadWithReturnValue(target = target, args = (urls[i], headers, data_set[i],))
+    
+    return threads
+
+
+

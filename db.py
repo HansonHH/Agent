@@ -88,6 +88,7 @@ def add_to_DB(connection, obj):
     # Commit session
     session_commit(session)
     session.close()
+
     
 
 # Delete data from database
@@ -213,7 +214,7 @@ def Sync_Subnet():
             # Add instance to session
             W_session.add(new_subnet)
     
-    network_uuid_cloud = Column(String(36), ForeignKey('network.uuid_cloud'))
+    #network_uuid_cloud = Column(String(36), ForeignKey('network.uuid_cloud'))
     
     # Commit session
     session_commit(W_session)

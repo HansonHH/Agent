@@ -97,7 +97,7 @@ class Subnet(Base):
     network_uuid_cloud = Column(String(36), ForeignKey('network.uuid_cloud'))
     
     def __repr__(self):
-        return "<Subnet (tetnant_id=%s, uuid_agent=%s, uuid_cloud=%s, subnet_name, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_agent, self.uuid_cloud, self.subnet_name, self.cloud_name, self.cloud_address)
+        return "<Subnet (tetnant_id=%s, uuid_agent=%s, uuid_cloud=%s, subnet_name=%s, cloud_name=%s, cloud_address=%s, network_uuid_cloud=%s)>" % (self.tenant_id, self.uuid_agent, self.uuid_cloud, self.subnet_name, self.cloud_name, self.cloud_address, self.network_uuid_cloud)
 
 
 # Define Instance class
