@@ -137,7 +137,7 @@ def neutron_create_network(env):
         network_id = response_json['network']['id'] 
         network_name = response_json['network']['name']
         uuid_agent = str(uuid.uuid4())
-        #uuid_agent = '8af52f2d-45f4-4f69-a5f8-c11ed4378d46'
+        #uuid_agent = '038de0eb-c088-4817-95d3-581f8b1f97e0'
         
         new_network = Network(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = network_id, network_name = network_name, cloud_name = cloud_name, cloud_address = cloud_address)
         
@@ -172,56 +172,74 @@ def neutron_delete_network(env):
     
     res = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
     
-    urls = []
-    for network in res:
-        urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
-
-    # Get generated threads 
-    threads = generate_threads_multicast(X_AUTH_TOKEN, urls, DELETE_request_to_cloud)
-
-    # Launch threads
-    for i in range(len(threads)):
-	threads[i].start()
-
-    threads_res = []
+    # If network does not exist
+    if res.count() == 0:
     
-    # Wait until threads terminate
-    for i in range(len(threads)):
-	
-	# Parse response from site	
-	res = threads[i].join()
-	threads_res.append(res)
+        response_message = "Network %s could not be found" % network_id
+        response = {"NeutronError":{"detail":"","message":response_message,"type":"NetworkNotFound"}}
+        status_code = '404'
+        headers = {'Content-Type': 'application/json'} 
+        headers = ast.literal_eval(str(headers)).items()
     
-    SUCCESS_threads = []
-    FAIL_threads = []
-    for i in range(len(threads_res)):
-        
-        # If Network deleted successfully
-	if threads_res[i].status_code == 204:
-	   
-            # Retrive network uuuid at cloud side
-            request_url = vars(threads[i])['_Thread__args'][0]
-            match = site_pattern.search(request_url)
-            uuid_cloud = match.group()   
-            
-            # Delete network information in agent DB 
-            delete_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_cloud, uuid_cloud)
-            SUCCESS_threads.append(threads_res[i])
-        else:
-            FAIL_threads.append(threads_res[i])
-
-    if len(SUCCESS_threads) != 0:
-        response = SUCCESS_threads[0]
-        status_code = str(response.status_code)
-        headers = ast.literal_eval(str(response.headers)).items()
-
-        return status_code, headers, json.dumps(response.json())
+        return status_code, headers, json.dumps(response)
+    
+    # If network exists then delete
     else:
-        response = FAIL_threads[0]
-        status_code = str(response.status_code)
-        headers = ast.literal_eval(str(response.headers)).items()
 
-        return status_code, headers, json.dumps(response.json())
+        urls = []
+        for network in res:
+            urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
+
+        # Get generated threads 
+        threads = generate_threads_multicast(X_AUTH_TOKEN, urls, DELETE_request_to_cloud)
+
+        # Launch threads
+        for i in range(len(threads)):
+	    threads[i].start()
+
+        threads_res = []
+    
+        # Wait until threads terminate
+        for i in range(len(threads)):
+	
+	    # Parse response from site	
+	    res = threads[i].join()
+	    threads_res.append(res)
+    
+        SUCCESS_threads = []
+        FAIL_threads = []
+
+        for i in range(len(threads_res)):
+            print threads_res[i].status_code
+        
+            # If Network deleted successfully
+	    if threads_res[i].status_code == 204:
+	   
+                # Retrive network uuid_cloud 
+                request_url = vars(threads[i])['_Thread__args'][0]
+                match = site_pattern.search(request_url)
+                uuid_cloud = match.group()   
+            
+                # Delete subnet information in agent DB 
+                delete_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.network_uuid_cloud, uuid_cloud)
+                # Delete network information in agent DB 
+                delete_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_cloud, uuid_cloud)
+                SUCCESS_threads.append(threads_res[i])
+            else:
+                FAIL_threads.append(threads_res[i])
+
+        if len(SUCCESS_threads) != 0:
+            response = SUCCESS_threads[0]
+            status_code = str(response.status_code)
+            headers = ast.literal_eval(str(response.headers)).items()
+
+            return status_code, headers, json.dumps(response.text)
+        else:
+            response = FAIL_threads[0]
+            status_code = str(response.status_code)
+            headers = ast.literal_eval(str(response.headers)).items()
+
+            return status_code, headers, json.dumps(response.text)
 
 
 # List subnets
@@ -400,7 +418,6 @@ def neutron_create_subnet(env):
                 subnet_id = response_json['subnet']['id'] 
                 subnet_name = response_json['subnet']['name']
                 network_id = response_json['subnet']['network_id']
-                #uuid_agent = uuid.uuid4()
                 # Retrive cloud name and cloud address
                 site_pattern1 = re.compile(r'.*(?=/v2.0/)')
                 match1 = site_pattern1.search(request_url)
@@ -438,7 +455,6 @@ def neutron_create_subnet(env):
             
             return status_code, headers, json.dumps(response_json)
 
-        
 
 # Delete subnet
 def neutron_delete_subnet(env):
@@ -449,65 +465,75 @@ def neutron_delete_subnet(env):
     site_pattern = re.compile(r'(?<=/subnets/).*')
     match = site_pattern.search(env['PATH_INFO'])
     subnet_id = match.group()   
-    print subnet_id
     
     # Create suffix of service url
     url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
-    print url_suffix
     
     res = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_agent, subnet_id)
     
-    urls = []
-    for subnet in res:
-        urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
-
-    print urls
-
-    # Get generated threads 
-    threads = generate_threads_multicast(X_AUTH_TOKEN, urls, DELETE_request_to_cloud)
-
-    # Launch threads
-    for i in range(len(threads)):
-	threads[i].start()
-
-    threads_res = []
+    # If subnet does not exist
+    if res.count() == 0:
     
-    # Wait until threads terminate
-    for i in range(len(threads)):
-	
-	# Parse response from site	
-	res = threads[i].join()
-	threads_res.append(res)
+        response_message = "Subnet %s could not be found" % subnet_id
+        response = {"NeutronError":{"detail":"","message":response_message,"type":"SubnetNotFound"}}
+        status_code = '404'
+        headers = {'Content-Type': 'application/json'} 
+        headers = ast.literal_eval(str(headers)).items()
     
-    SUCCESS_threads = []
-    FAIL_threads = []
-    for i in range(len(threads_res)):
-        
-        # If Network deleted successfully
-	if threads_res[i].status_code == 204:
-	   
-            # Retrive network uuuid at cloud side
-            request_url = vars(threads[i])['_Thread__args'][0]
-            match = site_pattern.search(request_url)
-            uuid_cloud = match.group()   
-            
-            # Delete network information in agent DB 
-            delete_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, uuid_cloud)
-            SUCCESS_threads.append(threads_res[i])
-        else:
-            FAIL_threads.append(threads_res[i])
-
-    if len(SUCCESS_threads) != 0:
-        response = SUCCESS_threads[0]
-        status_code = str(response.status_code)
-        headers = ast.literal_eval(str(response.headers)).items()
-
-        return status_code, headers, json.dumps(response.text)
+        return status_code, headers, json.dumps(response)
+    
+    # If subnet exists then delete
     else:
-        response = FAIL_threads[0]
-        status_code = str(response.status_code)
-        headers = ast.literal_eval(str(response.headers)).items()
+    
+        urls = []
+        for subnet in res:
+            urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
 
-        return status_code, headers, json.dumps(response.text)
+        # Get generated threads 
+        threads = generate_threads_multicast(X_AUTH_TOKEN, urls, DELETE_request_to_cloud)
+
+        # Launch threads
+        for i in range(len(threads)):
+	    threads[i].start()
+
+        threads_res = []
+    
+        # Wait until threads terminate
+        for i in range(len(threads)):
+	
+	    # Parse response from site	
+	    res = threads[i].join()
+	    threads_res.append(res)
+    
+        SUCCESS_threads = []
+        FAIL_threads = []
+        for i in range(len(threads_res)):
+        
+            # If Network deleted successfully
+	    if threads_res[i].status_code == 204:
+	   
+                # Retrive network uuuid at cloud side
+                request_url = vars(threads[i])['_Thread__args'][0]
+                match = site_pattern.search(request_url)
+                uuid_cloud = match.group()   
+            
+                # Delete network information in agent DB 
+                delete_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, uuid_cloud)
+                SUCCESS_threads.append(threads_res[i])
+            else:
+                FAIL_threads.append(threads_res[i])
+
+        if len(SUCCESS_threads) != 0:
+            response = SUCCESS_threads[0]
+            status_code = str(response.status_code)
+            headers = ast.literal_eval(str(response.headers)).items()
+
+            return status_code, headers, json.dumps(response.text)
+        else:
+            response = FAIL_threads[0]
+            status_code = str(response.status_code)
+            headers = ast.literal_eval(str(response.headers)).items()
+
+            return status_code, headers, json.dumps(response.text)
 
 
