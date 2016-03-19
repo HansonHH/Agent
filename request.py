@@ -29,7 +29,8 @@ def PUT_request_to_cloud(url, headers, PutData):
 # GET request to cloud
 def GET_request_to_cloud(url, headers):
     res = requests.get(url, headers = headers)
-    return res.text, res.status_code
+    return res
+    #return res.text, res.status_code
 
 # DELETE request to cloud
 def DELETE_request_to_cloud(url, headers):

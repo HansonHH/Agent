@@ -2,60 +2,86 @@ from nova.nova_agent import *
 from request import *
 from common import *
 from db import *
+from models import *
+
+DATABASE_NAME = config.get('Database', 'DATABASE_NAME')
+DATABASE_USERNAME = config.get('Database', 'DATABASE_USERNAME')
+DATABASE_PASSWORD = config.get('Database', 'DATABASE_PASSWORD')
 
 AGENT_NEUTRON_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/%s' % (DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
 # List networks
 def neutron_list_networks(env):
+
+    # Get all rows of Netowrk object
+    result = read_all_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network)
+    
+    # If network does not exist
+    if len(result) == 0:
+    
+        response = {"networks": []}
+        status_code = '200'
+        headers = {'Content-Type': 'application/json'} 
+        headers = ast.literal_eval(str(headers)).items()
+    
+        return status_code, headers, json.dumps(response)
+    
+    # If network exists then delete
+    else:
+        # Retrive token from request
+        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create suffix of service url
+        url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/'  
+        urls = []
+        for network in result:
+            urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
+        
+        # Get generated threads 
+        threads = generate_threads_multicast(X_AUTH_TOKEN, urls, GET_request_to_cloud)
+
+        # Launch threads
+        for i in range(len(threads)):
+	    threads[i].start()
+
+        threads_res = []
+    
+        # Wait until threads terminate
+        for i in range(len(threads)):
 	
-    # Retrive token from request
-    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+	    # Parse response from site	
+	    res = threads[i].join()
+            # If user has right to get access to the resource
+            if res.status_code == 200:
+                threads_res.append(res)
     
-    # Create suffix of service url
-    url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO']
+        response = {'networks':[]}
+        for network in threads_res:
     
-    # Get generated threads 
-    threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
-    
-    # Launch threads
-    for i in range(len(threads)):
-        threads[i].start()
+            res = network.json()
+            # Network's uuid_cloud
+            network_uuid_cloud = res['network']['id']
+            result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
+            res['network']['id'] = result[0].uuid_agent
+            subnets = res['network']['subnets']
+            
+            # If network has subnets
+            if len(subnets) != 0:
+                new_subnets = [] 
+                for subnet in subnets:
+                    result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet)
+                    new_subnets.append(result[0].uuid_agent)
+            res['network']['subnets'] = new_subnets
+            
+            response['networks'].append(res['network'])
 
-    # Initiate response data structure
-    json_data = {'networks':[]}	
-    headers = [('Content-Type','application/json')]	
-    status_code = ''
+        status_code = str(threads_res[0].status_code)
+        headers = threads_res[0].headers
+        headers['Content-Length'] = len(json.dumps(response))
+        headers = ast.literal_eval(str(headers)).items()
 
-    # Wait until threads terminate
-    for i in range(len(threads)):
-		
-	# Parse response from site	
-        try:
+        return status_code, headers, json.dumps(response)
 
-	    response = json.loads(threads[i].join()[0])
-            status_code = str(threads[i].join()[1])
-
-	    # If network exists in cloud
-	    if len(response['networks']) != 0:
-
-	        # Recursively look up networks
-	        for j in range(len(response['networks'])):
-                    # Add cloud info to response	
-                    new_response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response['networks'][j])
-		    json_data['networks'].append(new_response)
-
-        except:
-            status_code = str(threads[i].join()[1])
-
-    # Create status code response
-    # If there exists at least one network
-    if len(json_data['networks']) != 0:
-        res = json.dumps(json_data)
-    # No network exists
-    elif len(json_data['networks']) == 0:
-        res = json.dumps({'networks':[]})
-
-    return (res, status_code, headers)
 
 
 # Show network details
@@ -159,16 +185,10 @@ def neutron_create_network(env):
 
 # Delete network
 def neutron_delete_network(env):
-
-    # Retrive token from request
-    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
    
     site_pattern = re.compile(r'(?<=/networks/).*')
     match = site_pattern.search(env['PATH_INFO'])
     network_id = match.group()   
-    
-    # Create suffix of service url
-    url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/'  
     
     res = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
     
@@ -185,7 +205,12 @@ def neutron_delete_network(env):
     
     # If network exists then delete
     else:
-
+    
+        # Retrive token from request
+        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+    
+        # Create suffix of service url
+        url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/'  
         urls = []
         for network in res:
             urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
@@ -210,7 +235,6 @@ def neutron_delete_network(env):
         FAIL_threads = []
 
         for i in range(len(threads_res)):
-            print threads_res[i].status_code
         
             # If Network deleted successfully
 	    if threads_res[i].status_code == 204:
@@ -346,9 +370,6 @@ def neutron_show_subnet_details(env):
 # Create subnet                    
 def neutron_create_subnet(env):
     
-    # Retrive token from request
-    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-    
     # Request data 
     PostData = env['wsgi.input'].read()
     
@@ -372,8 +393,12 @@ def neutron_create_subnet(env):
     # If network exists
     else:
     
+        # Retrive token from request
+        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+    
         # Create suffix of service url
         url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets'  
+        
         urls = []
         data_set = []
         for network in res:
@@ -459,15 +484,9 @@ def neutron_create_subnet(env):
 # Delete subnet
 def neutron_delete_subnet(env):
 
-    # Retrive token from request
-    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-    
     site_pattern = re.compile(r'(?<=/subnets/).*')
     match = site_pattern.search(env['PATH_INFO'])
     subnet_id = match.group()   
-    
-    # Create suffix of service url
-    url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
     
     res = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_agent, subnet_id)
     
@@ -485,6 +504,11 @@ def neutron_delete_subnet(env):
     # If subnet exists then delete
     else:
     
+        # Retrive token from request
+        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create suffix of service url
+        url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
         urls = []
         for subnet in res:
             urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
