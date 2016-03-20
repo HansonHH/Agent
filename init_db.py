@@ -9,8 +9,8 @@ Init local agent database
 
 """
 from db import *
-import ConfigParser
 from models import *
+import ConfigParser
 import ast
 import uuid
 
@@ -31,6 +31,13 @@ NEUTRON_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/neutron' % (DATABAS
 # Agent DB engine
 agentDB_engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME), echo = False)
 
+
+# Create tables in database
+def create_tables():
+    try:
+        Base.metadata.create_all(agentDB_engine)
+    except exc:
+        print exc.message
 
 
 # Synchorize agent table with glance (images talbe in glance DB) in terms of uuid
@@ -105,6 +112,59 @@ def Sync_Network():
     # Commit session
     session_commit(W_session)
     
-
 # Synchorize agent table with subnet table (subnets table in neutron DB) in terms of uuid
 def Sync_Subnet():
+    
+    # Read data of subnet from database  
+    res = read_from_DB(NEUTRON_ENGINE_CONNECTION, 'subnets', NeutronSubnet)
+
+    # Write to subnet table of agent DB 
+    # Create session of subnet table of agetn DB
+    DBSession = sessionmaker(bind = agentDB_engine)
+    W_session = DBSession()
+    
+    for subnet in res:
+        
+        # Check if network already exists in agent DB, if network does not exist in agent DB then add it 
+        if len(W_session.query(Subnet).filter_by(uuid_cloud=subnet.id).all()) == 0:
+            
+            # Synchorize subnet uuid to data table of agent 
+            new_subnet = Subnet(tenant_id = subnet.tenant_id, uuid_agent = uuid.uuid4(), uuid_cloud = subnet.id, subnet_name = subnet.name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP, network_uuid_cloud = subnet.network_id)
+            # Add instance to session
+            W_session.add(new_subnet)
+    
+    network_uuid_cloud = Column(String(36), ForeignKey('network.uuid_cloud'))
+    
+    # Commit session
+    session_commit(W_session)
+    
+# Synchorize agent table with instance table (instances table in nova DB) in terms of uuid
+def Sync_Instance():
+   
+    # Read data of instance from database
+    res = read_from_DB(NOVA_ENGINE_CONNECTION, 'instances', NovaInstance)
+    
+    # Write to image table of agent DB 
+    # Create session of image table of agetn DB
+    DBSession = sessionmaker(bind = agentDB_engine)
+    W_session = DBSession()
+    
+    for instance in res:
+        
+        # Check if flavor already exists in agent DB, if flavor does not exist in agent DB then add it 
+        if instance.deleted == 0 and len(W_session.query(Instance).filter_by(uuid_cloud=instance.uuid).all()) == 0:
+            # Synchorize instance uuid to data table of agent 
+            new_instance = Instance(tenant_id = instance.project_id, uuid_agent = uuid.uuid4(), uuid_cloud = instance.uuid, instance_name = instance.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            # Add instance to session
+            W_session.add(new_instance)
+
+    # Commit session
+    session_commit(W_session)
+
+if __name__ == '__main__':
+    create_tables()
+    Sync_Image()
+    Sync_Flavor()
+    Sync_Network()
+    Sync_Subnet()
+    Sync_Instance()

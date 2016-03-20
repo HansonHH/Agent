@@ -185,7 +185,6 @@ def api_catalog(env, start_response):
 		response, status_code, headers = neutron_show_network_details(env)
             except:
                 # List networks
-            
                 status_code, headers, response = neutron_list_networks(env)
                 start_response(status_code, headers)
 
@@ -247,11 +246,17 @@ def api_catalog(env, start_response):
                 # Show subnet details
 		response, status_code, headers = neutron_show_subnet_details(env)
             except:
+                # Lists subnets
+                status_code, headers, response = neutron_list_subnets(env)
+                start_response(status_code, headers)
+
+                return response
+                
                 # List subnets
-		response, status_code, headers = neutron_list_subnets(env)
+		#response, status_code, headers = neutron_list_subnets(env)
         
-	    start_response(status_code, headers)
-            return response
+	    #start_response(status_code, headers)
+            #return response
         
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':

@@ -5,19 +5,14 @@
 # Copyright © 2016 Xin Han <hxinhan@gmail.com>
 #
 '''
-A file to initiate databse
+
+A file to define functions to read, add, delete database data
+
 '''
 
-from models import *
-import sqlalchemy.exc
-
-
-# Create tables in database
-def create_tables():
-    try:
-        Base.metadata.create_all(agentDB_engine)
-    except exc:
-        print exc.message
+from sqlalchemy import *
+from sqlalchemy.orm import *
+from sqlalchemy.ext.declarative import declarative_base
 
 
 # Read data from OpenStack database
@@ -37,6 +32,7 @@ def read_from_DB(connection, table_name, obj):
 
     return res
 
+
 # Input a obejct and return all rows of the obejct from local agent database
 def read_all_from_DB(connection, obj):
 
@@ -49,6 +45,7 @@ def read_all_from_DB(connection, obj):
     session.close()
 
     return res
+
 
 # Query data from local agent database
 def query_from_DB(connection, obj, column, keyword):
@@ -82,7 +79,6 @@ def add_to_DB(connection, obj):
     session.close()
 
     
-
 # Delete data from local agent database
 def delete_from_DB(connection, obj, column, keyword):
     
