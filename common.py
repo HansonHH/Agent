@@ -20,7 +20,8 @@ SITES = ast.literal_eval(config.get('Clouds','sites'))
 def add_cloud_info_to_response(search_context, response):
 
     # Get cloud site information by using regualr expression	
-    site_pattern = re.compile(r'(?<=http://).*(?=:)')
+    #site_pattern = re.compile(r'(?<=http://).*(?=:)')
+    site_pattern = re.compile(r'(?<=http://).*')
     match = site_pattern.search(search_context)
     # IP address of cloud
     site_ip = match.group()

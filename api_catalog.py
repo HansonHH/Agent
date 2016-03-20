@@ -174,43 +174,29 @@ def api_catalog(env, start_response):
 	
         # GET request
         if env['REQUEST_METHOD'] == 'GET':
-		    
-            site_pattern = re.compile(r'(?<=/v2.0/networks/).*')
-	    match = site_pattern.search(env['PATH_INFO'])
-                    
-            try:
-		# network id 
-		network_id = match.group()
-                # Show network details
-		response, status_code, headers = neutron_show_network_details(env)
-            except:
-                # List networks
+             
+            # List networks
+            if env['PATH_INFO'].endswith('/networks'):
+                
                 status_code, headers, response = neutron_list_networks(env)
                 start_response(status_code, headers)
 
                 return response
-		#response, status_code, headers = neutron_list_networks(env)
-        
-	    #start_response(status_code, headers)
-            #return response
-		
+            
+            # Show network details
+            else:
+	        status_code, headers, response = neutron_show_network_details(env)
+                start_response(status_code, headers)
+
+                return response
+
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':
             
             status_code, headers, response = neutron_create_network(env)
-
             start_response(status_code, headers)
 
             return response
-
-            #response = neutron_create_network(env)
-            # Shift dictionary to tuple
-	    #headers = ast.literal_eval(str(response.headers)).items()
-            # Respond to end user
-	    #start_response(str(response.status_code), headers)
-
-            #return json.dumps(response.json())
-
 
 	# DELETE request	
 	elif env['REQUEST_METHOD'] == 'DELETE':
@@ -220,14 +206,6 @@ def api_catalog(env, start_response):
 
             return response
 
-            '''
-            response = neutron_delete_network(env)
-	    
-            headers = ast.literal_eval(response['headers']).items()
-	    start_response(str(response['status_code']), headers)
-            
-            return response
-            '''
     # Subnet
     elif PATH_INFO.startswith('/v2.0/subnets'):
         print '*'*30
@@ -236,28 +214,28 @@ def api_catalog(env, start_response):
         
         # GET request
         if env['REQUEST_METHOD'] == 'GET':
-                    
-            site_pattern = re.compile(r'(?<=/v2.0/subnets/).*')
-            match = site_pattern.search(env['PATH_INFO'])
-                    
-            try:
-                # network id 
-                subnet_id = match.group()
-                # Show subnet details
-		response, status_code, headers = neutron_show_subnet_details(env)
-            except:
-                # Lists subnets
+            
+            # List subnets
+            if env['PATH_INFO'].endswith('/subnets'):
+                
                 status_code, headers, response = neutron_list_subnets(env)
                 start_response(status_code, headers)
 
                 return response
-                
-                # List subnets
-		#response, status_code, headers = neutron_list_subnets(env)
-        
-	    #start_response(status_code, headers)
-            #return response
-        
+            
+            # Show network details
+            else:
+	        status_code, headers, response = neutron_show_subnet_details(env)
+                start_response(status_code, headers)
+
+                return response
+                    
+            '''
+            site_pattern = re.compile(r'(?<=/v2.0/subnets/).*')
+            match = site_pattern.search(env['PATH_INFO'])        
+            subnet_id = match.group()
+            '''
+
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':
 
