@@ -11,6 +11,7 @@ Common functions
 import ConfigParser
 import ast
 import re
+import json
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
@@ -33,5 +34,14 @@ def add_cloud_info_to_response(search_context, response):
     response['site'] = site	
     
     return response
+
+# A function to send resonse to end-user if resource info dose exist in agent local DB
+def non_exist_response(status_code, response_body):
+    
+    headers = {'Content-Type': 'application/json'} 
+    headers = ast.literal_eval(str(headers)).items()
+        
+    return status_code, headers, json.dumps(response_body)
+    
 
 

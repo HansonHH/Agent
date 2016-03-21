@@ -20,13 +20,9 @@ def neutron_list_networks(env):
     # If network does not exist
     if len(result) == 0:
     
-        response = {"networks": []}
-        status_code = '200'
-        headers = {'Content-Type': 'application/json'} 
-        headers = ast.literal_eval(str(headers)).items()
-    
-        return status_code, headers, json.dumps(response)
-    
+        response_body = {"networks": []}
+        return non_exist_response('200', response_body)
+        
     # If network exists then delete
     else:
         # Retrive token from request
@@ -80,6 +76,11 @@ def neutron_list_networks(env):
             response['networks'].append(new_response)
             #response['networks'].append(res['network'])
 
+
+        network_list = response['networks']
+        print network_list
+
+
         # Remove duplicate networks        
         #response['networks'] = [i for n, i in enumerate(response['networks']) if i not in response['networks'][n + 1:]]
         
@@ -89,7 +90,6 @@ def neutron_list_networks(env):
         headers = ast.literal_eval(str(headers)).items()
 
         return status_code, headers, json.dumps(response)
-
 
 
 # Show network details
@@ -104,14 +104,10 @@ def neutron_show_network_details(env):
     # If network does not exist
     if result.count() == 0:
         
-        response_message = "Network %s could not be found" % network_id
-        response = {"NeutronError":{"detail":"","message":response_message,"type":"NetworkNotFound"}}
-        status_code = '404'
-        headers = {'Content-Type': 'application/json'} 
-        headers = ast.literal_eval(str(headers)).items()
-    
-        return status_code, headers, json.dumps(response)
-    
+        message = "Network %s could not be found" % network_id
+        response_body = {"NeutronError":{"detail":"","message":message,"type":"NetworkNotFound"}}
+        return non_exist_response('404', response_body)
+        
     # If network exists then delete
     else:
         # Retrive token from request
@@ -123,34 +119,35 @@ def neutron_show_network_details(env):
         # Create request header
         headers = {'X-Auth-Token': X_AUTH_TOKEN}
     
-        response = GET_request_to_cloud(url, headers)
+        res = GET_request_to_cloud(url, headers)
     
-        # Read json data from response
-        try:
-            res = response.json()
-        except:
-            res = response.text
+        response = None
+        # Successfully get response from cloud
+        if res.status_code == 200:
         
-        if response.status_code == 200:
-        
+            response = res.json()
+
             # Replace network's id by uuid_agent
-            res['network']['id'] = result[0].uuid_agent
+            response['network']['id'] = result[0].uuid_agent
             # If network has subnets
-            subnets = res['network']['subnets']
+            subnets = response['network']['subnets']
             # Replace subnets' ids
             if len(subnets) != 0:
                 new_subnets = [] 
                 for subnet in subnets:
                     result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet)
                     new_subnets.append(result[0].uuid_agent)
-                res['network']['subnets'] = new_subnets
+                response['network']['subnets'] = new_subnets
 
-        status_code = str(response.status_code)
-        headers = response.headers
-        headers['Content-Length'] = len(json.dumps(res))
+        else:
+            response = res.text
+
+        status_code = str(res.status_code)
+        headers = res.headers
+        headers['Content-Length'] = len(json.dumps(response))
         headers = ast.literal_eval(str(headers)).items()
 
-        return status_code, headers, json.dumps(res)
+        return status_code, headers, json.dumps(response)
 
 
 # Create network                    
@@ -171,16 +168,16 @@ def neutron_create_network(env):
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
     
-    response = POST_request_to_cloud(url, headers, PostData)
+    res = POST_request_to_cloud(url, headers, PostData)
     
     # If network is successfully created in cloud
-    if response.status_code == 201:
+    if res.status_code == 201:
 
         # Retrive information from response
-        response_json = response.json()
-        tenant_id = response_json['network']['tenant_id'] 
-        network_id = response_json['network']['id'] 
-        network_name = response_json['network']['name']
+        response = res.json()
+        tenant_id = response['network']['tenant_id'] 
+        network_id = response['network']['id'] 
+        network_name = response['network']['name']
         uuid_agent = str(uuid.uuid4())
         #uuid_agent = '8e6df216-d941-4276-8df3-4dee75294d12'
         
@@ -189,17 +186,17 @@ def neutron_create_network(env):
         # Add data to DB
         add_to_DB(AGENT_NEUTRON_ENGINE_CONNECTION, new_network)
 
-        status_code = str(response.status_code)
-        headers = ast.literal_eval(str(response.headers)).items()
-        response_json['network']['id'] =  uuid_agent
+        status_code = str(res.status_code)
+        headers = ast.literal_eval(str(res.headers)).items()
+        response['network']['id'] =  uuid_agent
 
-        return status_code, headers, json.dumps(response_json)
+        return status_code, headers, json.dumps(response)
     
     else:
-        status_code = str(response.status_code)
-        headers = ast.literal_eval(str(response.headers)).items()
+        status_code = str(res.status_code)
+        headers = ast.literal_eval(str(res.headers)).items()
 
-        return status_code, headers, json.dumps(response.json())
+        return status_code, headers, json.dumps(res.json())
 
 
 # Delete network
@@ -214,13 +211,10 @@ def neutron_delete_network(env):
     # If network does not exist
     if res.count() == 0:
     
-        response_message = "Network %s could not be found" % network_id
-        response = {"NeutronError":{"detail":"","message":response_message,"type":"NetworkNotFound"}}
-        status_code = '404'
-        headers = {'Content-Type': 'application/json'} 
-        headers = ast.literal_eval(str(headers)).items()
-    
-        return status_code, headers, json.dumps(response)
+        message = "Network %s could not be found" % network_id
+        response_body = {"NeutronError":{"detail":"","message":message,"type":"NetworkNotFound"}}
+        
+        return non_exist_response('404', response_body)
     
     # If network exists then delete
     else:
@@ -252,7 +246,6 @@ def neutron_delete_network(env):
     
         SUCCESS_threads = []
         FAIL_threads = []
-
         for i in range(len(threads_res)):
         
             # If Network deleted successfully
@@ -294,12 +287,8 @@ def neutron_list_subnets(env):
     # If network does not exist
     if len(result) == 0:
     
-        response = {"subnets": []}
-        status_code = '200'
-        headers = {'Content-Type': 'application/json'} 
-        headers = ast.literal_eval(str(headers)).items()
-    
-        return status_code, headers, json.dumps(response)
+        response_body = {"subnets": []}
+        return non_exist_response('200', response_body)
     
     # If network exists then delete
     else:
@@ -324,9 +313,8 @@ def neutron_list_subnets(env):
         # Wait until threads terminate
         for i in range(len(threads)):
 	
-	    # Parse response from site	
 	    res = threads[i].join()
-            # If user has right to get access to the resource
+            # If user has access to the resource
             if res.status_code == 200:
                 threads_res.append(res)
     
@@ -346,13 +334,14 @@ def neutron_list_subnets(env):
             # Replace subnet's network_id by network's uuid_agent
             result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
             res['subnet']['network_id'] = result[0].uuid_agent
-            
+           
+            # Add cloud info to response
             new_response = add_cloud_info_to_response(result[0].cloud_address, res['subnet'])
             response['subnets'].append(new_response)
             #response['subnets'].append(res['subnet'])
         
         # Remove duplicate subnets        
-        response['subnets'] = [i for n, i in enumerate(response['subnets']) if i not in response['subnets'][n + 1:]]
+        #response['subnets'] = [i for n, i in enumerate(response['subnets']) if i not in response['subnets'][n + 1:]]
 
         status_code = str(threads_res[0].status_code)
         headers = threads_res[0].headers
@@ -375,13 +364,9 @@ def neutron_show_subnet_details(env):
     # If network does not exist
     if result.count() == 0:
         
-        response_message = "Subnet %s could not be found" % network_id
-        response = {"NeutronError":{"detail":"","message":response_message,"type":"SubnetNotFound"}}
-        status_code = '404'
-        headers = {'Content-Type': 'application/json'} 
-        headers = ast.literal_eval(str(headers)).items()
-    
-        return status_code, headers, json.dumps(response)
+        message = "Subnet %s could not be found" % network_id
+        response_body = {"NeutronError":{"detail":"","message":message,"type":"SubnetNotFound"}}
+        return non_exist_response('404', response_body)
     
     # If network exists then delete
     else:
@@ -394,78 +379,33 @@ def neutron_show_subnet_details(env):
         # Create request header
         headers = {'X-Auth-Token': X_AUTH_TOKEN}
         # Forward request to the relevant cloud
-        response = GET_request_to_cloud(url, headers)
+        res = GET_request_to_cloud(url, headers)
         
-        # Read json data from response
-        try:
-            res = response.json()
-        except:
-            res = response.text
+        response = None
+        # Successfully get response from cloud
+        if res.status_code == 200:
+            
+            response = res.json()
         
-        if response.status_code == 200:
-        
-            network_uuid_cloud = res['subnet']['network_id']
+            network_uuid_cloud = response['subnet']['network_id']
             # Replace network's id by uuid_agent
-            res['subnet']['id'] = result[0].uuid_agent
+            response['subnet']['id'] = result[0].uuid_agent
         
             # Replace subnet's network_id by network's uuid_agent
             result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
-            res['subnet']['network_id'] = result[0].uuid_agent
+            response['subnet']['network_id'] = result[0].uuid_agent
+
+        else:
+            response = res.json()
 
         # Return response to end-user
-        status_code = str(response.status_code)
-        headers = response.headers
-        headers['Content-Length'] = len(json.dumps(res))
+        status_code = str(res.status_code)
+        headers = res.headers
+        headers['Content-Length'] = len(json.dumps(response))
         headers = ast.literal_eval(str(headers)).items()
 
-        return status_code, headers, json.dumps(res)
+        return status_code, headers, json.dumps(response)
 
-
-    '''
-    # Retrive token from request
-    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-    
-    # Create suffix of service url
-    url_suffix = config.get('Neutron', 'neutron_public_interface') + env['PATH_INFO']
-    
-    # Get generated threads 
-    threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
-    
-    # Launch threads
-    for i in range(len(threads)):
-	threads[i].start()
-	
-    # Initiate response data structure
-    response = None
-    headers = [('Content-Type','application/json')]	
-    status_code = ''
-
-    # Wait until threads terminate
-    for i in range(len(threads)):
-        # Parse response from site	
-	try:
-	    response = json.loads(threads[i].join()[0])
-            
-            # If network not found
-            try:
-	        networkNotFound = response['NeutronError']
-                res = json.dumps(response)
-                status_code = str(threads[i].join()[1])
-            # Network found
-            except:
-                normal_status_code = str(threads[i].join()[1])
-	        # Add cloud info to response 
-                response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response)
-                res = json.dumps(response)
-    
-                return (res, status_code, headers)
-			
-	except:
-            status_code = str(threads[i].join()[1])
-            res = threads[i].join()[0]
-
-    return (res, status_code, headers)
-    '''
 
 # Create subnet                    
 def neutron_create_subnet(env):
@@ -482,13 +422,9 @@ def neutron_create_subnet(env):
     # If network does not exist
     if res.count() == 0:
     
-        response_message = "Network %s could not be found" % json.loads(PostData)['subnet']['network_id']
-        response = {"NeutronError":{"detail":"","message":response_message,"type":"NetworkNotFound"}}
-        status_code = '404'
-        headers = {'Content-Type': 'application/json'} 
-        headers = ast.literal_eval(str(headers)).items()
-    
-        return status_code, headers, json.dumps(response)
+        message = "Network %s could not be found" % json.loads(PostData)['subnet']['network_id']
+        response_body = {"NeutronError":{"detail":"","message":message,"type":"NetworkNotFound"}}
+        return non_exist_response('404', response_body)
 
     # If network exists
     else:
@@ -527,7 +463,6 @@ def neutron_create_subnet(env):
         SUCCESS_threads = []
         FAIL_threads = []
         uuid_agent = uuid.uuid4()
-        
         # Retrive information from threads
         for i in range(len(threads_res)):
         
@@ -558,7 +493,7 @@ def neutron_create_subnet(env):
                 add_to_DB(AGENT_NEUTRON_ENGINE_CONNECTION, new_subnet)
                 
                 SUCCESS_threads.append(threads_res[i])
-
+        
             # If subnet failed to be created
             else:
                 FAIL_threads.append(threads_res[i])
@@ -593,13 +528,9 @@ def neutron_delete_subnet(env):
     # If subnet does not exist
     if res.count() == 0:
     
-        response_message = "Subnet %s could not be found" % subnet_id
-        response = {"NeutronError":{"detail":"","message":response_message,"type":"SubnetNotFound"}}
-        status_code = '404'
-        headers = {'Content-Type': 'application/json'} 
-        headers = ast.literal_eval(str(headers)).items()
-    
-        return status_code, headers, json.dumps(response)
+        message = "Subnet %s could not be found" % subnet_id
+        response_body = {"NeutronError":{"detail":"","message":message,"type":"SubnetNotFound"}}
+        return non_exist_response('404', response_body)
     
     # If subnet exists then delete
     else:
@@ -621,12 +552,9 @@ def neutron_delete_subnet(env):
 	    threads[i].start()
 
         threads_res = []
-    
         # Wait until threads terminate
-        for i in range(len(threads)):
-	
-	    # Parse response from site	
-	    res = threads[i].join()
+        for i in range(len(threads)):	    
+            res = threads[i].join()
 	    threads_res.append(res)
     
         SUCCESS_threads = []
