@@ -74,15 +74,11 @@ def neutron_list_networks(env):
             
             new_response = add_cloud_info_to_response(result[0].cloud_address, res['network'])
             response['networks'].append(new_response)
-            #response['networks'].append(res['network'])
 
-
-        network_list = response['networks']
-        print network_list
-
-
-        # Remove duplicate networks        
-        #response['networks'] = [i for n, i in enumerate(response['networks']) if i not in response['networks'][n + 1:]]
+        
+        if response['networks'] != 0:
+            # Remove duplicate subnets        
+            response['networks'] = remove_duplicate_info(response['networks'], 'id')
         
         status_code = str(threads_res[0].status_code)
         headers = threads_res[0].headers
@@ -338,11 +334,11 @@ def neutron_list_subnets(env):
             # Add cloud info to response
             new_response = add_cloud_info_to_response(result[0].cloud_address, res['subnet'])
             response['subnets'].append(new_response)
-            #response['subnets'].append(res['subnet'])
+         
+        if response['subnets'] != 0:
+            # Remove duplicate subnets        
+            response['subnets'] = remove_duplicate_info(response['subnets'], 'id')
         
-        # Remove duplicate subnets        
-        #response['subnets'] = [i for n, i in enumerate(response['subnets']) if i not in response['subnets'][n + 1:]]
-
         status_code = str(threads_res[0].status_code)
         headers = threads_res[0].headers
         headers['Content-Length'] = len(json.dumps(response))

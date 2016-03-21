@@ -17,6 +17,15 @@ config = ConfigParser.ConfigParser()
 config.read('agent.conf')
 SITES = ast.literal_eval(config.get('Clouds','sites'))
 
+# A function to send resonse to end-user if resource info dose exist in agent local DB
+def non_exist_response(status_code, response_body):
+    
+    headers = {'Content-Type': 'application/json'} 
+    headers = ast.literal_eval(str(headers)).items()
+        
+    return status_code, headers, json.dumps(response_body)
+
+
 # A function to add cloud name and cloud ip to user response
 def add_cloud_info_to_response(search_context, response):
 
@@ -30,18 +39,28 @@ def add_cloud_info_to_response(search_context, response):
     site = SITES.keys()[SITES.values().index('http://'+site_ip)]
     
     # Add site information to json response
-    response['site_ip'] = site_ip
-    response['site'] = site	
+    #response['site_ip'] = site_ip
+    response['site'] = site + '-' + site_ip	
     
     return response
 
-# A function to send resonse to end-user if resource info dose exist in agent local DB
-def non_exist_response(status_code, response_body):
     
-    headers = {'Content-Type': 'application/json'} 
-    headers = ast.literal_eval(str(headers)).items()
-        
-    return status_code, headers, json.dumps(response_body)
-    
+# Remove duplication information of response
+def remove_duplicate_info(items, keyword):
+
+    ids = []
+    rs = []
+    for item in items:
+        if item not in rs and item[keyword] not in ids:
+            ids.append(item[keyword])
+            rs.append(item)
+        else:
+            for item2 in rs:
+                if item[keyword] == item2[keyword]:
+                    item2['site'] = item2['site'] + ', ' + item['site']
+    return rs
+
+
+
 
 
