@@ -143,10 +143,10 @@ def glance_create_image(env):
     PostData = env['wsgi.input'].read()
     
     # Construct url for creating network
-    cloud_name = 'Cloud1'
-    cloud_address = 'http://10.0.1.10'
-    #cloud_name = 'Cloud3'
-    #cloud_address = 'http://10.0.1.12'
+    #cloud_name = 'Cloud1'
+    #cloud_address = 'http://10.0.1.10'
+    cloud_name = 'Cloud3'
+    cloud_address = 'http://10.0.1.12'
     
     url = cloud_address + ':' + config.get('Glance','glance_public_interface') + '/v2/images' 
     # Create header
@@ -214,6 +214,10 @@ def glance_upload_binary_image_data(env):
     
         # Request data 
         PutData = env['wsgi.input'].read()
+        #PutData = env['eventlet.input'].read()
+
+        #data_set.append(PutData)
+        data_set = []
     
         # Create header
         headers = {'Content-Type': 'application/octet-stream', 'X-Auth-Token': X_AUTH_TOKEN}
@@ -223,9 +227,18 @@ def glance_upload_binary_image_data(env):
         urls = []
         for image in image_result:
             urls.append(image.cloud_address + ':' + url_suffix + image.uuid_cloud + '/file')
+            data_set.append(PutData)
+        
+        print '='*80
+        print len(PutData)
+        print type(PutData)
+        print urls
+        print len(data_set)
+        print '='*80
 
         # Get generated threads 
-        threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, PUT_request_to_cloud, PutData)
+        #threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, PUT_request_to_cloud, PutData)
+        threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, PUT_request_to_cloud, data_set)
 
         # Launch threads
         for i in range(len(threads)):
