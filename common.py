@@ -17,13 +17,21 @@ config = ConfigParser.ConfigParser()
 config.read('agent.conf')
 SITES = ast.literal_eval(config.get('Clouds','sites'))
 
+DATABASE_NAME = config.get('Database', 'DATABASE_NAME')
+DATABASE_USERNAME = config.get('Database', 'DATABASE_USERNAME')
+DATABASE_PASSWORD = config.get('Database', 'DATABASE_PASSWORD')
+AGENT_DB_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/%s' % (DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
+
 # A function to send resonse to end-user if resource info dose exist in agent local DB
 def non_exist_response(status_code, response_body):
     
     headers = {'Content-Type': 'application/json'} 
     headers = ast.literal_eval(str(headers)).items()
-        
-    return status_code, headers, json.dumps(response_body)
+
+    if type(response_body) == str:
+        return status_code, headers, response_body
+    elif type(response_body) == dict:
+        return status_code, headers, json.dumps(response_body)
 
 
 # A function to add cloud name and cloud ip to user response

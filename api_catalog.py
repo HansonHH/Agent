@@ -123,10 +123,10 @@ def api_catalog(env, start_response):
 	if env['REQUEST_METHOD'] == 'GET':
 	    # Show image details
 	    if PATH_INFO.startswith('/v2/images/'):
-		response, status_code, headers = glance_show_image_details(env)
+		status_code, headers, response = glance_show_image_details(env)
 	    # List images
 	    else:
-		response, status_code, headers = glance_list_images(env)
+		status_code, headers, response = glance_list_images(env)
 		
 	    start_response(status_code, headers)
             return response
@@ -134,12 +134,9 @@ def api_catalog(env, start_response):
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':
             # Create image
-            response = glance_create_image(env)
-            # Shift dictionary to tuple
-	    headers = ast.literal_eval(str(response.headers)).items()
-            # Respond to end user
-	    start_response(str(response.status_code), headers)
-            
+            status_code, headers, response = glance_create_image(env)
+            start_response(status_code, headers)
+
             return response
 
         # PUT request
@@ -157,12 +154,9 @@ def api_catalog(env, start_response):
 	# DELETE request	
         elif env['REQUEST_METHOD'] == 'DELETE':
 	    # Delete image
-            response = glance_delete_image(env)	
-            
-            # Shift dictionary to tuple
-	    headers = ast.literal_eval(response['headers']).items()
-            # Respond to end user
-	    start_response(str(response['status_code']), headers)
+            status_code, headers, response = glance_delete_image(env)
+            start_response(status_code, headers)
+
             return response
 
     # Network API v2.0

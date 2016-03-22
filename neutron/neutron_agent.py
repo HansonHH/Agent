@@ -5,17 +5,12 @@ from db import *
 from models import *
 import uuid
 
-DATABASE_NAME = config.get('Database', 'DATABASE_NAME')
-DATABASE_USERNAME = config.get('Database', 'DATABASE_USERNAME')
-DATABASE_PASSWORD = config.get('Database', 'DATABASE_PASSWORD')
-
-AGENT_NEUTRON_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/%s' % (DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
 # List networks
 def neutron_list_networks(env):
 
     # Get all rows of Netowrk object
-    result = read_all_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network)
+    result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Network)
     
     # If network does not exist
     if len(result) == 0:
@@ -42,7 +37,6 @@ def neutron_list_networks(env):
 	    threads[i].start()
 
         threads_res = []
-    
         # Wait until threads terminate
         for i in range(len(threads)):
 	
@@ -51,14 +45,14 @@ def neutron_list_networks(env):
             # If user has right to get access to the resource
             if res.status_code == 200:
                 threads_res.append(res)
-    
+
         response = {'networks':[]}
         for network in threads_res:
     
             res = network.json()
             # Network's uuid_cloud
             network_uuid_cloud = res['network']['id']
-            result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
+            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
 
             # Replace network's id by uuid_agent
             res['network']['id'] = result[0].uuid_agent
@@ -68,12 +62,12 @@ def neutron_list_networks(env):
             if len(subnets) != 0:
                 new_subnets = [] 
                 for subnet in subnets:
-                    result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet)
+                    result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet)
                     new_subnets.append(result[0].uuid_agent)
                 res['network']['subnets'] = new_subnets
             
-            new_response = add_cloud_info_to_response(result[0].cloud_address, res['network'])
-            response['networks'].append(new_response)
+            new_network_info = add_cloud_info_to_response(result[0].cloud_address, res['network'])
+            response['networks'].append(new_network_info)
 
         
         if response['networks'] != 0:
@@ -95,7 +89,7 @@ def neutron_show_network_details(env):
     match = site_pattern.search(env['PATH_INFO'])
     network_id = match.group()
             
-    result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
+    result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
 
     # If network does not exist
     if result.count() == 0:
@@ -131,7 +125,7 @@ def neutron_show_network_details(env):
             if len(subnets) != 0:
                 new_subnets = [] 
                 for subnet in subnets:
-                    result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet)
+                    result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet)
                     new_subnets.append(result[0].uuid_agent)
                 response['network']['subnets'] = new_subnets
 
@@ -180,7 +174,7 @@ def neutron_create_network(env):
         new_network = Network(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = network_id, network_name = network_name, cloud_name = cloud_name, cloud_address = cloud_address)
         
         # Add data to DB
-        add_to_DB(AGENT_NEUTRON_ENGINE_CONNECTION, new_network)
+        add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_network)
 
         status_code = str(res.status_code)
         headers = ast.literal_eval(str(res.headers)).items()
@@ -202,7 +196,7 @@ def neutron_delete_network(env):
     match = site_pattern.search(env['PATH_INFO'])
     network_id = match.group()   
     
-    res = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
+    res = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
     
     # If network does not exist
     if res.count() == 0:
@@ -253,9 +247,9 @@ def neutron_delete_network(env):
                 uuid_cloud = match.group()   
             
                 # Delete subnet information in agent DB 
-                delete_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.network_uuid_cloud, uuid_cloud)
+                delete_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.network_uuid_cloud, uuid_cloud)
                 # Delete network information in agent DB 
-                delete_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_cloud, uuid_cloud)
+                delete_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_cloud, uuid_cloud)
                 SUCCESS_threads.append(threads_res[i])
             else:
                 FAIL_threads.append(threads_res[i])
@@ -277,8 +271,8 @@ def neutron_delete_network(env):
 # List subnets
 def neutron_list_subnets(env):
 
-    # Get all rows of Netowrk object
-    result = read_all_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet)
+    # Get all rows of Subnet object
+    result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet)
     
     # If network does not exist
     if len(result) == 0:
@@ -324,16 +318,16 @@ def neutron_list_subnets(env):
             network_uuid_cloud = res['subnet']['network_id']
             
             # Replace subnet's id by subnet's uuid_agent
-            result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet_uuid_cloud)
+            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet_uuid_cloud)
             res['subnet']['id'] = result[0].uuid_agent
             
             # Replace subnet's network_id by network's uuid_agent
-            result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
+            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
             res['subnet']['network_id'] = result[0].uuid_agent
            
             # Add cloud info to response
-            new_response = add_cloud_info_to_response(result[0].cloud_address, res['subnet'])
-            response['subnets'].append(new_response)
+            new_subnet_info = add_cloud_info_to_response(result[0].cloud_address, res['subnet'])
+            response['subnets'].append(new_subnet_info)
          
         if response['subnets'] != 0:
             # Remove duplicate subnets        
@@ -355,7 +349,7 @@ def neutron_show_subnet_details(env):
     match = site_pattern.search(env['PATH_INFO'])        
     subnet_id = match.group()
 
-    result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_agent, subnet_id)
+    result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_agent, subnet_id)
 
     # If network does not exist
     if result.count() == 0:
@@ -388,7 +382,7 @@ def neutron_show_subnet_details(env):
             response['subnet']['id'] = result[0].uuid_agent
         
             # Replace subnet's network_id by network's uuid_agent
-            result = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
+            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
             response['subnet']['network_id'] = result[0].uuid_agent
 
         else:
@@ -413,7 +407,7 @@ def neutron_create_subnet(env):
     network_uuid_agent = network_id
     
     # Query from local DB
-    res = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
+    res = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
     
     # If network does not exist
     if res.count() == 0:
@@ -486,7 +480,7 @@ def neutron_create_subnet(env):
                 new_subnet = Subnet(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = subnet_id, subnet_name = subnet_name, cloud_name = cloud_name, cloud_address = cloud_address, network_uuid_cloud = network_id)
                 
                 # Add data to DB
-                add_to_DB(AGENT_NEUTRON_ENGINE_CONNECTION, new_subnet)
+                add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_subnet)
                 
                 SUCCESS_threads.append(threads_res[i])
         
@@ -499,7 +493,7 @@ def neutron_create_subnet(env):
             status_code = str(SUCCESS_threads[0].status_code)
             headers = ast.literal_eval(str(SUCCESS_threads[0].headers)).items()
             response_json = SUCCESS_threads[0].json()
-            response_json['subnet']['id'] = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, response_json['subnet']['id'])[0].uuid_agent
+            response_json['subnet']['id'] = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, response_json['subnet']['id'])[0].uuid_agent
             response_json['subnet']['network_id'] =  network_uuid_agent
 
             return status_code, headers, json.dumps(response_json)
@@ -519,7 +513,7 @@ def neutron_delete_subnet(env):
     match = site_pattern.search(env['PATH_INFO'])
     subnet_id = match.group()   
     
-    res = query_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_agent, subnet_id)
+    res = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_agent, subnet_id)
     
     # If subnet does not exist
     if res.count() == 0:
@@ -566,7 +560,7 @@ def neutron_delete_subnet(env):
                 uuid_cloud = match.group()   
             
                 # Delete network information in agent DB 
-                delete_from_DB(AGENT_NEUTRON_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, uuid_cloud)
+                delete_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, uuid_cloud)
                 SUCCESS_threads.append(threads_res[i])
             else:
                 FAIL_threads.append(threads_res[i])
