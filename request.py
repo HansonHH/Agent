@@ -42,7 +42,7 @@ def DELETE_request_to_cloud(url, headers):
     return res
 
 # A function to generate threads for boardcasting user request to clouds
-def generate_threads(X_AUTH_TOKEN, url_suffix, target):
+def generate_threads(X_AUTH_TOKEN, url_suffix, target, headers):
 
     # Create urls of clouds
     urls = []
@@ -51,7 +51,7 @@ def generate_threads(X_AUTH_TOKEN, url_suffix, target):
         urls.append(url)
     
     # Create request header
-    headers = {'X-Auth-Token': X_AUTH_TOKEN}
+    #headers = {'X-Auth-Token': X_AUTH_TOKEN}
 
     # Create threads
     threads = [None] * len(urls)
@@ -61,10 +61,10 @@ def generate_threads(X_AUTH_TOKEN, url_suffix, target):
     return threads
 
 # A function to generate threads for multicasting user request to clouds
-def generate_threads_multicast(X_AUTH_TOKEN, urls, target):
+def generate_threads_multicast(X_AUTH_TOKEN, headers, urls, target):
 
     # Create request header
-    headers = {'X-Auth-Token': X_AUTH_TOKEN}
+    #headers = {'X-Auth-Token': X_AUTH_TOKEN}
 
     # Create threads
     threads = [None] * len(urls)
@@ -75,7 +75,7 @@ def generate_threads_multicast(X_AUTH_TOKEN, urls, target):
 
 
 # A function to generate threads for multicasting user request to clouds
-def generate_threads_multicast_with_data(X_AUTH_TOKEN, urls, target, headers, data_set):
+def generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, target, data_set):
 
     # Create request header
     #headers = {'X-Auth-Token': X_AUTH_TOKEN}

@@ -22,6 +22,9 @@ def neutron_list_networks(env):
     else:
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+    
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
         
         # Create suffix of service url
         url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/'  
@@ -30,7 +33,7 @@ def neutron_list_networks(env):
             urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
         
         # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, urls, GET_request_to_cloud)
+        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
 
         # Launch threads
         for i in range(len(threads)):
@@ -102,13 +105,13 @@ def neutron_show_network_details(env):
     else:
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
 
         # Create url
         url = network_result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/' + network_result[0].uuid_cloud
 
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
-    
         res = GET_request_to_cloud(url, headers)
     
         response = None
@@ -215,6 +218,9 @@ def neutron_delete_network(env):
     
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
     
         # Create suffix of service url
         url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/'  
@@ -223,7 +229,7 @@ def neutron_delete_network(env):
             urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
 
         # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, urls, DELETE_request_to_cloud)
+        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, DELETE_request_to_cloud)
 
         # Launch threads
         for i in range(len(threads)):
@@ -286,8 +292,12 @@ def neutron_list_subnets(env):
     
     # If network exists then delete
     else:
+        
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
         
         # Create suffix of service url
         url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
@@ -296,7 +306,7 @@ def neutron_list_subnets(env):
             urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
         
         # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, urls, GET_request_to_cloud)
+        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
 
         # Launch threads
         for i in range(len(threads)):
@@ -366,12 +376,13 @@ def neutron_show_subnet_details(env):
     else:
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
 
         # Create url
         url = subnet_result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/' + subnet_result[0].uuid_cloud
 
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
         # Forward request to the relevant cloud
         res = GET_request_to_cloud(url, headers)
         
@@ -445,7 +456,7 @@ def neutron_create_subnet(env):
             data_set.append(json.dumps(post_data_json))
 
         # Get generated threads 
-        threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, urls, POST_request_to_cloud, headers, data_set)
+        threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, POST_request_to_cloud, data_set)
 
         # Launch threads
         for i in range(len(threads)):
@@ -538,6 +549,9 @@ def neutron_delete_subnet(env):
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
         
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
+        
         # Create suffix of service url
         url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
         urls = []
@@ -545,7 +559,7 @@ def neutron_delete_subnet(env):
             urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
 
         # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, urls, DELETE_request_to_cloud)
+        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, DELETE_request_to_cloud)
 
         # Launch threads
         for i in range(len(threads)):

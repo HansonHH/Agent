@@ -23,6 +23,9 @@ def glance_list_images(env):
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
         
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
+        
         # Create suffix of service url
         url_suffix = config.get('Glance', 'glance_public_interface') + '/v2/images/'  
         urls = []
@@ -30,7 +33,7 @@ def glance_list_images(env):
             urls.append(image.cloud_address + ':' + url_suffix + image.uuid_cloud)
         
         # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, urls, GET_request_to_cloud)
+        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
 
         # Launch threads
         for i in range(len(threads)):
@@ -95,12 +98,13 @@ def glance_show_image_details(env):
     else:
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
 
         # Create url
         url = image_result[0].cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + image_result[0].uuid_cloud
 
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
         # Forward request to the relevant cloud
         res = GET_request_to_cloud(url, headers)
         
@@ -118,7 +122,7 @@ def glance_show_image_details(env):
                 response = add_cloud_info_to_response(image_result[i].cloud_address, response)
         
         else:
-            response = res.json()
+            response = res.text
 
         # Return response to end-user
         status_code = str(res.status_code)
@@ -139,10 +143,11 @@ def glance_create_image(env):
     PostData = env['wsgi.input'].read()
     
     # Construct url for creating network
-    #cloud_name = 'Cloud1'
-    #cloud_address = 'http://10.0.1.10'
-    cloud_name = 'Cloud3'
-    cloud_address = 'http://10.0.1.12'
+    cloud_name = 'Cloud1'
+    cloud_address = 'http://10.0.1.10'
+    #cloud_name = 'Cloud3'
+    #cloud_address = 'http://10.0.1.12'
+    
     url = cloud_address + ':' + config.get('Glance','glance_public_interface') + '/v2/images' 
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
@@ -220,7 +225,7 @@ def glance_upload_binary_image_data(env):
             urls.append(image.cloud_address + ':' + url_suffix + image.uuid_cloud + '/file')
 
         # Get generated threads 
-        threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, urls, PUT_request_to_cloud, headers, PutData)
+        threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, PUT_request_to_cloud, PutData)
 
         # Launch threads
         for i in range(len(threads)):
@@ -279,6 +284,9 @@ def glance_delete_image(env):
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
         
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
+        
         # Create suffix of service url
         url_suffix = config.get('Glance', 'glance_public_interface') + '/v2/images/'  
         urls = []
@@ -286,7 +294,7 @@ def glance_delete_image(env):
             urls.append(image.cloud_address + ':' + url_suffix + image.uuid_cloud)
 
         # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, urls, DELETE_request_to_cloud)
+        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, DELETE_request_to_cloud)
 
         # Launch threads
         for i in range(len(threads)):
