@@ -10,10 +10,10 @@ import uuid
 def neutron_list_networks(env):
 
     # Get all rows of Netowrk object
-    result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Network)
+    network_result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Network)
     
     # If network does not exist
-    if len(result) == 0:
+    if len(network_result) == 0:
     
         response_body = {"networks": []}
         return non_exist_response('200', response_body)
@@ -26,7 +26,7 @@ def neutron_list_networks(env):
         # Create suffix of service url
         url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/'  
         urls = []
-        for network in result:
+        for network in network_result:
             urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
         
         # Get generated threads 
@@ -62,8 +62,8 @@ def neutron_list_networks(env):
             if len(subnets) != 0:
                 new_subnets = [] 
                 for subnet in subnets:
-                    result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet)
-                    new_subnets.append(result[0].uuid_agent)
+                    subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet)
+                    new_subnets.append(subnet_result[0].uuid_agent)
                 res['network']['subnets'] = new_subnets
             
             new_network_info = add_cloud_info_to_response(result[0].cloud_address, res['network'])
@@ -89,10 +89,10 @@ def neutron_show_network_details(env):
     match = site_pattern.search(env['PATH_INFO'])
     network_id = match.group()
             
-    result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
+    network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_agent, network_id)
 
     # If network does not exist
-    if result.count() == 0:
+    if network_result.count() == 0:
         
         message = "Network %s could not be found" % network_id
         response_body = {"NeutronError":{"detail":"","message":message,"type":"NetworkNotFound"}}
@@ -104,7 +104,7 @@ def neutron_show_network_details(env):
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
 
         # Create url
-        url = result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/' + result[0].uuid_cloud
+        url = network_result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/' + network_result[0].uuid_cloud
 
         # Create request header
         headers = {'X-Auth-Token': X_AUTH_TOKEN}
@@ -118,16 +118,20 @@ def neutron_show_network_details(env):
             response = res.json()
 
             # Replace network's id by uuid_agent
-            response['network']['id'] = result[0].uuid_agent
+            response['network']['id'] = network_result[0].uuid_agent
             # If network has subnets
             subnets = response['network']['subnets']
             # Replace subnets' ids
             if len(subnets) != 0:
                 new_subnets = [] 
                 for subnet in subnets:
-                    result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet)
-                    new_subnets.append(result[0].uuid_agent)
+                    subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, subnet)
+                    new_subnets.append(subnet_result[0].uuid_agent)
                 response['network']['subnets'] = new_subnets
+            
+            # Add cloud info to response 
+            for i in range(network_result.count()):
+                response['network'] = add_cloud_info_to_response(network_result[i].cloud_address, response['network'])
 
         else:
             response = res.text
@@ -272,10 +276,10 @@ def neutron_delete_network(env):
 def neutron_list_subnets(env):
 
     # Get all rows of Subnet object
-    result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet)
+    subnet_result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet)
     
     # If network does not exist
-    if len(result) == 0:
+    if len(subnet_result) == 0:
     
         response_body = {"subnets": []}
         return non_exist_response('200', response_body)
@@ -288,8 +292,8 @@ def neutron_list_subnets(env):
         # Create suffix of service url
         url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
         urls = []
-        for network in result:
-            urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
+        for subnet in subnet_result:
+            urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
         
         # Get generated threads 
         threads = generate_threads_multicast(X_AUTH_TOKEN, urls, GET_request_to_cloud)
@@ -349,10 +353,10 @@ def neutron_show_subnet_details(env):
     match = site_pattern.search(env['PATH_INFO'])        
     subnet_id = match.group()
 
-    result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_agent, subnet_id)
+    subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_agent, subnet_id)
 
     # If network does not exist
-    if result.count() == 0:
+    if subnet_result.count() == 0:
         
         message = "Subnet %s could not be found" % network_id
         response_body = {"NeutronError":{"detail":"","message":message,"type":"SubnetNotFound"}}
@@ -364,7 +368,7 @@ def neutron_show_subnet_details(env):
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
 
         # Create url
-        url = result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/' + result[0].uuid_cloud
+        url = subnet_result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/' + subnet_result[0].uuid_cloud
 
         # Create request header
         headers = {'X-Auth-Token': X_AUTH_TOKEN}
@@ -379,11 +383,15 @@ def neutron_show_subnet_details(env):
         
             network_uuid_cloud = response['subnet']['network_id']
             # Replace network's id by uuid_agent
-            response['subnet']['id'] = result[0].uuid_agent
+            response['subnet']['id'] = subnet_result[0].uuid_agent
         
             # Replace subnet's network_id by network's uuid_agent
-            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
-            response['subnet']['network_id'] = result[0].uuid_agent
+            network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_cloud, network_uuid_cloud)
+            response['subnet']['network_id'] = network_result[0].uuid_agent
+            
+            # Add cloud info to response 
+            for i in range(subnet_result.count()):
+                response['subnet'] = add_cloud_info_to_response(subnet_result[i].cloud_address, response['subnet'])
 
         else:
             response = res.json()
@@ -422,9 +430,11 @@ def neutron_create_subnet(env):
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
+    
         # Create suffix of service url
         url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets'  
-        
         urls = []
         data_set = []
         for network in res:
@@ -435,7 +445,7 @@ def neutron_create_subnet(env):
             data_set.append(json.dumps(post_data_json))
 
         # Get generated threads 
-        threads = generate_threads_multicast_POST(X_AUTH_TOKEN, urls, POST_request_to_cloud, data_set)
+        threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, urls, POST_request_to_cloud, headers, data_set)
 
         # Launch threads
         for i in range(len(threads)):
