@@ -229,15 +229,7 @@ def glance_upload_binary_image_data(env):
             urls.append(image.cloud_address + ':' + url_suffix + image.uuid_cloud + '/file')
             data_set.append(PutData)
         
-        print '='*80
-        print len(PutData)
-        print type(PutData)
-        print urls
-        print len(data_set)
-        print '='*80
-
         # Get generated threads 
-        #threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, PUT_request_to_cloud, PutData)
         threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, PUT_request_to_cloud, data_set)
 
         # Launch threads
@@ -272,7 +264,6 @@ def glance_upload_binary_image_data(env):
             headers = ast.literal_eval(str(response.headers)).items()
 
             return status_code, headers, json.dumps(response.text)
-        
 
 
 # Delete image

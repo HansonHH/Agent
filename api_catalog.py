@@ -133,6 +133,7 @@ def api_catalog(env, start_response):
 
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':
+
             # Create image
             status_code, headers, response = glance_create_image(env)
             start_response(status_code, headers)
@@ -141,14 +142,6 @@ def api_catalog(env, start_response):
 
         # PUT request
         elif env['REQUEST_METHOD'] == 'PUT':
-            #response = glance_upload_binary_image_data(env)
-            
-            # Shift dictionary to tuple
-	    #headers = ast.literal_eval(str(response.headers)).items()
-            # Respond to end user
-	    #start_response(str(response.status_code), headers)
-
-            #return response
             
             # Upload binary image data
             status_code, headers, response = glance_upload_binary_image_data(env)
