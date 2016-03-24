@@ -48,14 +48,21 @@ def read_all_from_DB(connection, obj):
 
 
 # Query data from local agent database
-def query_from_DB(connection, obj, column, keyword):
-    
+def query_from_DB(connection, obj, **options):
+
+    columns = options.get("columns")
+    keywords = options.get("keywords")
+
+    filter_context = []
+    for i in range(len(columns)):
+        filter_context.append(columns[i] == keywords[i])  
+
     engine = create_engine(connection, echo = False)
     
     DBSession = sessionmaker(bind = engine)
     session = DBSession()
 
-    res = session.query(obj).filter(column == keyword)
+    res = session.query(obj).filter(*filter_context)
     session.close()
 
     return res

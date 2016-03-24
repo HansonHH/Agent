@@ -60,7 +60,7 @@ def glance_list_images(env):
             image_uuid_cloud = res['id']
             
             # Replace image's id by image's uuid_agent
-            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, Image.uuid_cloud, image_uuid_cloud)
+            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_cloud], keywords = [image_uuid_cloud])
             res['id'] = result[0].uuid_agent
             
             # Add cloud info to response
@@ -87,7 +87,7 @@ def glance_show_image_details(env):
     match = site_pattern.search(env['PATH_INFO'])        
     image_id = match.group()
 
-    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, Image.uuid_agent, image_id)
+    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent], keywords = [image_id])
 
     # If image does not exist
     if image_result.count() == 0:
@@ -148,7 +148,7 @@ def glance_create_image(env):
         uuid_agent = post_data_json['id']
         del post_data_json['id']
         
-        image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, Image.uuid_agent, uuid_agent)
+        image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent], keywords = [uuid_agent])
         
         # If image already exists
         if image_result.count() != 0:
@@ -162,14 +162,10 @@ def glance_create_image(env):
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
-    # Construct url for creating network
-    #cloud_name = 'Cloud1'
-    #cloud_address = 'http://10.0.1.10'
-    #cloud_name = 'Cloud2'
-    #cloud_address = 'http://10.0.1.11'
-    cloud_name = 'Cloud3'
-    cloud_address = 'http://10.0.1.12'
+    # Select site to create image
+    cloud_name, cloud_address = select_site_to_create_object()
     
+    # Construct url for creating network
     url = cloud_address + ':' + config.get('Glance','glance_public_interface') + '/v2/images' 
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
@@ -210,7 +206,7 @@ def glance_upload_binary_image_data(env):
     match = site_pattern.search(env['PATH_INFO'])        
     image_id = match.group()
 
-    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, Image.uuid_agent, image_id)
+    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent], keywords = [image_id])
 
     # If image does not exist
     if image_result.count() == 0:
@@ -293,7 +289,7 @@ def glance_delete_image(env):
     match = site_pattern.search(env['PATH_INFO'])
     image_id = match.group()   
     
-    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, Image.uuid_agent, image_id)
+    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent], keywords = [image_id])
     
     # If subnet does not exist
     if image_result.count() == 0:
@@ -362,7 +358,7 @@ def glance_delete_image(env):
             return status_code, headers, json.dumps(response.text)
     
 
-
+# Read image binary data by chunks
 def readInChunks(fileObj, chunkSize = 2048):
     while True:
         data = fileObj.read(chunkSize)

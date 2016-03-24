@@ -22,6 +22,7 @@ DATABASE_USERNAME = config.get('Database', 'DATABASE_USERNAME')
 DATABASE_PASSWORD = config.get('Database', 'DATABASE_PASSWORD')
 AGENT_DB_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/%s' % (DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
+
 # A function to send resonse to end-user if resource info dose exist in agent local DB
 def non_exist_response(status_code, response_body):
     
@@ -45,15 +46,12 @@ def add_cloud_info_to_response(search_context, response):
     # Find name of cloud
     site = SITES.keys()[SITES.values().index('http://'+site_ip)]
 
+    # Add site information to json response
     try:
         response['site'] = response['site'] + ', ' +site + '-' + site_ip
-    
     except:
         response['site'] = site + '-' + site_ip	
 
-    # Add site information to json response
-    #response['site'] = site + '-' + site_ip	
-    
     return response
 
     
@@ -71,6 +69,13 @@ def remove_duplicate_info(items, keyword):
                 if item[keyword] == item2[keyword]:
                     item2['site'] = item2['site'] + ', ' + item['site']
     return rs
+
+
+def select_site_to_create_object():
+    cloud_name = 'Cloud3'
+    cloud_address = 'http://10.0.1.12'
+
+    return cloud_name, cloud_address
 
 
 

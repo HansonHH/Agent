@@ -1,5 +1,8 @@
 from request import *
 from common import *
+from db import *
+from models import *
+import uuid
 
 # List servers
 def nova_list_servers(env):
@@ -172,6 +175,101 @@ def nova_create_server(env):
     
     # Request data 
     PostData = env['wsgi.input'].read()
+   
+    post_json = json.loads(PostData)
+
+    imageRef = post_json['server']['imageRef']
+    flavorRef = post_json['server']['flavorRef']
+    networks = post_json['server']['networks']
+    
+    print '='*60
+    #print post_json
+    print 'imageRef : %s' % imageRef
+    print 'flavorRef : %s' % flavorRef
+    print 'networks : %s' % networks
+    for network in networks:
+        print network['uuid']
+    print '='*60
+
+
+    # Select site to create VM
+    cloud_name, cloud_address = select_site_to_create_object()
+    
+    # Check if image exist in selected site
+    #image_id = check_image_exists_in_selected_site(imageRef)
+    image_id = None
+    if imageRef.startswith('http://'):
+        # Retrive tenant id by regular expression 
+        image_id_pattern = re.compile(r'(?<=/v2/images/).*')
+        match = image_id_pattern.search(imageRef)
+        image_id = match.group()
+    else:
+        image_id = imageRef
+    print image_id
+    
+    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = (Image.uuid_agent, Image.cloud_address), keywords = (image_id, cloud_address))
+    
+
+    # Image does not exist in selected cloud
+    if image_result.count() == 0:
+        print 'Image does not exist in selected cloud'
+    else:
+        print 'Image exists in selected cloud'
+
+
+    
+
+
+    # Construct url for creating network
+    url = cloud_address + ':' + config.get('Neutron','neutron_public_interface') + env['PATH_INFO'] 
+    # Create header
+    headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
+    
+
+
+    '''
+
+    res = POST_request_to_cloud(url, headers, PostData)
+    
+    # If network is successfully created in cloud
+    if res.status_code == 201:
+
+        # Retrive information from response
+        response = res.json()
+        tenant_id = response['network']['tenant_id'] 
+        network_id = response['network']['id'] 
+        network_name = response['network']['name']
+        uuid_agent = str(uuid.uuid4())
+        #uuid_agent = '8e6df216-d941-4276-8df3-4dee75294d12'
+        
+        new_network = Network(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = network_id, network_name = network_name, cloud_name = cloud_name, cloud_address = cloud_address)
+        
+        # Add data to DB
+        add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_network)
+
+        status_code = str(res.status_code)
+        headers = ast.literal_eval(str(res.headers)).items()
+        response['network']['id'] =  uuid_agent
+
+        return status_code, headers, json.dumps(response)
+    
+    else:
+        status_code = str(res.status_code)
+        headers = ast.literal_eval(str(res.headers)).items()
+
+        return status_code, headers, json.dumps(res.json())
+
+    '''
+
+
+
+
+    '''
+    # Retrive token from request
+    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+    
+    # Request data 
+    PostData = env['wsgi.input'].read()
     
     # Construct url for creating network
     url = 'http://10.0.1.12:' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
@@ -181,6 +279,9 @@ def nova_create_server(env):
     response = POST_request_to_cloud(url, headers, PostData)
     
     return response
+    '''
+
+
 
 # Delete image
 def nova_delete_server(env):
