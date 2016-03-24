@@ -11,6 +11,10 @@ import requests
 import json
 import re
 
+#from cStringIO import StringIO
+#import cStringIO
+
+
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
 SITES = ast.literal_eval(config.get('Clouds','sites'))
@@ -22,8 +26,19 @@ def POST_request_to_cloud(url, headers, PostData):
     return res
 
 # PUT request t cloud
-def PUT_request_to_cloud(url, headers, PutData):
-    res = requests.put(url, headers = headers, data = PutData)
+def PUT_request_to_cloud(url, headers, temp_file_path):
+
+    f = open(temp_file_path, 'rb')
+
+    print '!'*60
+    print type(f)
+    print '!'*60
+
+    res = requests.put(url, headers = headers, data = f)
+    #res = requests.put(url, headers = headers, data = PutData)
+    
+    f.close()
+    
     return res
 
 # GET request to cloud

@@ -4,7 +4,9 @@ from common import *
 from db import *
 from models import *
 import uuid
+import os
 
+TEMP_IMAGE_PATH = config.get('Glance', 'temp_image_path')
 
 # List images
 def glance_list_images(env):
@@ -71,7 +73,7 @@ def glance_list_images(env):
         
         status_code = str(threads_res[0].status_code)
         headers = threads_res[0].headers
-        headers['Content-Length'] = len(json.dumps(response))
+        headers['Content-Length'] = str(len(json.dumps(response)))
         headers = ast.literal_eval(str(headers)).items()
 
         return status_code, headers, json.dumps(response)
@@ -127,7 +129,7 @@ def glance_show_image_details(env):
         # Return response to end-user
         status_code = str(res.status_code)
         headers = res.headers
-        headers['Content-Length'] = len(json.dumps(response))
+        headers['Content-Length'] = str(len(json.dumps(response)))
         headers = ast.literal_eval(str(headers)).items()
 
         return status_code, headers, json.dumps(response)
@@ -135,31 +137,42 @@ def glance_show_image_details(env):
 
 # Create image                    
 def glance_create_image(env):
-
-    # Retrive token from request
-    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
     # Request data 
     PostData = env['wsgi.input'].read()
     
+    uuid_agent = None
+    post_data_json = json.loads(PostData)
+    # If user specifies image's id
+    try:
+        uuid_agent = post_data_json['id']
+        del post_data_json['id']
+        
+        image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, Image.uuid_agent, uuid_agent)
+        
+        # If image already exists
+        if image_result.count() != 0:
+            message = "Image ID %s already exists!" % uuid_agent
+            response_body = "<html><head><title>409 COnflict</title></head><body><h1>409 Conflict</h1>%s<br/><br/></body></html>" 
+            return non_exist_response('409', response_body)
+
+    except:
+        uuid_agent = str(uuid.uuid4())
+
+    # Retrive token from request
+    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+    
     # Construct url for creating network
     #cloud_name = 'Cloud1'
     #cloud_address = 'http://10.0.1.10'
+    #cloud_name = 'Cloud2'
+    #cloud_address = 'http://10.0.1.11'
     cloud_name = 'Cloud3'
     cloud_address = 'http://10.0.1.12'
     
     url = cloud_address + ':' + config.get('Glance','glance_public_interface') + '/v2/images' 
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
-    
-    uuid_agent = None
-    post_data_json =  json.loads(PostData)
-    # If user specifies image's id
-    try:
-        uuid_agent = post_data_json['id']
-        del post_data_json['id']
-    except:
-        uuid_agent = str(uuid.uuid4())
 
     res = POST_request_to_cloud(url, headers, json.dumps(post_data_json))
 
@@ -188,7 +201,6 @@ def glance_create_image(env):
         headers = ast.literal_eval(str(res.headers)).items()
 
         return status_code, headers, json.dumps(res.json())
-
     
 
 # Upload binary image data                    
@@ -212,22 +224,22 @@ def glance_upload_binary_image_data(env):
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
-        # Request data 
-        PutData = env['wsgi.input'].read()
-        #PutData = env['eventlet.input'].read()
-
-        #data_set.append(PutData)
-        data_set = []
-    
         # Create header
         headers = {'Content-Type': 'application/octet-stream', 'X-Auth-Token': X_AUTH_TOKEN}
-
+        # Write binary data to temporay file
+        temp_file_path = TEMP_IMAGE_PATH + image_id 
+        f = open(temp_file_path, "w")
+        for line in readInChunks(env['wsgi.input']):
+            f.write(line)
+        f.close()
+        
+        data_set = []
         # Create suffix of service url
         url_suffix = config.get('Glance', 'glance_public_interface') + '/v2/images/'  
         urls = []
         for image in image_result:
             urls.append(image.cloud_address + ':' + url_suffix + image.uuid_cloud + '/file')
-            data_set.append(PutData)
+            data_set.append(temp_file_path)
         
         # Get generated threads 
         threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, PUT_request_to_cloud, data_set)
@@ -251,6 +263,12 @@ def glance_upload_binary_image_data(env):
                 SUCCESS_threads.append(threads_res[i])
             else:
                 FAIL_threads.append(threads_res[i])
+        
+        # Delete temporary image file
+        try:
+            os.remove(temp_file_path)
+        except:
+            pass
 
         if len(SUCCESS_threads) != 0:
             response = SUCCESS_threads[0]
@@ -264,6 +282,8 @@ def glance_upload_binary_image_data(env):
             headers = ast.literal_eval(str(response.headers)).items()
 
             return status_code, headers, json.dumps(response.text)
+        
+
 
 
 # Delete image
@@ -341,5 +361,12 @@ def glance_delete_image(env):
 
             return status_code, headers, json.dumps(response.text)
     
-    
+
+
+def readInChunks(fileObj, chunkSize = 2048):
+    while True:
+        data = fileObj.read(chunkSize)
+        if not data:
+            break
+        yield data
 
