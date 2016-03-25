@@ -77,18 +77,15 @@ def application(env, start_response):
             # Create VM
             if PATH_INFO.endswith('/servers'):
 
-                response = nova_create_server(env)
+                status_code, headers, response = nova_create_server(env)
 
             # Create flavor
             elif PATH_INFO.endswith('/flavors'):
                 
-                response = nova_create_flavor(env)
-                
-            # Shift dictionary to tuple
-	    headers = ast.literal_eval(str(response.headers)).items()
-            # Respond to end user
-	    start_response(str(response.status_code), headers)
+                status_code, headers, response = nova_create_flavor(env)
             
+            start_response(status_code, headers)
+
             return response
 	
         # DELETE request	

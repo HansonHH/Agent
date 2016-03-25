@@ -30,12 +30,7 @@ def PUT_request_to_cloud(url, headers, temp_file_path):
 
     f = open(temp_file_path, 'rb')
 
-    print '!'*60
-    print type(f)
-    print '!'*60
-
     res = requests.put(url, headers = headers, data = f)
-    #res = requests.put(url, headers = headers, data = PutData)
     
     f.close()
     

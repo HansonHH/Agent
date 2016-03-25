@@ -170,33 +170,69 @@ def nova_show_server_details(env):
 # Create VM                    
 def nova_create_server(env):
     
-    # Retrive token from request
-    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
     # Request data 
     PostData = env['wsgi.input'].read()
    
     post_json = json.loads(PostData)
 
-    imageRef = post_json['server']['imageRef']
-    flavorRef = post_json['server']['flavorRef']
-    networks = post_json['server']['networks']
+    imageRef = None
+    flavorRef = None
+    networks = []
     
+    # Check if users specified required option imageRef
+    try:
+        imageRef = post_json['server']['imageRef']
+    except:
+        message = "Invalid input for field/attribute server. Value: %s. 'imageRef' is a required property" % post_json['server']
+        response = {"badRequest" : {"code" : 400, "message": message}}
+        return non_exist_response('400', json.dumps(response))
+
+    # Check if users specified required option flavorRef
+    try:
+        flavorRef = post_json['server']['flavorRef']
+    except:
+        message = "Invalid input for field/attribute server. Value: %s. 'flavorRef' is a required property" % post_json['server']
+        response = {"badRequest" : {"code" : 400, "message": message}}
+        return non_exist_response('400', json.dumps(response))
+    
+    # Check if users specified optional option networks
+    try:
+        for network in post_json['server']['networks']:
+            networks.append(network['uuid'])
+    except:
+        
+        tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
+        match = tenant_id_pattern.search(env['PATH_INFO'])
+        tenant_id = match.group()
+
+        network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.tenant_id], keywords = [tenant_id])
+
+        if network_result.count() > 1:
+        
+            message = "Multiple possible networks found, use a Network ID to be more specific"
+            response = {"conflictingRequest" : {"code" : 409, "message": message}}
+            return non_exist_response('409', json.dumps(response))
+        elif network_result.count() == 1:
+            networks.append(network_result[0].uuid_agent)
+
+
     print '='*60
     #print post_json
     print 'imageRef : %s' % imageRef
     print 'flavorRef : %s' % flavorRef
     print 'networks : %s' % networks
     for network in networks:
-        print network['uuid']
+        print network
     print '='*60
-
 
     # Select site to create VM
     cloud_name, cloud_address = select_site_to_create_object()
     
+    # Retrive token from request
+    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+    
     # Check if image exist in selected site
-    #image_id = check_image_exists_in_selected_site(imageRef)
     image_id = None
     if imageRef.startswith('http://'):
         # Retrive tenant id by regular expression 
@@ -205,11 +241,9 @@ def nova_create_server(env):
         image_id = match.group()
     else:
         image_id = imageRef
-    print image_id
     
     image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = (Image.uuid_agent, Image.cloud_address), keywords = (image_id, cloud_address))
     
-
     # Image does not exist in selected cloud
     if image_result.count() == 0:
         print 'Image does not exist in selected cloud'
@@ -217,17 +251,34 @@ def nova_create_server(env):
         print 'Image exists in selected cloud'
 
 
+    # Check if network exist in selected site
+    for network_id in networks:
+        network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent, Network.cloud_address], keywords = [network_id, cloud_address])
+        print '@'*60
+        print network_result.count()
+        print '@'*60
+        
+        # Network does not exist in selected cloud
+        if network_result.count() == 0:
+            print 'Network does not exist in selected cloud'
+        else:
+            print 'Network exists in selected cloud'
+
+
+
     
 
 
-    # Construct url for creating network
-    url = cloud_address + ':' + config.get('Neutron','neutron_public_interface') + env['PATH_INFO'] 
-    # Create header
-    headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
     
 
 
     '''
+    
+    # Construct url for creating network
+    url = cloud_address + ':' + config.get('Neutron','neutron_public_interface') + env['PATH_INFO'] 
+    # Create header
+    headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
+
 
     res = POST_request_to_cloud(url, headers, PostData)
     
