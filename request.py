@@ -22,33 +22,32 @@ print SITES
 
 # POST request cloud
 def POST_request_to_cloud(url, headers, PostData):
+    
     res = requests.post(url, headers = headers, data = PostData)
+    
     return res
 
 # PUT request t cloud
 def PUT_request_to_cloud(url, headers, temp_file_path):
 
     f = open(temp_file_path, 'rb')
-
     res = requests.put(url, headers = headers, data = f)
-    
     f.close()
     
     return res
 
 # GET request to cloud
 def GET_request_to_cloud(url, headers):
+    
     res = requests.get(url, headers = headers)
+    
     return res
-    #return res.text, res.status_code
 
 # DELETE request to cloud
 def DELETE_request_to_cloud(url, headers):
+    
     res = requests.delete(url, headers = headers)
-    #res.headers['Content-Length'] = str(len(str(res)))
-    #dic = {'status_code':res.status_code, 'headers':str(res.headers), 'text':res.text}
-    #json_data = json.dumps(dic)
-    #return json_data
+    
     return res
 
 # A function to generate threads for boardcasting user request to clouds
@@ -59,9 +58,6 @@ def generate_threads(X_AUTH_TOKEN, url_suffix, target, headers):
     for site in SITES.values():
         url = site + ':' + url_suffix
         urls.append(url)
-    
-    # Create request header
-    #headers = {'X-Auth-Token': X_AUTH_TOKEN}
 
     # Create threads
     threads = [None] * len(urls)
@@ -72,9 +68,6 @@ def generate_threads(X_AUTH_TOKEN, url_suffix, target, headers):
 
 # A function to generate threads for multicasting user request to clouds
 def generate_threads_multicast(X_AUTH_TOKEN, headers, urls, target):
-
-    # Create request header
-    #headers = {'X-Auth-Token': X_AUTH_TOKEN}
 
     # Create threads
     threads = [None] * len(urls)
@@ -91,7 +84,6 @@ def generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, target, da
     threads = [None] * len(urls)
     for i in range(len(threads)):
         threads[i] = ThreadWithReturnValue(target = target, args = (urls[i], headers, data_set[i],))
-        #threads[i] = ThreadWithReturnValue(target = target, args = (urls[i], headers, data_set,))
     
     return threads
 

@@ -180,7 +180,7 @@ def nova_create_server(env):
     flavorRef = None
     networks = []
     
-    # Check if users specified required option imageRef
+    # Check if end-user specified required option imageRef
     try:
         imageRef = post_json['server']['imageRef']
     except:
@@ -188,7 +188,7 @@ def nova_create_server(env):
         response = {"badRequest" : {"code" : 400, "message": message}}
         return non_exist_response('400', json.dumps(response))
 
-    # Check if users specified required option flavorRef
+    # Check if end-user specified required option flavorRef
     try:
         flavorRef = post_json['server']['flavorRef']
     except:
@@ -196,7 +196,7 @@ def nova_create_server(env):
         response = {"badRequest" : {"code" : 400, "message": message}}
         return non_exist_response('400', json.dumps(response))
     
-    # Check if users specified optional option networks
+    # Check if end-user specified optional option networks
     try:
         for network in post_json['server']['networks']:
             networks.append(network['uuid'])
@@ -213,12 +213,13 @@ def nova_create_server(env):
             message = "Multiple possible networks found, use a Network ID to be more specific"
             response = {"conflictingRequest" : {"code" : 409, "message": message}}
             return non_exist_response('409', json.dumps(response))
+        
         elif network_result.count() == 1:
+            
             networks.append(network_result[0].uuid_agent)
 
 
     print '='*60
-    #print post_json
     print 'imageRef : %s' % imageRef
     print 'flavorRef : %s' % flavorRef
     print 'networks : %s' % networks
@@ -246,24 +247,33 @@ def nova_create_server(env):
     
     # Image does not exist in selected cloud
     if image_result.count() == 0:
-        print 'Image does not exist in selected cloud'
+        print 'Image does not exist in selected cloud !!!!!!!!!!!!!!'
     else:
-        print 'Image exists in selected cloud'
+        print 'Image exists in selected cloud !!!!!!!!!!!!!'
+        # Modify imageRef by changing it to image's uuid_cloud
+        post_json['server']['imageRef'] = image_result[0].uuid_cloud
 
 
     # Check if network exist in selected site
+    network_uuid_clouds = []
     for network_id in networks:
         network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent, Network.cloud_address], keywords = [network_id, cloud_address])
-        print '@'*60
-        print network_result.count()
-        print '@'*60
         
         # Network does not exist in selected cloud
         if network_result.count() == 0:
-            print 'Network does not exist in selected cloud'
+            print 'Network does not exist in selected cloud !!!!!!!!!!!!'
         else:
-            print 'Network exists in selected cloud'
+            print 'Network exists in selected cloud !!!!!!!!!!!!!!'
+            network_uuid_clouds.append(network_result[0].uuid_cloud)
 
+
+    print '$'*60
+    print network_uuid_clouds
+    print '$'*60
+    # Modify networks by changing it to networks' uuid_clouds
+    post_json['server']['networks'] = network_uuid_clouds
+
+    print post_json
 
 
     
