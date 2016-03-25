@@ -12,16 +12,6 @@ def nova_list_servers(env):
     
     url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO']
     
-    '''
-    # Retrive tenant id by regular expression 
-    tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
-    match = tenant_id_pattern.search(env['PATH_INFO'])
-    TENANT_ID = match.group()
-    
-    # Create suffix of service url
-    url_suffix = config.get('Nova', 'nova_public_interface') + '/v2.1/' + TENANT_ID + '/servers'
-    '''
-    
     # Get generated threads 
     threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
     
@@ -170,62 +160,17 @@ def nova_show_server_details(env):
 # Create VM                    
 def nova_create_server(env):
     
-    
     # Request data 
     PostData = env['wsgi.input'].read()
    
     post_json = json.loads(PostData)
 
-    imageRef = None
-    flavorRef = None
-    networks = []
-    
-    # Check if end-user specified required option imageRef
+    # Retrive user options from request of creating an VM
     try:
-        imageRef = post_json['server']['imageRef']
+        res = get_options_from_create_VM_request(post_json)
+        instance_name, imageRef, flavorRef, networks = res
     except:
-        message = "Invalid input for field/attribute server. Value: %s. 'imageRef' is a required property" % post_json['server']
-        response = {"badRequest" : {"code" : 400, "message": message}}
-        return non_exist_response('400', json.dumps(response))
-
-    # Check if end-user specified required option flavorRef
-    try:
-        flavorRef = post_json['server']['flavorRef']
-    except:
-        message = "Invalid input for field/attribute server. Value: %s. 'flavorRef' is a required property" % post_json['server']
-        response = {"badRequest" : {"code" : 400, "message": message}}
-        return non_exist_response('400', json.dumps(response))
-    
-    # Check if end-user specified optional option networks
-    try:
-        for network in post_json['server']['networks']:
-            networks.append(network['uuid'])
-    except:
-        
-        tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
-        match = tenant_id_pattern.search(env['PATH_INFO'])
-        tenant_id = match.group()
-
-        network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.tenant_id], keywords = [tenant_id])
-
-        if network_result.count() > 1:
-        
-            message = "Multiple possible networks found, use a Network ID to be more specific"
-            response = {"conflictingRequest" : {"code" : 409, "message": message}}
-            return non_exist_response('409', json.dumps(response))
-        
-        elif network_result.count() == 1:
-            
-            networks.append(network_result[0].uuid_agent)
-
-
-    print '='*60
-    print 'imageRef : %s' % imageRef
-    print 'flavorRef : %s' % flavorRef
-    print 'networks : %s' % networks
-    for network in networks:
-        print network
-    print '='*60
+        return res
 
     # Select site to create VM
     cloud_name, cloud_address = select_site_to_create_object()
@@ -243,11 +188,15 @@ def nova_create_server(env):
     else:
         image_id = imageRef
     
-    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = (Image.uuid_agent, Image.cloud_address), keywords = (image_id, cloud_address))
+    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent, Image.cloud_address], keywords = [image_id, cloud_address])
     
     # Image does not exist in selected cloud
     if image_result.count() == 0:
         print 'Image does not exist in selected cloud !!!!!!!!!!!!!!'
+        # Check if the image_id exists
+        validate_image(image_id)
+        # Show image details to get info of the image
+        # Create the same image in selected cloud
     else:
         print 'Image exists in selected cloud !!!!!!!!!!!!!'
         # Modify imageRef by changing it to image's uuid_cloud
@@ -264,53 +213,40 @@ def nova_create_server(env):
             print 'Network does not exist in selected cloud !!!!!!!!!!!!'
         else:
             print 'Network exists in selected cloud !!!!!!!!!!!!!!'
-            network_uuid_clouds.append(network_result[0].uuid_cloud)
+            network_dict = {"uuid" : network_result[0].uuid_cloud}
+            network_uuid_clouds.append(network_dict)
 
-
-    print '$'*60
-    print network_uuid_clouds
-    print '$'*60
+    '''
     # Modify networks by changing it to networks' uuid_clouds
     post_json['server']['networks'] = network_uuid_clouds
 
-    print post_json
-
-
-    
-
-
-    
-
-
-    '''
-    
     # Construct url for creating network
-    url = cloud_address + ':' + config.get('Neutron','neutron_public_interface') + env['PATH_INFO'] 
+    url = cloud_address + ':' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
 
-
-    res = POST_request_to_cloud(url, headers, PostData)
+    res = POST_request_to_cloud(url, headers, json.dumps(post_json))
     
     # If network is successfully created in cloud
-    if res.status_code == 201:
+    if res.status_code == 202:
 
         # Retrive information from response
         response = res.json()
-        tenant_id = response['network']['tenant_id'] 
-        network_id = response['network']['id'] 
-        network_name = response['network']['name']
+        instance_id = response['server']['id'] 
         uuid_agent = str(uuid.uuid4())
-        #uuid_agent = '8e6df216-d941-4276-8df3-4dee75294d12'
+        # Retrive tenant id
+        tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
+        match = tenant_id_pattern.search(env['PATH_INFO'])
+        tenant_id = match.group()   
         
-        new_network = Network(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = network_id, network_name = network_name, cloud_name = cloud_name, cloud_address = cloud_address)
+        new_instance = Instance(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = instance_id, instance_name = instance_name, cloud_name = cloud_name, cloud_address = cloud_address)
         
         # Add data to DB
-        add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_network)
+        add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_instance)
 
         status_code = str(res.status_code)
         headers = ast.literal_eval(str(res.headers)).items()
-        response['network']['id'] =  uuid_agent
+        response['server']['id'] =  uuid_agent
 
         return status_code, headers, json.dumps(response)
     
@@ -319,64 +255,62 @@ def nova_create_server(env):
         headers = ast.literal_eval(str(res.headers)).items()
 
         return status_code, headers, json.dumps(res.json())
-
-    '''
-
-
-
-
-    '''
-    # Retrive token from request
-    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-    
-    # Request data 
-    PostData = env['wsgi.input'].read()
-    
-    # Construct url for creating network
-    url = 'http://10.0.1.12:' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
-    # Create header
-    headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
-    
-    response = POST_request_to_cloud(url, headers, PostData)
-    
-    return response
     '''
 
 
 
 # Delete image
 def nova_delete_server(env):
-	
-    # Retrive token from request
-    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+
+    server_id_pattern = re.compile(r'(?<=/servers/).*')
+    match = server_id_pattern.search(env['PATH_INFO'])
+    server_id = match.group()   
     
-    # Create suffix of service url
-    url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO'] 
+    instance_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Instance, columns = [Instance.uuid_agent], keywords = [server_id])
+
+    # If subnet does not exist
+    if instance_result.count() == 0:
     
-    # Get generated threads 
-    threads = generate_threads(X_AUTH_TOKEN, url_suffix, DELETE_request_to_cloud)
-
-    # Launch threads
-    for i in range(len(threads)):
-	threads[i].start()
-
-    threads_json = []
-    # Wait until threads terminate
-    for i in range(len(threads)):
-	
-	# Parse response from site	
-	parsed_json = json.loads(threads[i].join())
-	threads_json.append(parsed_json)
-
-    for i in range(len(threads_json)):
-        # Server delete successfully
-	if threads_json[i]['status_code'] == 204:
-	    return threads_json[i]
-		
-    if len(threads_json) != 0:
-	return threads_json[0] 
+        message = "Instance %s could not be found" % server_id
+        response_body = {"ItenNotFound":{"code": 404, "message" : message}}
+        return non_exist_response('404', json.dumps(response_body))
+    
+    # If subnet exists then delete
     else:
-	return 'Failed to delete server! \r\n'
+    
+        # Retrive token from request
+        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
+    
+        # Retrive tenant id
+        tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
+        match = tenant_id_pattern.search(env['PATH_INFO'])
+        tenant_id = match.group()   
+
+        # Construct url for deleting network
+        url = instance_result[0].cloud_address + ':' + config.get('Nova','nova_public_interface') + '/v2.1/' + tenant_id + '/servers/' + instance_result[0].uuid_cloud 
+        
+         
+        response = DELETE_request_to_cloud(url, headers)
+        
+        # If instance deleted successfully
+	if response.status_code == 204:
+            
+            # Delete network information in agent DB 
+            delete_from_DB(AGENT_DB_ENGINE_CONNECTION, Instance, Instance.uuid_cloud, instance_result[0].uuid_cloud)
+
+            status_code = str(response.status_code)
+            headers = ast.literal_eval(str(response.headers)).items()
+
+            return status_code, headers, json.dumps(response.text)
+        else:
+            status_code = str(response.status_code)
+            headers = ast.literal_eval(str(response.headers)).items()
+
+            return status_code, headers, json.dumps(response.text)
+
 
 # List servers
 def nova_list_flavors(env):
@@ -602,4 +536,82 @@ def show_response(functionname,response):
     elif response.status_code == 405:
 	print 'Bad Method!!'
     print '-'*60
+
+
+
+
+# Get user options from request of creating an VM
+def get_options_from_create_VM_request(post_json):
+
+    instance_name = None
+    imageRef = None
+    flavorRef = None
+    networks = []
+    
+    # Check if end-user specified required option name
+    try:
+        instance_name = post_json['server']['name']
+    except:
+        message = "Invalid input for field/attribute server. Value: %s. 'name' is a required property" % post_json['server']
+        response_body = {"badRequest" : {"code" : 400, "message": message}}
+        return non_exist_response('400', json.dumps(response_body))
+    
+    # Check if end-user specified required option imageRef
+    try:
+        imageRef = post_json['server']['imageRef']
+    except:
+        message = "Invalid input for field/attribute server. Value: %s. 'imageRef' is a required property" % post_json['server']
+        response_body = {"badRequest" : {"code" : 400, "message": message}}
+        return non_exist_response('400', json.dumps(response_body))
+
+    # Check if end-user specified required option flavorRef
+    try:
+        flavorRef = post_json['server']['flavorRef']
+    except:
+        message = "Invalid input for field/attribute server. Value: %s. 'flavorRef' is a required property" % post_json['server']
+        response_body = {"badRequest" : {"code" : 400, "message": message}}
+        return non_exist_response('400', json.dumps(response_body))
+    
+    # Check if end-user specified optional option networks
+    try:
+        for network in post_json['server']['networks']:
+            networks.append(network['uuid'])
+    except:
+        
+        tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
+        match = tenant_id_pattern.search(env['PATH_INFO'])
+        tenant_id = match.group()
+
+        network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.tenant_id], keywords = [tenant_id])
+
+        if network_result.count() > 1:
+        
+            message = "Multiple possible networks found, use a Network ID to be more specific"
+            response_body = {"conflictingRequest" : {"code" : 409, "message": message}}
+            return non_exist_response('409', json.dumps(response_body))
+        
+        elif network_result.count() == 1:
+            
+            networks.append(network_result[0].uuid_agent)
+
+    return instance_name, imageRef, flavorRef, networks
+
+
+# Validate image by checking image_id in terms of exsitence
+def validate_image(image_id):
+    
+    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent], keywords = [image_id])
+
+    if image_result.count() == 0:
+        message = "Can not fint requested image"
+        response_body = {"badRequest" : {"code" : 400, "message": message}}
+        return non_exist_response('400', json.dumps(response_body))
+    else:
+        pass
+
+
+
+
+
+
 

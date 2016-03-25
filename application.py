@@ -96,18 +96,17 @@ def application(env, start_response):
                 res = match.group()
 	    
                 # Delete server
-                response = nova_delete_server(env)	
+                status_code, headers, response = nova_delete_server(env)
             
             # API for flavor
             except:
+                pass
                 # Delete flavor
-                response = nova_delete_flavor(env)	
+                status_code, headers, response = nova_delete_flavor(env)
+                #response = nova_delete_flavor(env)	
                 
-            # Shift dictionary to tuple
-	    headers = ast.literal_eval(response['headers']).items()
-            # Respond to end user    
-            start_response(str(response['status_code']), headers)
-            
+            start_response(status_code, headers)
+                
             return response
 	
     # Image API v2
