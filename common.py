@@ -79,7 +79,7 @@ def select_site_to_create_object():
 
 
 # Read image binary data by chunks
-def readInChunks(fileObj, chunkSize = 2048):
+def readInChunks(fileObj, chunkSize = 4096):
     while True:
         data = fileObj.read(chunkSize)
         if not data:

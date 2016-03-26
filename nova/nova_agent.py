@@ -213,9 +213,8 @@ def nova_create_server(env):
 
             upload_res = upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud)
 
-            print '%'*50
-            print upload_res
-            print '%'*50
+            if upload_res:
+                post_json['server']['imageRef'] = created_image_uuid_cloud
         
         # Create the same image in selected cloud
         else:
@@ -224,20 +223,28 @@ def nova_create_server(env):
             post_json['server']['imageRef'] = image_result[0].uuid_cloud
 
 
-    # Check if network exist in selected site
     network_uuid_clouds = []
     for network_id in networks:
+        
+        # Check if network_id is valid
+        
+        
+        # Check if network exist in selected site
         network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent, Network.cloud_address], keywords = [network_id, cloud_address])
+        
+        
         
         # Network does not exist in selected cloud
         if network_result.count() == 0:
             print 'Network does not exist in selected cloud !!!!!!!!!!!!'
+            # Create network in selected cloud
+            # Create sunbet in selected cloud
         else:
             print 'Network exists in selected cloud !!!!!!!!!!!!!!'
             network_dict = {"uuid" : network_result[0].uuid_cloud}
             network_uuid_clouds.append(network_dict)
     
-    '''
+    
     # Modify networks by changing it to networks' uuid_clouds
     post_json['server']['networks'] = network_uuid_clouds
 
@@ -246,6 +253,12 @@ def nova_create_server(env):
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
 
+    print '!'*60
+    print post_json
+    print '!'*60
+
+    
+    '''
     res = POST_request_to_cloud(url, headers, json.dumps(post_json))
     
     # If network is successfully created in cloud
@@ -636,19 +649,16 @@ def download_binary_image_data(X_AUTH_TOKEN, image_result):
     headers = {'X-Auth-Token': X_AUTH_TOKEN}
     url = image_result[0].cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + image_result[0].uuid_cloud + '/file'
 
-    res = GET_request_to_cloud(url, headers)
+    res = requests.get(url, headers=headers, stream=True)
 
     if res.status_code == 200:
-        
         # Write binary data to temporay file
         temp_file_path = TEMP_IMAGE_PATH + image_result[0].uuid_agent 
-        f = open(temp_file_path, "w")
-        for line in readInChunks(StringIO(res.content)):
-            f.write(line)
-        f.close()
-        
+        with open(temp_file_path, 'wb') as f:
+            for chunk in res.iter_content(4096):
+                f.write(chunk)
         return temp_file_path
-    
+
     print '-'*60
 
 
