@@ -6,7 +6,6 @@ from models import *
 import uuid
 import os
 
-TEMP_IMAGE_PATH = config.get('Glance', 'temp_image_path')
 
 # List images
 def glance_list_images(env):
@@ -358,11 +357,4 @@ def glance_delete_image(env):
             return status_code, headers, json.dumps(response.text)
     
 
-# Read image binary data by chunks
-def readInChunks(fileObj, chunkSize = 2048):
-    while True:
-        data = fileObj.read(chunkSize)
-        if not data:
-            break
-        yield data
 

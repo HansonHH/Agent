@@ -110,14 +110,15 @@ class Instance(Base):
 
     # Data structure of table
     tenant_id = Column(String(36))
-    uuid_agent = Column(String(36))
+    #uuid_agent = Column(String(36))
     uuid_cloud = Column(String(36), primary_key = True)
     instance_name = Column(String(40))
     cloud_name = Column(String(40))
     cloud_address = Column(String(40))
 
     def __repr__(self):
-        return "<Instance (tenant_id=%s, uuid_agent=%s, uuid_cloud=%s, instance_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_agent, self.uuid_cloud, self.instance_name, self.cloud_name, self.cloud_address)
+        #return "<Instance (tenant_id=%s, uuid_agent=%s, uuid_cloud=%s, instance_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_agent, self.uuid_cloud, self.instance_name, self.cloud_name, self.cloud_address)
+        return "<Instance (tenant_id=%s, uuid_cloud=%s, instance_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_cloud, self.instance_name, self.cloud_name, self.cloud_address)
 
 # Data structure of Glance Image
 class GlanceImage(object):

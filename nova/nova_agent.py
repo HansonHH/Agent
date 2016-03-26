@@ -3,6 +3,8 @@ from common import *
 from db import *
 from models import *
 import uuid
+from StringIO import StringIO
+import os
 
 # List servers
 def nova_list_servers(env):
@@ -165,7 +167,7 @@ def nova_create_server(env):
    
     post_json = json.loads(PostData)
 
-    # Retrive user options from request of creating an VM
+    # Retrive user options from request of creating an VM, if required options are not specified, then send response to end-user
     try:
         res = get_options_from_create_VM_request(post_json)
         instance_name, imageRef, flavorRef, networks = res
@@ -178,7 +180,7 @@ def nova_create_server(env):
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
-    # Check if image exist in selected site
+    # Retrive image_id (uuid_agent)
     image_id = None
     if imageRef.startswith('http://'):
         # Retrive tenant id by regular expression 
@@ -188,19 +190,38 @@ def nova_create_server(env):
     else:
         image_id = imageRef
     
-    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent, Image.cloud_address], keywords = [image_id, cloud_address])
-    
-    # Image does not exist in selected cloud
+    # Check if image_id is valid
+    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent], keywords = [image_id])
+
+    # Requested image can not be found
     if image_result.count() == 0:
-        print 'Image does not exist in selected cloud !!!!!!!!!!!!!!'
-        # Check if the image_id exists
-        validate_image(image_id)
-        # Show image details to get info of the image
-        # Create the same image in selected cloud
+        message = "Can not fint requested image"
+        response_body = {"badRequest" : {"code" : 400, "message": message}}
+        return non_exist_response('400', json.dumps(response_body))
+    # Requested image can be found
     else:
-        print 'Image exists in selected cloud !!!!!!!!!!!!!'
-        # Modify imageRef by changing it to image's uuid_cloud
-        post_json['server']['imageRef'] = image_result[0].uuid_cloud
+        # Check if image exist in selected site
+        image_exist_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent, Image.cloud_address], keywords = [image_id, cloud_address])
+    
+        # Image does not exist in selected cloud
+        if image_exist_result.count() == 0:
+            print 'Image does not exist in selected cloud !!!!!!!!!!!!!!'
+        
+            created_image_uuid_cloud = create_image_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address)
+
+            temp_file_path = download_binary_image_data(X_AUTH_TOKEN, image_result)
+
+            upload_res = upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud)
+
+            print '%'*50
+            print upload_res
+            print '%'*50
+        
+        # Create the same image in selected cloud
+        else:
+            print 'Image exists in selected cloud !!!!!!!!!!!!!'
+            # Modify imageRef by changing it to image's uuid_cloud
+            post_json['server']['imageRef'] = image_result[0].uuid_cloud
 
 
     # Check if network exist in selected site
@@ -215,7 +236,7 @@ def nova_create_server(env):
             print 'Network exists in selected cloud !!!!!!!!!!!!!!'
             network_dict = {"uuid" : network_result[0].uuid_cloud}
             network_uuid_clouds.append(network_dict)
-
+    
     '''
     # Modify networks by changing it to networks' uuid_clouds
     post_json['server']['networks'] = network_uuid_clouds
@@ -233,20 +254,18 @@ def nova_create_server(env):
         # Retrive information from response
         response = res.json()
         instance_id = response['server']['id'] 
-        uuid_agent = str(uuid.uuid4())
         # Retrive tenant id
         tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
         match = tenant_id_pattern.search(env['PATH_INFO'])
         tenant_id = match.group()   
         
-        new_instance = Instance(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = instance_id, instance_name = instance_name, cloud_name = cloud_name, cloud_address = cloud_address)
+        new_instance = Instance(tenant_id = tenant_id, uuid_cloud = instance_id, instance_name = instance_name, cloud_name = cloud_name, cloud_address = cloud_address)
         
         # Add data to DB
         add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_instance)
 
         status_code = str(res.status_code)
         headers = ast.literal_eval(str(res.headers)).items()
-        response['server']['id'] =  uuid_agent
 
         return status_code, headers, json.dumps(response)
     
@@ -258,7 +277,6 @@ def nova_create_server(env):
     '''
 
 
-
 # Delete image
 def nova_delete_server(env):
 
@@ -266,7 +284,7 @@ def nova_delete_server(env):
     match = server_id_pattern.search(env['PATH_INFO'])
     server_id = match.group()   
     
-    instance_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Instance, columns = [Instance.uuid_agent], keywords = [server_id])
+    instance_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Instance, columns = [Instance.uuid_cloud], keywords = [server_id])
 
     # If subnet does not exist
     if instance_result.count() == 0:
@@ -283,16 +301,10 @@ def nova_delete_server(env):
         
         # Create request header
         headers = {'X-Auth-Token': X_AUTH_TOKEN}
-    
-        # Retrive tenant id
-        tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
-        match = tenant_id_pattern.search(env['PATH_INFO'])
-        tenant_id = match.group()   
 
         # Construct url for deleting network
-        url = instance_result[0].cloud_address + ':' + config.get('Nova','nova_public_interface') + '/v2.1/' + tenant_id + '/servers/' + instance_result[0].uuid_cloud 
+        url = instance_result[0].cloud_address + ':' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
         
-         
         response = DELETE_request_to_cloud(url, headers)
         
         # If instance deleted successfully
@@ -520,26 +532,6 @@ def nova_delete_flavor(env):
 	return 'Failed to delete flavor! \r\n'
 
 
-# Print out status code and response from Keystone
-def show_response(functionname,response):
-    print '-'*60
-    print 'Function Name: %s' % functionname
-    print 'Statu Code: %s' % response.status_code
-    if response.status_code == 400:
-	print 'Bad Request!'
-    elif response.status_code == 401:
-	print 'Unauthorized!'
-    elif response.status_code == 403:
-	print 'Forbidden!'
-    elif response.status_code == 404:
-	print 'Not Found!'
-    elif response.status_code == 405:
-	print 'Bad Method!!'
-    print '-'*60
-
-
-
-
 # Get user options from request of creating an VM
 def get_options_from_create_VM_request(post_json):
 
@@ -597,21 +589,91 @@ def get_options_from_create_VM_request(post_json):
     return instance_name, imageRef, flavorRef, networks
 
 
-# Validate image by checking image_id in terms of exsitence
-def validate_image(image_id):
+
+def create_image_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address):
+
+    # Send request of showing image details to get info of the image
+    print '='*60
+   
+   # Create header
+    headers = {'X-Auth-Token': X_AUTH_TOKEN}
+    url = image_result[0].cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + image_result[0].uuid_cloud
+
+    res = GET_request_to_cloud(url, headers)
+        
+    res_dict = res.json()
+    name = res_dict['name']
+    container_format = res_dict['container_format']
+    disk_format =  res_dict['disk_format']
+    tags = res_dict['tags']
+    visibility = res_dict['visibility']
+    protected = res_dict['protected']
+    min_disk = res_dict['min_disk']
+    min_ram = res_dict['min_ram']
+
+    post_dict = {"name":name, "visibility":visibility, "tags":tags, "container_format":container_format, "disk_format":disk_format, "min_disk":min_disk, "min_ram":min_ram, "protected":protected}
+    post_json = json.dumps(post_dict)
+
+    url = cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images'
+    res = POST_request_to_cloud(url, headers, post_json)
+
+    if res.status_code == 201:
+        created_image_uuid_cloud = res.json()['id']
+        
+        new_image = Image(tenant_id = image_result[0].tenant_id, uuid_agent = image_result[0].uuid_agent, uuid_cloud = created_image_uuid_cloud, image_name = image_result[0].image_name, cloud_name = cloud_name, cloud_address = cloud_address)
+        
+        # Add data to DB
+        add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_image)
+
+        return created_image_uuid_cloud
+
+    print '='*60
+
+
+def download_binary_image_data(X_AUTH_TOKEN, image_result):
+    print '-'*60
+    # Create header
+    headers = {'X-Auth-Token': X_AUTH_TOKEN}
+    url = image_result[0].cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + image_result[0].uuid_cloud + '/file'
+
+    res = GET_request_to_cloud(url, headers)
+
+    if res.status_code == 200:
+        
+        # Write binary data to temporay file
+        temp_file_path = TEMP_IMAGE_PATH + image_result[0].uuid_agent 
+        f = open(temp_file_path, "w")
+        for line in readInChunks(StringIO(res.content)):
+            f.write(line)
+        f.close()
+        
+        return temp_file_path
     
-    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent], keywords = [image_id])
+    print '-'*60
 
-    if image_result.count() == 0:
-        message = "Can not fint requested image"
-        response_body = {"badRequest" : {"code" : 400, "message": message}}
-        return non_exist_response('400', json.dumps(response_body))
+
+def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud):
+
+    print '+'*60
+    # Create header
+    headers = {'Content-Type': 'application/octet-stream', 'X-Auth-Token': X_AUTH_TOKEN}
+    url = cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + created_image_uuid_cloud + '/file' 
+
+    res = PUT_request_to_cloud(url, headers, temp_file_path)
+    
+    if res.status_code == 204:
+        
+        # Delete temporary image file
+        try:
+            os.remove(temp_file_path)
+        except:
+            pass
+        
+        return True
     else:
-        pass
-
-
-
-
+        return False
+    
+    print '+'*60
 
 
 

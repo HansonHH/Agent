@@ -154,7 +154,8 @@ def Sync_Instance():
         # Check if flavor already exists in agent DB, if flavor does not exist in agent DB then add it 
         if instance.deleted == 0 and len(W_session.query(Instance).filter_by(uuid_cloud=instance.uuid).all()) == 0:
             # Synchorize instance uuid to data table of agent 
-            new_instance = Instance(tenant_id = instance.project_id, uuid_agent = uuid.uuid4(), uuid_cloud = instance.uuid, instance_name = instance.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            #new_instance = Instance(tenant_id = instance.project_id, uuid_agent = uuid.uuid4(), uuid_cloud = instance.uuid, instance_name = instance.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
+            new_instance = Instance(tenant_id = instance.project_id, uuid_cloud = instance.uuid, instance_name = instance.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
             # Add instance to session
             W_session.add(new_instance)
 
