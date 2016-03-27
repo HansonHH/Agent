@@ -72,8 +72,8 @@ def remove_duplicate_info(items, keyword):
 
 
 def select_site_to_create_object():
-    cloud_name = 'Cloud3'
-    cloud_address = 'http://10.0.1.12'
+    cloud_name = 'Cloud1'
+    cloud_address = 'http://10.0.1.10'
 
     return cloud_name, cloud_address
 

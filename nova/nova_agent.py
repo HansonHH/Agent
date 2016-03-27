@@ -220,10 +220,9 @@ def nova_create_server(env):
         else:
             print 'Image exists in selected cloud !!!!!!!!!!!!!'
             # Modify imageRef by changing it to image's uuid_cloud
-            post_json['server']['imageRef'] = image_result[0].uuid_cloud
+            print image_exist_result[0].uuid_cloud
+            post_json['server']['imageRef'] = image_exist_result[0].uuid_cloud
 
-
-    valid_network_uuid_agents = []
 
     # Check if network_ids are valid
     invalid_network_uuid_agents = []
@@ -244,17 +243,25 @@ def nova_create_server(env):
         for network_id in networks:
             
             # Check if network exist in selected site
-            network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent, Network.cloud_address], keywords = [network_id, cloud_address])
+            network_exist_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent, Network.cloud_address], keywords = [network_id, cloud_address])
         
             # Network does not exist in selected cloud
-            if network_result.count() == 0:
+            if network_exist_result.count() == 0:
                 print 'Network does not exist in selected cloud !!!!!!!!!!!!'
+                
+                network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent], keywords = [network_id])
+                
                 # Create network in selected cloud
-                created_network_uuid_cloud = create_network_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address)
+                created_network_uuid_cloud, subnets = create_network_in_selected_cloud(X_AUTH_TOKEN, network_result, cloud_name, cloud_address)
+                
+                created_subnet_uuid_clouds = create_subnets_in_selected_cloud(X_AUTH_TOKEN, created_network_uuid_cloud, subnets, cloud_name, cloud_address)
+                
+                network_dict = {"uuid" : created_network_uuid_cloud}
+                network_uuid_clouds.append(network_dict)
                 # Create sunbet in selected cloud
             else:
                 print 'Network exists in selected cloud !!!!!!!!!!!!!!'
-                network_dict = {"uuid" : network_result[0].uuid_cloud}
+                network_dict = {"uuid" : network_exist_result[0].uuid_cloud}
                 network_uuid_clouds.append(network_dict)
     
     
@@ -262,6 +269,8 @@ def nova_create_server(env):
         post_json['server']['networks'] = network_uuid_clouds
 
 
+    import time
+    time.sleep(20)
 
     # Construct url for creating network
     url = cloud_address + ':' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
@@ -272,7 +281,7 @@ def nova_create_server(env):
     print post_json
     print '!'*60
 
-    ''' 
+     
     res = POST_request_to_cloud(url, headers, json.dumps(post_json))
     
     # If network is successfully created in cloud
@@ -301,7 +310,6 @@ def nova_create_server(env):
         headers = ast.literal_eval(str(res.headers)).items()
 
         return status_code, headers, json.dumps(res.json())
-    '''
 
 
 # Delete image
@@ -619,13 +627,13 @@ def get_options_from_create_VM_request(post_json):
 
 def create_image_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address):
 
-    # Send request of showing image details to get info of the image
     print '='*60
    
-   # Create header
+    # Create header
     headers = {'X-Auth-Token': X_AUTH_TOKEN}
     url = image_result[0].cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + image_result[0].uuid_cloud
 
+    # Send request of showing image details to get info of the image
     res = GET_request_to_cloud(url, headers)
         
     res_dict = res.json()
@@ -700,10 +708,126 @@ def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, clo
     print '+'*60
 
 
-def create_network_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address):
+def create_network_in_selected_cloud(X_AUTH_TOKEN, network_result, cloud_name, cloud_address):
     
+    print '~='*60
+   
+    # Create header
+    headers = {'X-Auth-Token': X_AUTH_TOKEN}
+    url = network_result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/' + network_result[0].uuid_cloud
+
+    # Send request of showing network details to get info of the network
+    res = GET_request_to_cloud(url, headers)
+        
+    res_dict = res.json()
+    print res_dict
+    name = res_dict['network']['name']
+    admin_state_up = res_dict['network']['admin_state_up']
+    shared = res_dict['network']['shared']
+    tenant_id = res_dict['network']['tenant_id']
+    router_external = res_dict['network']['router:external']
+    subnets = res_dict['network']['subnets']
+
+    post_dict = {"network": {"name":name, "admin_state_up":admin_state_up, "shared":shared, "tenant_id":tenant_id, "router:external":router_external}}
+    post_json = json.dumps(post_dict)
+
+    print post_json
+
+    url = cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks'
+
+    print url
+
+    network_res = POST_request_to_cloud(url, headers, post_json)
+    
+    print network_res.status_code
+    print network_res.json()
+    if network_res.status_code == 201:
+        print '201 !!!!!!!!!!!!!!!!!!!!'
+        print network_res.json()
+        created_network_uuid_cloud = network_res.json()['network']['id']
+        
+        print created_network_uuid_cloud
+
+        new_network = Network(tenant_id = network_result[0].tenant_id, uuid_agent = network_result[0].uuid_agent, uuid_cloud = created_network_uuid_cloud, network_name = network_result[0].network_name, cloud_name = cloud_name, cloud_address = cloud_address)
+        
+        # Add data to DB
+        add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_network)
+
+        print subnets
+        return created_network_uuid_cloud, subnets
+    
+    print '~='*60
 
 
 
+def create_subnets_in_selected_cloud(X_AUTH_TOKEN, created_network_uuid_cloud, subnets, cloud_name, cloud_address):
+
+    print 'CREATE SUBNETS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+    
+    # Create header
+    headers = {'X-Auth-Token': X_AUTH_TOKEN}
+
+    created_subnet_uuid_clouds = []
+
+    for subnet_id in subnets:
+        print subnet_id
+        subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [subnet_id])
+        url = subnet_result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/' + subnet_result[0].uuid_cloud
+    
+        # Send request of showing subnet details to get info of the subnet
+        res = GET_request_to_cloud(url, headers)
+
+        res_dict = res.json()
+        print res_dict
+        name = res_dict['subnet']['name']
+        network_id = res_dict['subnet']['network_id']
+        tenant_id = res_dict['subnet']['tenant_id']
+        allocation_pools = res_dict['subnet']['allocation_pools']
+        gateway_ip = res_dict['subnet']['gateway_ip']
+        ip_version = res_dict['subnet']['ip_version']
+        cidr = res_dict['subnet']['cidr']
+        enable_dhcp = res_dict['subnet']['enable_dhcp']
+        dns_nameservers = res_dict['subnet']['dns_nameservers']
+        host_routes = res_dict['subnet']['host_routes']
+        try:
+            destination = res_dict['subnet']['destination']
+        except:
+            destination = ''
+        try:
+            nexthop = res_dict['subnet']['nexthop']
+        except:
+            nexthop = ''
+        ipv6_ra_mode = res_dict['subnet']['ipv6_ra_mode']
+        ipv6_address_mode = res_dict['subnet']['ipv6_address_mode']
+
+        #post_dict = {"subnet": {"name":name, "network_id": created_network_uuid_cloud, "tenant_id":tenant_id, "allocation_pools":allocation_pools, "gateway_ip":gateway_ip, "ip_version":ip_version, "cidr":cidr, "enable_dhcp":enable_dhcp, "dns_nameservers":dns_nameservers, "host_routes":host_routes, "destination":destination, "nexthop":nexthop, "ipv6_ra_mode":ipv6_ra_mode, "ipv6_address_mode":ipv6_address_mode}}
+        post_dict = {"subnet": {"name":name, "network_id": created_network_uuid_cloud, "tenant_id":tenant_id, "allocation_pools":allocation_pools, "gateway_ip":gateway_ip, "ip_version":ip_version, "cidr":cidr, "enable_dhcp":enable_dhcp, "dns_nameservers":dns_nameservers, "host_routes":host_routes}}
+
+        post_json = json.dumps(post_dict)
+        print post_json
+
+        url = cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets'
+        print url
+
+        subnet_res = POST_request_to_cloud(url, headers, post_json)
+
+        print '&'*30
+        print subnet_res.status_code
+        print subnet_res.json()
+
+        if subnet_res.status_code == 201:
+            created_subnet_uuid_cloud = subnet_res.json()['subnet']['id']
+
+            new_subnet = Subnet(tenant_id = tenant_id, uuid_agent = subnet_result[0].uuid_agent, uuid_cloud = created_subnet_uuid_cloud, subnet_name = name, cloud_name = cloud_name, cloud_address = cloud_address, network_uuid_cloud = created_network_uuid_cloud)
+        
+            # Add data to DB
+            add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_subnet)
+
+            created_subnet_uuid_clouds.append(created_subnet_uuid_cloud)
+
+    print '~'*50
+    print created_subnet_uuid_clouds
+    print '~'*50
+    return created_subnet_uuid_clouds
 
 
