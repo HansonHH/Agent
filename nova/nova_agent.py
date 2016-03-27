@@ -223,30 +223,45 @@ def nova_create_server(env):
             post_json['server']['imageRef'] = image_result[0].uuid_cloud
 
 
-    network_uuid_clouds = []
+    valid_network_uuid_agents = []
+
+    # Check if network_ids are valid
+    invalid_network_uuid_agents = []
     for network_id in networks:
-        
-        # Check if network_id is valid
-        
-        
-        # Check if network exist in selected site
-        network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent, Network.cloud_address], keywords = [network_id, cloud_address])
-        
-        
-        
-        # Network does not exist in selected cloud
+        network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent], keywords = [network_id])
         if network_result.count() == 0:
-            print 'Network does not exist in selected cloud !!!!!!!!!!!!'
-            # Create network in selected cloud
-            # Create sunbet in selected cloud
-        else:
-            print 'Network exists in selected cloud !!!!!!!!!!!!!!'
-            network_dict = {"uuid" : network_result[0].uuid_cloud}
-            network_uuid_clouds.append(network_dict)
+            invalid_network_uuid_agents.append(network_id)
+    
+    # Requested network can not be found
+    if len(invalid_network_uuid_agents) != 0:
+        message = "Netowrk %s could not be found." % ', '.join(invalid_network_uuid_agents)
+        response_body = {"badRequest" : {"code" : 400, "message": message}}
+        return non_exist_response('400', json.dumps(response_body))
+    # Requested network can be found
+    else:
+        
+        network_uuid_clouds = []
+        for network_id in networks:
+            
+            # Check if network exist in selected site
+            network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent, Network.cloud_address], keywords = [network_id, cloud_address])
+        
+            # Network does not exist in selected cloud
+            if network_result.count() == 0:
+                print 'Network does not exist in selected cloud !!!!!!!!!!!!'
+                # Create network in selected cloud
+                created_network_uuid_cloud = create_network_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address)
+                # Create sunbet in selected cloud
+            else:
+                print 'Network exists in selected cloud !!!!!!!!!!!!!!'
+                network_dict = {"uuid" : network_result[0].uuid_cloud}
+                network_uuid_clouds.append(network_dict)
     
     
-    # Modify networks by changing it to networks' uuid_clouds
-    post_json['server']['networks'] = network_uuid_clouds
+        # Modify networks by changing it to networks' uuid_clouds
+        post_json['server']['networks'] = network_uuid_clouds
+
+
 
     # Construct url for creating network
     url = cloud_address + ':' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
@@ -257,8 +272,7 @@ def nova_create_server(env):
     print post_json
     print '!'*60
 
-    
-    '''
+    ''' 
     res = POST_request_to_cloud(url, headers, json.dumps(post_json))
     
     # If network is successfully created in cloud
@@ -684,6 +698,12 @@ def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, clo
         return False
     
     print '+'*60
+
+
+def create_network_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address):
+    
+
+
 
 
 
