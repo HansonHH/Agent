@@ -176,7 +176,7 @@ def nova_create_server(env):
 
     # Select site to create VM
     cloud_name, cloud_address = select_site_to_create_object()
-    
+    ''' 
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
@@ -214,6 +214,10 @@ def nova_create_server(env):
             upload_res = upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud)
 
             if upload_res:
+                print 'upload_res == %s'  % upload_res
+                import time
+                time.sleep(10)
+
                 post_json['server']['imageRef'] = created_image_uuid_cloud
         
         # Create the same image in selected cloud
@@ -269,8 +273,6 @@ def nova_create_server(env):
         post_json['server']['networks'] = network_uuid_clouds
 
 
-    import time
-    time.sleep(20)
 
     # Construct url for creating network
     url = cloud_address + ':' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
@@ -310,6 +312,7 @@ def nova_create_server(env):
         headers = ast.literal_eval(str(res.headers)).items()
 
         return status_code, headers, json.dumps(res.json())
+    '''
 
 
 # Delete image

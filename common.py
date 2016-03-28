@@ -12,6 +12,7 @@ import ConfigParser
 import ast
 import re
 import json
+import random
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
@@ -72,8 +73,12 @@ def remove_duplicate_info(items, keyword):
 
 
 def select_site_to_create_object():
-    cloud_name = 'Cloud1'
-    cloud_address = 'http://10.0.1.10'
+    # Select a cloud at random
+    cloud_name =  random.choice(SITES.keys())
+    cloud_address = SITES[cloud_name]
+
+    #cloud_name = 'Cloud3'
+    #cloud_address = 'http://10.0.1.12'
 
     return cloud_name, cloud_address
 
