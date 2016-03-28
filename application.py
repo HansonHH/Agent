@@ -40,7 +40,40 @@ def application(env, start_response):
 	
         # GET request
 	if env['REQUEST_METHOD'] == 'GET':
-        
+                
+            # List details for servers
+	    if PATH_INFO.endswith('/servers/detail'):
+		status_code, headers, response = nova_list_details_servers(env)
+	    # List servers
+	    elif PATH_INFO.endswith('/servers'):
+		status_code, headers, response = nova_list_servers(env)
+	    # Show server details
+            else:
+		status_code, headers, response = nova_show_server_details(env)
+
+            start_response(status_code, headers)
+	   
+            return response
+
+            '''
+            # APIs for flavors
+            # List details for flavors
+            elif PATH_INFO.endswith('/flavors/detail'):
+                response, status_code, headers = nova_list_details_flavors(env)
+	    # List flavors
+            elif PATH_INFO.endswith('/flavors'):
+                response, status_code, headers = nova_list_flavors(env)
+	    # Show flavor details
+	    else:
+		response, status_code, headers = nova_show_flavor_details(env)
+	    
+            start_response(status_code, headers)
+	   
+            return response
+            '''
+
+
+            '''
             # APIs for servers
             try:
                 res = match.group()
@@ -50,13 +83,21 @@ def application(env, start_response):
 		    response, status_code, headers = nova_list_details_servers(env)
 	        # List servers
 	        elif PATH_INFO.endswith('/servers'):
+                    print '!'*80
 		    response, status_code, headers = nova_list_servers(env)
 	        # Show server details
 	        else:
 		    response, status_code, headers = nova_show_server_details(env)
 
+                start_response(status_code, headers)
+            
+                return response
+
             # APIs for flavors
             except:
+
+                print '?'*80
+
                 # List details for flavors
                 if PATH_INFO.endswith('/flavors/detail'):
                     response, status_code, headers = nova_list_details_flavors(env)
@@ -70,7 +111,7 @@ def application(env, start_response):
             start_response(status_code, headers)
 	   
             return response
-            
+            '''
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':
 	    

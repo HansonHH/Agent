@@ -9,54 +9,72 @@ import os
 # List servers
 def nova_list_servers(env):
     
-    # Retrive token from request
-    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+    # Get all rows of Instance object
+    server_result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Instance)
     
-    url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO']
+    # If server does not exist
+    if len(server_result) == 0:
     
-    # Get generated threads 
-    threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
-    
-    # Launch threads
-    for i in range(len(threads)):
-	threads[i].start()
+        response_body = {"servers": []}
+        return non_exist_response('200', response_body)
+        
+    # If server exists then delete
+    else:
+        # Retrive token from request
+        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
 
-    # Initiate response data structure
-    json_data = {'servers':[]}	
-    headers = [('Content-Type','application/json')]	
-    status_code = ''
+        # Create suffix of service url
+        #url_suffix = config.get('Nova', 'nova_public_interface') + '/v2.1/servers/'  
+        url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO'] 
+        urls = []
+        for server in server_result:
+            if server.cloud_address + ':' + url_suffix not in urls:
+                urls.append(server.cloud_address + ':' + url_suffix)
+            #urls.append(server.cloud_address + ':' + url_suffix)
 
-    # Wait until threads terminate
-    for i in range(len(threads)):
-		
-	# Parse response from site	
-        try:
+        # Get generated threads 
+        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
 
-	    response = json.loads(threads[i].join()[0])
-            status_code = str(threads[i].join()[1])
+        # Launch threads
+        for i in range(len(threads)):
+	    threads[i].start()
 
-	    # If image exists in cloud
-	    if len(response['servers']) != 0:
+        threads_res = []
+        # Wait until threads terminate
+        for i in range(len(threads)):
+	
+	    # Parse response from site	
+	    res = threads[i].join()
+            # If user has right to get access to the resource
+            if res.status_code == 200:
+                threads_res.append(res)
+        
+        response = {'servers':[]}
+        for servers in threads_res:
+            
+            res = servers.json()
+            
+            for i in range(len(res['servers'])):
+                # Server's uuid_cloud
+                server_uuid_cloud = res['servers'][i]['id']
+                result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Instance, columns = [Instance.uuid_cloud], keywords = [server_uuid_cloud])
 
-	        # Recursively look up images
-	        for j in range(len(response['servers'])):
-                    # Add cloud info to response	
-                    new_response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response['servers'][j])
-		    json_data['servers'].append(new_response)
-                    
-        except:
-            status_code = str(threads[i].join()[1])
-    
-    # Create status code response
-    # If there exists at least one image
-    if len(json_data['servers']) != 0:
-        res = json.dumps(json_data)
-    # No image exists
-    elif len(json_data['servers']) == 0:
-        res = json.dumps({'servers':[]})
+                new_server_info = add_cloud_info_to_response(result[0].cloud_address, res['servers'][i])
+                response['servers'].append(new_server_info)
 
-    return (res, status_code, headers)
+        if response['servers'] != 0:
+            # Remove duplicate subnets        
+            response['servers'] = remove_duplicate_info(response['servers'], 'id')
+        
+        status_code = str(threads_res[0].status_code)
+        headers = threads_res[0].headers
+        headers['Content-Length'] = len(json.dumps(response))
+        headers = ast.literal_eval(str(headers)).items()
 
+        return status_code, headers, json.dumps(response)
 
 
 # List details for servers
