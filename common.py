@@ -50,7 +50,7 @@ def add_cloud_info_to_response(search_context, response):
 
     # Add site information to json response
     try:
-        response['site'] = response['site'] + ', ' +site + '-' + site_ip
+        response['site'] = response['site'] + ', ' + site + '-' + site_ip
     except:
         response['site'] = site + '-' + site_ip	
 
@@ -77,8 +77,8 @@ def select_site_to_create_object():
     cloud_name =  random.choice(SITES.keys())
     cloud_address = SITES[cloud_name]
 
-    #cloud_name = 'Cloud3'
-    #cloud_address = 'http://10.0.1.12'
+    #cloud_name = 'Cloud1'
+    #cloud_address = 'http://10.0.1.10'
 
     return cloud_name, cloud_address
 

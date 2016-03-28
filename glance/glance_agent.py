@@ -185,9 +185,15 @@ def glance_create_image(env):
         # Add data to DB
         add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_image)
 
-        status_code = str(res.status_code)
-        headers = ast.literal_eval(str(res.headers)).items()
         response['id'] =  uuid_agent
+        response = add_cloud_info_to_response(cloud_address, response)
+        
+        # Return response to end-user
+        status_code = str(res.status_code)
+        headers = res.headers
+        headers['Content-Length'] = str(len(json.dumps(response)))
+        headers = ast.literal_eval(str(headers)).items()
+
 
         return status_code, headers, json.dumps(response)
     
