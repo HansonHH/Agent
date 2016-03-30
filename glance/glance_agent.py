@@ -75,6 +75,7 @@ def glance_list_images(env):
         headers['Content-Length'] = str(len(json.dumps(response)))
         headers = ast.literal_eval(str(headers)).items()
 
+
         return status_code, headers, json.dumps(response)
 
 

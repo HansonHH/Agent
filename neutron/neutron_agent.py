@@ -50,6 +50,7 @@ def neutron_list_networks(env):
                 threads_res.append(res)
 
         response = {'networks':[]}
+        
         for network in threads_res:
     
             res = network.json()
@@ -59,6 +60,7 @@ def neutron_list_networks(env):
 
             # Replace network's id by uuid_agent
             res['network']['id'] = result[0].uuid_agent
+            
             
             subnets = res['network']['subnets']
             # If network has subnets
@@ -71,18 +73,20 @@ def neutron_list_networks(env):
             
             new_network_info = add_cloud_info_to_response(result[0].cloud_address, res['network'])
             response['networks'].append(new_network_info)
-
+            
         
         if response['networks'] != 0:
             # Remove duplicate subnets        
             response['networks'] = remove_duplicate_info(response['networks'], 'id')
         
+
         status_code = str(threads_res[0].status_code)
         headers = threads_res[0].headers
-        headers['Content-Length'] = len(json.dumps(response))
+        headers['Content-Length'] = str(len(json.dumps(response)))
         headers = ast.literal_eval(str(headers)).items()
 
         return status_code, headers, json.dumps(response)
+
 
 
 # Show network details
@@ -141,7 +145,7 @@ def neutron_show_network_details(env):
 
         status_code = str(res.status_code)
         headers = res.headers
-        headers['Content-Length'] = len(json.dumps(response))
+        headers['Content-Length'] = str(len(json.dumps(response)))
         headers = ast.literal_eval(str(headers)).items()
 
         return status_code, headers, json.dumps(response)
@@ -182,10 +186,14 @@ def neutron_create_network(env):
         # Add data to DB
         add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_network)
 
-        status_code = str(res.status_code)
-        headers = ast.literal_eval(str(res.headers)).items()
         response['network']['id'] =  uuid_agent
-
+        response['network'] = add_cloud_info_to_response(cloud_address, response['network'])
+        
+        status_code = str(res.status_code)
+        headers = res.headers
+        headers['Content-Length'] = str(len(json.dumps(response)))
+        headers = ast.literal_eval(str(headers)).items()
+        
         return status_code, headers, json.dumps(response)
     
     else:
@@ -348,7 +356,7 @@ def neutron_list_subnets(env):
         
         status_code = str(threads_res[0].status_code)
         headers = threads_res[0].headers
-        headers['Content-Length'] = len(json.dumps(response))
+        headers['Content-Length'] = str(len(json.dumps(response)))
         headers = ast.literal_eval(str(headers)).items()
 
         return status_code, headers, json.dumps(response)
@@ -409,7 +417,7 @@ def neutron_show_subnet_details(env):
         # Return response to end-user
         status_code = str(res.status_code)
         headers = res.headers
-        headers['Content-Length'] = len(json.dumps(response))
+        headers['Content-Length'] = str(len(json.dumps(response)))
         headers = ast.literal_eval(str(headers)).items()
 
         return status_code, headers, json.dumps(response)
@@ -510,20 +518,25 @@ def neutron_create_subnet(env):
 
         if len(SUCCESS_threads) != 0:
         
+            response = SUCCESS_threads[0].json()
+            subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [response['subnet']['id']])
+            response['subnet']['id'] = subnet_result[0].uuid_agent
+            response['subnet']['network_id'] =  network_uuid_agent
+            response['subnet'] = add_cloud_info_to_response(subnet_result[0].cloud_address, response['subnet'])
+        
             status_code = str(SUCCESS_threads[0].status_code)
-            headers = ast.literal_eval(str(SUCCESS_threads[0].headers)).items()
-            response_json = SUCCESS_threads[0].json()
-            response_json['subnet']['id'] = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [response_json['subnet']['id']])[0].uuid_agent
-            response_json['subnet']['network_id'] =  network_uuid_agent
+            headers = SUCCESS_threads[0].headers
+            headers['Content-Length'] = str(len(json.dumps(response)))
+            headers = ast.literal_eval(str(headers)).items()
 
-            return status_code, headers, json.dumps(response_json)
+            return status_code, headers, json.dumps(response)
 
         elif len(FAIL_threads) != 0:
             status_code = str(FAIL_threads[0].status_code)
             headers = ast.literal_eval(str(FAIL_threads[0].headers)).items()
-            response_json = FAIL_threads[0].json()
+            response = FAIL_threads[0].json()
             
-            return status_code, headers, json.dumps(response_json)
+            return status_code, headers, json.dumps(response)
 
 
 # Delete subnet

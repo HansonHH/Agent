@@ -9,6 +9,9 @@ def application(env, start_response):
 	
     print env
     PATH_INFO = env['PATH_INFO']
+    print '~'*60
+    print PATH_INFO
+    print '~'*60
 	
     # API catalog
     # Identity API v3
@@ -17,6 +20,49 @@ def application(env, start_response):
 	print 'Identity API v3 START WITH /v3'
 	print '*'*30
 
+        # GET request
+	if env['REQUEST_METHOD'] == 'GET':
+        
+            url = 'http://10.0.1.10:5000/v3'
+            headers = {'Accept': 'application/json', 'User-Agent': 'python-keystoneclient'}
+            res = GET_request_to_cloud('http://10.0.1.10:5000/v3', headers)
+
+            print '='*60
+            print res.json()
+            print '-'*10
+            links = []
+            links.append({'href': 'http://10.0.1.11:18090/v3/', 'ref': 'self'})
+            response = res.json()
+            response['version']['links'] = links
+            print headers
+            print '-'*10
+            print response
+            print '='*60
+	
+            headers = ast.literal_eval(str(res.headers)).items()
+
+	    start_response(str(res.status_code), headers)
+
+            return json.dumps(response)
+        
+        # POST request
+	if env['REQUEST_METHOD'] == 'POST':
+
+            # Authentication and token management (Identity API v3)
+            if PATH_INFO == '/v3/auth/tokens':
+	    
+                print '!'*100
+
+                response = keystone_authentication_v3(env)
+            
+                # Shift dictionary to tuple
+	        headers = ast.literal_eval(str(response.headers)).items()
+                # Respond to end user
+	        start_response(str(response.status_code), headers)
+
+                return json.dumps(response.json())
+
+        '''
 	# Authentication and token management (Identity API v3)
 	if PATH_INFO == '/v3/auth/tokens':
 	    
@@ -28,7 +74,9 @@ def application(env, start_response):
 	    start_response(str(response.status_code), headers)
 
             return json.dumps(response.json())
-            
+        '''
+
+
     # Compute API v2.1
     elif PATH_INFO.startswith('/v2.1'):
 	print '*'*30
@@ -277,11 +325,5 @@ def application(env, start_response):
 
             return response
 
-'''
-
-def api_catalog(env, start_response):
-    start_response('200', '')
-    return '123'
-'''
 
 

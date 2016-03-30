@@ -5,6 +5,7 @@ from models import *
 import uuid
 from StringIO import StringIO
 import os
+import time
 
 # List servers
 def nova_list_servers(env):
@@ -27,13 +28,11 @@ def nova_list_servers(env):
         headers = {'X-Auth-Token': X_AUTH_TOKEN}
 
         # Create suffix of service url
-        #url_suffix = config.get('Nova', 'nova_public_interface') + '/v2.1/servers/'  
         url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO'] 
         urls = []
         for server in server_result:
             if server.cloud_address + ':' + url_suffix not in urls:
                 urls.append(server.cloud_address + ':' + url_suffix)
-            #urls.append(server.cloud_address + ':' + url_suffix)
 
         # Get generated threads 
         threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
@@ -71,7 +70,7 @@ def nova_list_servers(env):
         
         status_code = str(threads_res[0].status_code)
         headers = threads_res[0].headers
-        headers['Content-Length'] = len(json.dumps(response))
+        headers['Content-Length'] = str(len(json.dumps(response)))
         headers = ast.literal_eval(str(headers)).items()
 
         return status_code, headers, json.dumps(response)
@@ -284,21 +283,14 @@ def nova_create_server(env):
                 network_dict = {"uuid" : network_exist_result[0].uuid_cloud}
                 network_uuid_clouds.append(network_dict)
     
-    
         # Modify networks by changing it to networks' uuid_clouds
         post_json['server']['networks'] = network_uuid_clouds
-
-
 
     # Construct url for creating network
     url = cloud_address + ':' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
 
-    print '!'*60
-    print post_json
-    print '!'*60
-     
     res = POST_request_to_cloud(url, headers, json.dumps(post_json))
     
     # If network is successfully created in cloud
@@ -316,9 +308,6 @@ def nova_create_server(env):
         
         # Add data to DB
         add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_instance)
-
-        #status_code = str(res.status_code)
-        #headers = ast.literal_eval(str(res.headers)).items()
         
         response = add_cloud_info_to_response(cloud_address, response)
         
@@ -441,7 +430,6 @@ def nova_list_flavors(env):
 # List details for flavors
 def nova_list_details_flavors(env):
 	
-    print '!'*80
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
@@ -653,8 +641,6 @@ def get_options_from_create_VM_request(post_json):
 
 def create_image_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address):
 
-    print '='*60
-   
     # Create header
     headers = {'X-Auth-Token': X_AUTH_TOKEN}
     url = image_result[0].cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + image_result[0].uuid_cloud
@@ -688,11 +674,8 @@ def create_image_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud
 
         return created_image_uuid_cloud
 
-    print '='*60
-
 
 def download_binary_image_data(X_AUTH_TOKEN, image_result):
-    print '-'*60
     # Create header
     headers = {'X-Auth-Token': X_AUTH_TOKEN}
     url = image_result[0].cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + image_result[0].uuid_cloud + '/file'
@@ -707,12 +690,10 @@ def download_binary_image_data(X_AUTH_TOKEN, image_result):
                 f.write(chunk)
         return temp_file_path
 
-    print '-'*60
 
 
 def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud):
 
-    print '+'*60
     # Create header
     headers = {'Content-Type': 'application/octet-stream', 'X-Auth-Token': X_AUTH_TOKEN}
     url = cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + created_image_uuid_cloud + '/file' 
@@ -730,7 +711,7 @@ def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, clo
         ACTIVE = False
         headers = {'X-Auth-Token': X_AUTH_TOKEN}
         url = cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + created_image_uuid_cloud  
-        import time
+        
         while not ACTIVE:
             print 'Check if image status is active'
             time.sleep(5)
@@ -743,13 +724,9 @@ def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, clo
     else:
         return False
     
-    print '+'*60
-
 
 def create_network_in_selected_cloud(X_AUTH_TOKEN, network_result, cloud_name, cloud_address):
     
-    print '~='*60
-   
     # Create header
     headers = {'X-Auth-Token': X_AUTH_TOKEN}
     url = network_result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/' + network_result[0].uuid_cloud
@@ -758,7 +735,6 @@ def create_network_in_selected_cloud(X_AUTH_TOKEN, network_result, cloud_name, c
     res = GET_request_to_cloud(url, headers)
         
     res_dict = res.json()
-    print res_dict
     name = res_dict['network']['name']
     admin_state_up = res_dict['network']['admin_state_up']
     shared = res_dict['network']['shared']
@@ -769,46 +745,30 @@ def create_network_in_selected_cloud(X_AUTH_TOKEN, network_result, cloud_name, c
     post_dict = {"network": {"name":name, "admin_state_up":admin_state_up, "shared":shared, "tenant_id":tenant_id, "router:external":router_external}}
     post_json = json.dumps(post_dict)
 
-    print post_json
-
     url = cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks'
-
-    print url
 
     network_res = POST_request_to_cloud(url, headers, post_json)
     
-    print network_res.status_code
-    print network_res.json()
     if network_res.status_code == 201:
-        print '201 !!!!!!!!!!!!!!!!!!!!'
-        print network_res.json()
+        
         created_network_uuid_cloud = network_res.json()['network']['id']
         
-        print created_network_uuid_cloud
-
         new_network = Network(tenant_id = network_result[0].tenant_id, uuid_agent = network_result[0].uuid_agent, uuid_cloud = created_network_uuid_cloud, network_name = network_result[0].network_name, cloud_name = cloud_name, cloud_address = cloud_address)
         
         # Add data to DB
         add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_network)
 
-        print subnets
         return created_network_uuid_cloud, subnets
     
-    print '~='*60
-
-
 
 def create_subnets_in_selected_cloud(X_AUTH_TOKEN, created_network_uuid_cloud, subnets, cloud_name, cloud_address):
 
-    print 'CREATE SUBNETS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-    
     # Create header
     headers = {'X-Auth-Token': X_AUTH_TOKEN}
 
     created_subnet_uuid_clouds = []
 
     for subnet_id in subnets:
-        print subnet_id
         subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [subnet_id])
         url = subnet_result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/' + subnet_result[0].uuid_cloud
     
@@ -816,7 +776,6 @@ def create_subnets_in_selected_cloud(X_AUTH_TOKEN, created_network_uuid_cloud, s
         res = GET_request_to_cloud(url, headers)
 
         res_dict = res.json()
-        print res_dict
         name = res_dict['subnet']['name']
         network_id = res_dict['subnet']['network_id']
         tenant_id = res_dict['subnet']['tenant_id']
@@ -842,16 +801,9 @@ def create_subnets_in_selected_cloud(X_AUTH_TOKEN, created_network_uuid_cloud, s
         post_dict = {"subnet": {"name":name, "network_id": created_network_uuid_cloud, "tenant_id":tenant_id, "allocation_pools":allocation_pools, "gateway_ip":gateway_ip, "ip_version":ip_version, "cidr":cidr, "enable_dhcp":enable_dhcp, "dns_nameservers":dns_nameservers, "host_routes":host_routes}}
 
         post_json = json.dumps(post_dict)
-        print post_json
-
         url = cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets'
-        print url
-
         subnet_res = POST_request_to_cloud(url, headers, post_json)
 
-        print '&'*30
-        print subnet_res.status_code
-        print subnet_res.json()
 
         if subnet_res.status_code == 201:
             created_subnet_uuid_cloud = subnet_res.json()['subnet']['id']
@@ -863,9 +815,6 @@ def create_subnets_in_selected_cloud(X_AUTH_TOKEN, created_network_uuid_cloud, s
 
             created_subnet_uuid_clouds.append(created_subnet_uuid_cloud)
 
-    print '~'*50
-    print created_subnet_uuid_clouds
-    print '~'*50
     return created_subnet_uuid_clouds
 
 
