@@ -6,6 +6,7 @@ import uuid
 from StringIO import StringIO
 import os
 import time
+import re
 
 # List servers
 def nova_list_servers(env):
@@ -201,9 +202,10 @@ def nova_create_server(env):
     image_id = None
     if imageRef.startswith('http://'):
         # Retrive tenant id by regular expression 
-        image_id_pattern = re.compile(r'(?<=/v2/images/).*')
-        match = image_id_pattern.search(imageRef)
-        image_id = match.group()
+        #image_id_pattern = re.compile(r'(?<=/v2/images/).*')
+        #match = image_id_pattern.search(imageRef)
+        #image_id = match.group()
+        image_id = imageRef.split('/')[-1]
     else:
         image_id = imageRef
     
@@ -212,7 +214,7 @@ def nova_create_server(env):
 
     # Requested image can not be found
     if image_result.count() == 0:
-        message = "Can not fint requested image"
+        message = "Can not find requested image"
         response_body = {"badRequest" : {"code" : 400, "message": message}}
         return non_exist_response('400', json.dumps(response_body))
     # Requested image can be found
@@ -223,16 +225,16 @@ def nova_create_server(env):
         # Image does not exist in selected cloud
         if image_exist_result.count() == 0:
             print 'Image does not exist in selected cloud !!!!!!!!!!!!!!'
-        
+       
+            original_image_uuid_cloud = image_result[0].uuid_cloud
+            agent_cloud_address = image_result[0].cloud_address
+
             created_image_uuid_cloud = create_image_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address)
 
-            temp_file_path = download_binary_image_data(X_AUTH_TOKEN, image_result)
-
-            upload_res = upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud)
+            upload_res = upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, original_image_uuid_cloud, created_image_uuid_cloud, cloud_address, agent_cloud_address)
 
             if upload_res:
                 print 'upload_res == %s'  % upload_res
-
                 post_json['server']['imageRef'] = created_image_uuid_cloud
         
         # Create the same image in selected cloud
@@ -324,7 +326,6 @@ def nova_create_server(env):
         headers = ast.literal_eval(str(res.headers)).items()
 
         return status_code, headers, json.dumps(res.json())
-    
 
 
 # Delete image
@@ -691,7 +692,26 @@ def download_binary_image_data(X_AUTH_TOKEN, image_result):
         return temp_file_path
 
 
+# Send a request of uploading binary image data to a agent whose cloud has the responding image file
+def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, original_image_uuid_cloud, created_image_uuid_cloud, cloud_address, agent_cloud_address):
 
+    # Create header
+    headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
+
+    post_dict = {"image": {"original_image_uuid_cloud":original_image_uuid_cloud, "created_image_uuid_cloud":created_image_uuid_cloud, "cloud_address":cloud_address}}
+    post_json = json.dumps(post_dict)
+
+    url = agent_cloud_address + ':' + config.get('Agent', 'listen_port') + '/v1/agent/upload_binary_image_data'
+
+    res = POST_request_to_cloud(url, headers, post_json)
+
+    if res.status_code == '204':
+        return True
+    else:
+        return False
+
+
+'''
 def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud):
 
     # Create header
@@ -701,12 +721,6 @@ def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, clo
     res = PUT_request_to_cloud(url, headers, temp_file_path)
     
     if res.status_code == 204:
-        
-        # Delete temporary image file
-        try:
-            os.remove(temp_file_path)
-        except:
-            pass
         
         ACTIVE = False
         headers = {'X-Auth-Token': X_AUTH_TOKEN}
@@ -718,12 +732,12 @@ def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, clo
             res = GET_request_to_cloud(url, headers)
             if res.json()['status'] == "active":
                 ACTIVE = True
-
         
         return True
     else:
         return False
-    
+'''
+
 
 def create_network_in_selected_cloud(X_AUTH_TOKEN, network_result, cloud_name, cloud_address):
     
@@ -797,7 +811,6 @@ def create_subnets_in_selected_cloud(X_AUTH_TOKEN, created_network_uuid_cloud, s
         ipv6_ra_mode = res_dict['subnet']['ipv6_ra_mode']
         ipv6_address_mode = res_dict['subnet']['ipv6_address_mode']
 
-        #post_dict = {"subnet": {"name":name, "network_id": created_network_uuid_cloud, "tenant_id":tenant_id, "allocation_pools":allocation_pools, "gateway_ip":gateway_ip, "ip_version":ip_version, "cidr":cidr, "enable_dhcp":enable_dhcp, "dns_nameservers":dns_nameservers, "host_routes":host_routes, "destination":destination, "nexthop":nexthop, "ipv6_ra_mode":ipv6_ra_mode, "ipv6_address_mode":ipv6_address_mode}}
         post_dict = {"subnet": {"name":name, "network_id": created_network_uuid_cloud, "tenant_id":tenant_id, "allocation_pools":allocation_pools, "gateway_ip":gateway_ip, "ip_version":ip_version, "cidr":cidr, "enable_dhcp":enable_dhcp, "dns_nameservers":dns_nameservers, "host_routes":host_routes}}
 
         post_json = json.dumps(post_dict)

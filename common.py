@@ -24,6 +24,7 @@ DATABASE_PASSWORD = config.get('Database', 'DATABASE_PASSWORD')
 AGENT_DB_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/%s' % (DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
 TEMP_IMAGE_PATH = config.get('Glance', 'temp_image_path')
+IMAGE_FILE_PATH = config.get('Glance', 'image_file_path')
 
 # A function to send resonse to end-user if resource info dose exist in agent local DB
 def non_exist_response(status_code, response_body):
@@ -74,11 +75,11 @@ def remove_duplicate_info(items, keyword):
 
 def select_site_to_create_object():
     # Select a cloud at random
-    cloud_name =  random.choice(SITES.keys())
-    cloud_address = SITES[cloud_name]
+    #cloud_name =  random.choice(SITES.keys())
+    #cloud_address = SITES[cloud_name]
 
-    #cloud_name = 'Cloud1'
-    #cloud_address = 'http://10.0.1.10'
+    cloud_name = 'Cloud3'
+    cloud_address = 'http://10.0.1.12'
 
     return cloud_name, cloud_address
 
@@ -92,4 +93,10 @@ def readInChunks(fileObj, chunkSize = 4096):
         yield data
 
 
+def delete_temp_image_file(temp_file_path):
+    # Delete temporary image file
+    try:
+        os.remove(temp_file_path)
+    except:
+        pass
 

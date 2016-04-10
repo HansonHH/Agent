@@ -3,6 +3,7 @@ from keystone.keystone_agent import *
 from nova.nova_agent import * 
 from glance.glance_agent import * 
 from neutron.neutron_agent import * 
+from agent import *
 
 #def api_catalog(env, start_response):
 def application(env, start_response):
@@ -324,6 +325,20 @@ def application(env, start_response):
             start_response(status_code, headers)
 
             return response
+
+
+    elif PATH_INFO.startswith('/v1/agent/upload_binary_image_data'):
+        print '*'*30
+        print 'Agent v1.0 Upload binary image data'
+        print '*'*30
+
+        status_code, headers, response = agent_upload_binary_image_data_to_selected_cloud(env)
+        start_response(status_code, headers)
+
+        return response
+
+
+
 
 
 

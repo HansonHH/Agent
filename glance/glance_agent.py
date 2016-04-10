@@ -1,4 +1,3 @@
-#from nova.nova_agent import *
 from request import *
 from common import *
 from db import *
@@ -221,13 +220,14 @@ def glance_upload_binary_image_data(env):
         response_body = "<html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1>%s<br/><br/></body></html>" 
         return non_exist_response('404', response_body)
     
-    # If image exists then delete
+    # If image exists
     else:
         # Retrive token from request
         X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
         # Create header
         headers = {'Content-Type': 'application/octet-stream', 'X-Auth-Token': X_AUTH_TOKEN}
+        
         # Write binary data to temporay file
         temp_file_path = TEMP_IMAGE_PATH + image_id 
         f = open(temp_file_path, "w")
