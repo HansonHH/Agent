@@ -23,9 +23,6 @@ import time
 
 def agent_upload_binary_image_data_to_selected_cloud(env):
 
-    print '!'*60
-    #print env
-        
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
 
@@ -35,12 +32,6 @@ def agent_upload_binary_image_data_to_selected_cloud(env):
     original_image_uuid_cloud = post_data_json['image']['original_image_uuid_cloud']
     created_image_uuid_cloud = post_data_json['image']['created_image_uuid_cloud']
     cloud_address = post_data_json['image']['cloud_address']
-
-    print original_image_uuid_cloud
-    print created_image_uuid_cloud
-    print cloud_address
-
-    print '!'*60
     
     # Create header
     headers = {'Content-Type': 'application/octet-stream', 'X-Auth-Token': X_AUTH_TOKEN}
@@ -50,18 +41,57 @@ def agent_upload_binary_image_data_to_selected_cloud(env):
 
     # Upload binary image data to selected cloud
     image_file_path = IMAGE_FILE_PATH + original_image_uuid_cloud 
+
+    # Get generated thread 
+    threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, [url], PUT_request_to_cloud, [image_file_path])
+
+    # Launch thread
+    threads[0].start()
+
+    res = threads[0].join()
+
+    if res.status_code == 204:
+        print 'Image uploaded successfully !!!'
+            
+        ACTIVE = False
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
+        url = cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + created_image_uuid_cloud  
+        
+        while not ACTIVE:
+            print 'Check if image status is active'
+            time.sleep(5)
+
+            threads = generate_threads_multicast(X_AUTH_TOKEN, headers, [url], GET_request_to_cloud)
+            threads[0].start()
+            res = threads[0].join()
+
+            #res = GET_request_to_cloud(url, headers)
+            if res.json()['status'] == "active":
+                ACTIVE = True
+        
+        status_code = '204'
     
-    print url
-    print image_file_path
-    
+    else:
+        print 'Failed to upload binary image data !!!'
+        status_code = '409'
+        
+
+    headers = ''
+    response = ''
+    headers = res.headers
+    headers['Content-Length'] = str(len(json.dumps(response)))
+    headers = ast.literal_eval(str(headers)).items()
+
+    return status_code, headers, json.dumps(response)
+
+
+
+    '''
     try:    
         res = PUT_request_to_cloud(url, headers, image_file_path)
     except Exception as e:
         print e
-
-    print '?'*60
-    print res.status_code
-    print '?'*60
+    
     if res.status_code == 204:
         print 'Image uploaded successfully !!!'
             
@@ -83,37 +113,16 @@ def agent_upload_binary_image_data_to_selected_cloud(env):
     
         status_code = '409'
         
+    print status_code
+
     headers = ''
+    response = ''
+    headers = res.headers
+    headers['Content-Length'] = str(len(json.dumps(response)))
+    headers = ast.literal_eval(str(headers)).items()
 
-    return status_code, headers, json.dumps('')
-    
+    return status_code, headers, json.dumps(response)
+    '''
 
 
-
-'''
-def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud):
-
-    # Create header
-    headers = {'Content-Type': 'application/octet-stream', 'X-Auth-Token': X_AUTH_TOKEN}
-    url = cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + created_image_uuid_cloud + '/file' 
-
-    res = PUT_request_to_cloud(url, headers, temp_file_path)
-    
-    if res.status_code == 204:
-        
-        ACTIVE = False
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
-        url = cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + created_image_uuid_cloud  
-        
-        while not ACTIVE:
-            print 'Check if image status is active'
-            time.sleep(5)
-            res = GET_request_to_cloud(url, headers)
-            if res.json()['status'] == "active":
-                ACTIVE = True
-        
-        return True
-    else:
-        return False
-'''
 

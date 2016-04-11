@@ -229,9 +229,17 @@ def nova_create_server(env):
             original_image_uuid_cloud = image_result[0].uuid_cloud
             agent_cloud_address = image_result[0].cloud_address
 
+            print original_image_uuid_cloud
+            print agent_cloud_address
+
             created_image_uuid_cloud = create_image_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address)
 
             upload_res = upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, original_image_uuid_cloud, created_image_uuid_cloud, cloud_address, agent_cloud_address)
+
+            print '&'*60
+            print upload_res
+            print '&'*60
+
 
             if upload_res:
                 print 'upload_res == %s'  % upload_res
@@ -294,6 +302,15 @@ def nova_create_server(env):
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
 
     res = POST_request_to_cloud(url, headers, json.dumps(post_json))
+
+
+    print '='*80
+    print post_json
+    print res.status_code
+    print res.json()
+    print res.text
+    print '='*80
+
     
     # If network is successfully created in cloud
     if res.status_code == 202:
@@ -695,6 +712,8 @@ def download_binary_image_data(X_AUTH_TOKEN, image_result):
 # Send a request of uploading binary image data to a agent whose cloud has the responding image file
 def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, original_image_uuid_cloud, created_image_uuid_cloud, cloud_address, agent_cloud_address):
 
+    print '%'*100
+
     # Create header
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
 
@@ -705,7 +724,11 @@ def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, original_image_uuid
 
     res = POST_request_to_cloud(url, headers, post_json)
 
-    if res.status_code == '204':
+    print res.status_code
+    print type(res.status_code)
+
+
+    if res.status_code == 204:
         return True
     else:
         return False
