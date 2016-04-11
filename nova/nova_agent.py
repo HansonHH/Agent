@@ -224,32 +224,30 @@ def nova_create_server(env):
     
         # Image does not exist in selected cloud
         if image_exist_result.count() == 0:
-            print 'Image does not exist in selected cloud !!!!!!!!!!!!!!'
        
             original_image_uuid_cloud = image_result[0].uuid_cloud
             agent_cloud_address = image_result[0].cloud_address
 
-            print original_image_uuid_cloud
-            print agent_cloud_address
-
             created_image_uuid_cloud = create_image_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud_address)
+            
+            # First try to ask another agent to upload binary image data to selected cloud
+            try:
+            
+                upload_res = upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, original_image_uuid_cloud, created_image_uuid_cloud, cloud_address, agent_cloud_address)
 
-            upload_res = upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, original_image_uuid_cloud, created_image_uuid_cloud, cloud_address, agent_cloud_address)
+            # Download binary image data from source cloud and upload to selected cloud
+            except:
+                
+                temp_file_path = download_binary_image_data(X_AUTH_TOKEN, image_result)
 
-            print '&'*60
-            print upload_res
-            print '&'*60
-
-
+                upload_res = upload_temporary_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud)
+    
             if upload_res:
-                print 'upload_res == %s'  % upload_res
                 post_json['server']['imageRef'] = created_image_uuid_cloud
         
         # Create the same image in selected cloud
         else:
-            print 'Image exists in selected cloud !!!!!!!!!!!!!'
             # Modify imageRef by changing it to image's uuid_cloud
-            print image_exist_result[0].uuid_cloud
             post_json['server']['imageRef'] = image_exist_result[0].uuid_cloud
 
 
@@ -276,7 +274,6 @@ def nova_create_server(env):
         
             # Network does not exist in selected cloud
             if network_exist_result.count() == 0:
-                print 'Network does not exist in selected cloud !!!!!!!!!!!!'
                 
                 network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent], keywords = [network_id])
                 
@@ -289,7 +286,6 @@ def nova_create_server(env):
                 network_uuid_clouds.append(network_dict)
                 # Create sunbet in selected cloud
             else:
-                print 'Network exists in selected cloud !!!!!!!!!!!!!!'
                 network_dict = {"uuid" : network_exist_result[0].uuid_cloud}
                 network_uuid_clouds.append(network_dict)
     
@@ -302,14 +298,6 @@ def nova_create_server(env):
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
 
     res = POST_request_to_cloud(url, headers, json.dumps(post_json))
-
-
-    print '='*80
-    print post_json
-    print res.status_code
-    print res.json()
-    print res.text
-    print '='*80
 
     
     # If network is successfully created in cloud
@@ -694,6 +682,9 @@ def create_image_in_selected_cloud(X_AUTH_TOKEN, image_result, cloud_name, cloud
 
 
 def download_binary_image_data(X_AUTH_TOKEN, image_result):
+
+    print 'download binary image data '*100
+
     # Create header
     headers = {'X-Auth-Token': X_AUTH_TOKEN}
     url = image_result[0].cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + image_result[0].uuid_cloud + '/file'
@@ -731,11 +722,12 @@ def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, original_image_uuid
     if res.status_code == 204:
         return True
     else:
-        return False
+        raise Exception('Failed to ask specified agent upload binary image data to selected cloud')
+        #return False
 
 
-'''
-def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud):
+
+def upload_temporary_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, cloud_address, created_image_uuid_cloud):
 
     # Create header
     headers = {'Content-Type': 'application/octet-stream', 'X-Auth-Token': X_AUTH_TOKEN}
@@ -759,7 +751,7 @@ def upload_binary_image_data_to_selected_cloud(X_AUTH_TOKEN, temp_file_path, clo
         return True
     else:
         return False
-'''
+
 
 
 def create_network_in_selected_cloud(X_AUTH_TOKEN, network_result, cloud_name, cloud_address):

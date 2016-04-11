@@ -15,10 +15,7 @@ from request import *
 from common import *
 from db import *
 from models import *
-#import uuid
-#import os
 import time
-
 
 
 def agent_upload_binary_image_data_to_selected_cloud(env):
@@ -42,13 +39,28 @@ def agent_upload_binary_image_data_to_selected_cloud(env):
     # Upload binary image data to selected cloud
     image_file_path = IMAGE_FILE_PATH + original_image_uuid_cloud 
 
-    # Get generated thread 
-    threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, [url], PUT_request_to_cloud, [image_file_path])
+    try:
+        # Get generated thread 
+        threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, [url], PUT_request_to_cloud, [image_file_path])
 
-    # Launch thread
-    threads[0].start()
+        # Launch thread
+        threads[0].start()
 
-    res = threads[0].join()
+        res = threads[0].join()
+    # If image file does not exist
+    except:
+        
+        print 'image file does not exist ' * 30
+        status_code = '409'
+        headers = ''
+        response = ''
+        headers = res.headers
+        headers['Content-Length'] = str(len(json.dumps(response)))
+        headers = ast.literal_eval(str(headers)).items()
+
+        return status_code, headers, json.dumps(response)
+
+
 
     if res.status_code == 204:
         print 'Image uploaded successfully !!!'
@@ -86,43 +98,6 @@ def agent_upload_binary_image_data_to_selected_cloud(env):
 
 
 
-    '''
-    try:    
-        res = PUT_request_to_cloud(url, headers, image_file_path)
-    except Exception as e:
-        print e
-    
-    if res.status_code == 204:
-        print 'Image uploaded successfully !!!'
-            
-        ACTIVE = False
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
-        url = cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + created_image_uuid_cloud  
-        
-        while not ACTIVE:
-            print 'Check if image status is active'
-            time.sleep(5)
-            res = GET_request_to_cloud(url, headers)
-            if res.json()['status'] == "active":
-                ACTIVE = True
-        
-        status_code = '204'
-    
-    else:
-        print 'Failed to upload binary image data !!!'
-    
-        status_code = '409'
-        
-    print status_code
-
-    headers = ''
-    response = ''
-    headers = res.headers
-    headers['Content-Length'] = str(len(json.dumps(response)))
-    headers = ast.literal_eval(str(headers)).items()
-
-    return status_code, headers, json.dumps(response)
-    '''
 
 
 

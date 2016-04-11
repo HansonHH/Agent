@@ -30,8 +30,6 @@ def POST_request_to_cloud(url, headers, PostData):
 # PUT request to cloud
 def PUT_request_to_cloud(url, headers, temp_file_path):
 
-    print 'PUT request t cloud @@@@@@@@@@@@@@@'
-
     f = open(temp_file_path, 'rb')
     res = requests.put(url, headers = headers, data = f)
     f.close()
