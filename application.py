@@ -52,10 +52,11 @@ def application(env, start_response):
             # Authentication and token management (Identity API v3)
             if PATH_INFO == '/v3/auth/tokens':
 	    
-                print '!'*100
-
                 response = keystone_authentication_v3(env)
             
+                print '!'*100
+                print json.dumps(response.json())
+                print '!'*100
                 # Shift dictionary to tuple
 	        headers = ast.literal_eval(str(response.headers)).items()
                 # Respond to end user
