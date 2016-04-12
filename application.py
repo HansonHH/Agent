@@ -52,17 +52,29 @@ def application(env, start_response):
             # Authentication and token management (Identity API v3)
             if PATH_INFO == '/v3/auth/tokens':
 	    
-                response = keystone_authentication_v3(env)
+                res = keystone_authentication_v3(env)
             
                 print '!'*100
-                print json.dumps(response.json())
-                print '!'*100
-                # Shift dictionary to tuple
-	        headers = ast.literal_eval(str(response.headers)).items()
-                # Respond to end user
-	        start_response(str(response.status_code), headers)
+                #print json.dumps(response.json())
+                response = res.json()
+                print response['token']['catalog'][3]['endpoints']
 
-                return json.dumps(response.json())
+                for i in range(9):
+                    response['token']['catalog'][3]['endpoints'][i]['url'] = 'http://10.0.1.11:18090/v2.1/98bdf671dfc74d51ba4969f4e963acca'
+                
+                print '!'*100
+                print response['token']['catalog'][3]['endpoints']
+                # Shift dictionary to tuple
+	        #headers = ast.literal_eval(str(response.headers)).items()
+        
+                headers = res.headers
+                headers['Content-Length'] = str(len(json.dumps(response)))
+                headers = ast.literal_eval(str(headers)).items()
+        
+                # Respond to end user
+	        start_response(str(res.status_code), headers)
+
+                return json.dumps(response)
 
         '''
 	# Authentication and token management (Identity API v3)
@@ -90,16 +102,31 @@ def application(env, start_response):
 	
         # GET request
 	if env['REQUEST_METHOD'] == 'GET':
+              
+            # Version discovery
+            if PATH_INFO.endswith('/v2.1/'):
+		status_code, headers, response = nova_api_version_discovery(env)
                 
             # List details for servers
-	    if PATH_INFO.endswith('/servers/detail'):
+	    elif PATH_INFO.endswith('/servers/detail'):
 		status_code, headers, response = nova_list_details_servers(env)
-	    # List servers
+	    
+            # List servers
 	    elif PATH_INFO.endswith('/servers'):
 		status_code, headers, response = nova_list_servers(env)
-	    # Show server details
+            
             else:
-		status_code, headers, response = nova_show_server_details(env)
+	        # Show server details
+                try:
+                    site_pattern = re.compile(r'(?<=/servers/).*')
+                    match = site_pattern.search(env['PATH_INFO'])        
+                    server_id = match.group()
+		    status_code, headers, response = nova_show_server_details(env)
+                except:
+                    print '404 '*100
+                    status_code = '404'
+                    headers = ''
+                    response = ''
 
             start_response(status_code, headers)
 	   
