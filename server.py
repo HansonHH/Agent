@@ -13,11 +13,9 @@ config = ConfigParser.ConfigParser()
 config.read('agent.conf')
 LISTEN_PORT = int(config.get('Agent','listen_port'))
 
-
 listener = eventlet.listen(('', LISTEN_PORT))
 pool = eventlet.GreenPool(1000)
 wsgi.server(listener, application, custom_pool = pool)
-
 
 # Start agent
 #wsgi.server(eventlet.listen(('',LISTEN_PORT)), application)

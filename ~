@@ -5,7 +5,6 @@ from glance.glance_agent import *
 from neutron.neutron_agent import * 
 from agent import *
 
-
 #def api_catalog(env, start_response):
 def application(env, start_response):
 	
@@ -22,16 +21,39 @@ def application(env, start_response):
 	print 'Identity API v3 START WITH /v3'
 	print '*'*30
 
-        global ONCE
-        ONCE = True
-
         # GET request
 	if env['REQUEST_METHOD'] == 'GET':
-		
-            status_code, headers, response = keystone_mapping_api_v3_endpoint(env)
 
+            url = 'http://10.0.1.10:5000/v3'
+            headers = {'Accept': 'application/json', 'User-Agent': 'python-keystoneclient'}
+            res = GET_request_to_cloud('http://10.0.1.10:5000/v3', headers)
+
+            print '='*60
+            print res.json()
+            print '-'*10
+            links = []
+            links.append({'href': 'http://10.0.1.11:18090/v3/', 'ref': 'self'})
+            response = res.json()
+            response['version']['links'] = links
+	    
+            status_code = str(res.status_code)
+            headers = res.headers
+            headers['Content-Length'] = str(len(json.dumps(response)))
+            headers = ast.literal_eval(str(headers)).items()
+            print headers
+            print '-'*10
+            print response
+            print '='*60
+	
+            #headers = ast.literal_eval(str(res.headers)).items()
+
+	    #start_response(str(res.status_code), headers)
+
+            #return json.dumps(response)
+            
+            #start_response(status_code, headers)
 	    start_response(status_code, headers)
-
+	   
             return response
         
         # POST request
@@ -39,12 +61,34 @@ def application(env, start_response):
 
             # Authentication and token management (Identity API v3)
             if PATH_INFO == '/v3/auth/tokens':
+	    
+                res = keystone_authentication_v3(env)
                 
-                status_code, headers, response = keystone_authentication_v3(env)
-                
-	        start_response(status_code, headers)
+                # Map service endpoints to agent endpoints 
+                response = endpoints_mapping(res)
+            
+                headers = res.headers
+                headers['Content-Length'] = str(len(json.dumps(response)))
+                headers = ast.literal_eval(str(headers)).items()
+        
+                # Respond to end user
+	        start_response(str(res.status_code), headers)
 
-                return response
+                return json.dumps(response)
+
+        '''
+	# Authentication and token management (Identity API v3)
+	if PATH_INFO == '/v3/auth/tokens':
+	    
+            response = keystone_authentication_v3(env)
+            
+            # Shift dictionary to tuple
+	    headers = ast.literal_eval(str(response.headers)).items()
+            # Respond to end user
+	    start_response(str(response.status_code), headers)
+
+            return json.dumps(response.json())
+        '''
 
 
     # Compute API v2.1
@@ -105,6 +149,46 @@ def application(env, start_response):
             return response
             '''
 
+
+            '''
+            # APIs for servers
+            try:
+                res = match.group()
+            
+                # List details for servers
+	        if PATH_INFO.endswith('/servers/detail'):
+		    response, status_code, headers = nova_list_details_servers(env)
+	        # List servers
+	        elif PATH_INFO.endswith('/servers'):
+                    print '!'*80
+		    response, status_code, headers = nova_list_servers(env)
+	        # Show server details
+	        else:
+		    response, status_code, headers = nova_show_server_details(env)
+
+                start_response(status_code, headers)
+            
+                return response
+
+            # APIs for flavors
+            except:
+
+                print '?'*80
+
+                # List details for flavors
+                if PATH_INFO.endswith('/flavors/detail'):
+                    response, status_code, headers = nova_list_details_flavors(env)
+	        # List flavors
+                elif PATH_INFO.endswith('/flavors'):
+                    response, status_code, headers = nova_list_flavors(env)
+	        # Show flavor details
+	        else:
+		    response, status_code, headers = nova_show_flavor_details(env)
+	    
+            start_response(status_code, headers)
+	   
+            return response
+            '''
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':
 	    
@@ -128,7 +212,7 @@ def application(env, start_response):
             # API for server
             try:
                 res = match.group()
-                
+	    
                 # Delete server
                 status_code, headers, response = nova_delete_server(env)
             
@@ -151,31 +235,14 @@ def application(env, start_response):
 
 	# GET request
 	if env['REQUEST_METHOD'] == 'GET':
-            
 	    # Show image details
 	    if PATH_INFO.startswith('/v2/images/'):
 		status_code, headers, response = glance_show_image_details(env)
-	    
-            # List images
-            elif PATH_INFO.endswith('/v2/images'):
-                print 'list images '*40
+	    # List images
+	    else:
 		status_code, headers, response = glance_list_images(env)
-                '''
-                if global ONCE:
-		    status_code, headers, response = glance_list_images(env)
-                    ONCE = False
-                else:
-                    status_code = '200'
-                    headers = ''
-                    response = {"images": [], "schema": "/v2/schemas/images", "first": "/v2/images"}
-                    response = json.dumps(response)
-                '''
-            # Show image schema
-            elif PATH_INFO.startswith('/v2/schemas/image'):
-		status_code, headers, response = glance_show_image_schema(env)
-
+		
 	    start_response(status_code, headers)
-            
             return response
 
         # POST request

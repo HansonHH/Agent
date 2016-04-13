@@ -25,11 +25,6 @@ def nova_api_version_discovery(env):
     res = GET_request_to_cloud(url, headers)
     response = res.json()
 
-    print '!'*80
-    print res.status_code
-    print response
-    print '!'*80
-
     # Send a GET request to retrive API details
     api_version = ''
     for item in response['versions']:
@@ -41,27 +36,16 @@ def nova_api_version_discovery(env):
                 api_version = '/v2/'
                 url = local_site_ip + ':' + config.get('Nova', 'nova_public_interface') + '/v2/' 
 
-    print url
-                 
     res = GET_request_to_cloud(url, headers)
-    response = res.json()
+    response_body = res.json()
 
-    print response
-    for i in range(len(response['version']['links'])):
+    for i in range(len(response_body['version']['links'])):
         try:
-            link_type = response['version']['links'][i]['type']
+            link_type = response_body['version']['links'][i]['type']
         except:
-            response['version']['links'][i]['href'] = local_site_ip + ':' + config.get('Agent', 'listen_port') + api_version 
+            response_body['version']['links'][i]['href'] = local_site_ip + ':' + config.get('Agent', 'listen_port') + api_version 
 
-    print '='*100
-    print response
-
-    status_code = str(res.status_code)
-    headers = res.headers
-    headers['Content-Length'] = str(len(json.dumps(response)))
-    headers = ast.literal_eval(str(headers)).items()
-
-    return status_code, headers, json.dumps(response)
+    return generate_formatted_response(res, response_body)
     
 
 # List servers
@@ -87,10 +71,11 @@ def nova_list_servers(env):
         # Create suffix of service url
         url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO'] 
         urls = []
+        #for server in server_result:
         for server in server_result:
             if server.cloud_address + ':' + url_suffix not in urls:
                 urls.append(server.cloud_address + ':' + url_suffix)
-
+        
         # Get generated threads 
         threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
 
@@ -108,7 +93,7 @@ def nova_list_servers(env):
             if res.status_code == 200:
                 threads_res.append(res)
         
-        response = {'servers':[]}
+        response_body = {'servers':[]}
         for servers in threads_res:
             
             res = servers.json()
@@ -116,28 +101,23 @@ def nova_list_servers(env):
             for i in range(len(res['servers'])):
                 # Server's uuid_cloud
                 server_uuid_cloud = res['servers'][i]['id']
+                
                 result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Instance, columns = [Instance.uuid_cloud], keywords = [server_uuid_cloud])
 
                 new_server_info = add_cloud_info_to_response(result[0].cloud_address, res['servers'][i])
-                response['servers'].append(new_server_info)
+                response_body['servers'].append(new_server_info)
+            
 
-        if response['servers'] != 0:
+        if response_body['servers'] != 0:
             # Remove duplicate subnets        
-            response['servers'] = remove_duplicate_info(response['servers'], 'id')
+            response_body['servers'] = remove_duplicate_info(response_body['servers'], 'id')
         
-        status_code = str(threads_res[0].status_code)
-        headers = threads_res[0].headers
-        headers['Content-Length'] = str(len(json.dumps(response)))
-        headers = ast.literal_eval(str(headers)).items()
-
-        return status_code, headers, json.dumps(response)
+        return generate_formatted_response(threads_res[0], response_body)
 
 
 # List details for servers
 def nova_list_details_servers(env):
 
-    print'nova_list_details_servers(env) ' *10
-	
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
@@ -150,8 +130,6 @@ def nova_list_details_servers(env):
         url = site + ':' + url_suffix
         urls.append(url)
 
-    print urls
-    
     threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
 
     # Launch threads
@@ -159,54 +137,30 @@ def nova_list_details_servers(env):
 	threads[i].start()
 	
     # Initiate response data structure
-    json_data = {'servers':[]}	
+    response_body = {'servers':[]}	
 	
     # Wait until threads terminate
     for i in range(len(threads)):
 	
         # Parse response from site	
         try:
-		
 	    res = threads[i].join()
             status_code = str(res.status_code)
-		
+
             # If VM exists in cloud
 	    if len(res.json()['servers']) != 0:
 	        # Recursively look up VMs
 	        for j in range(len(res.json()['servers'])):
-		    # Add cloud info to response	
-                    #new_response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response['servers'][j])
-		    #json_data['servers'].append(new_response)
-		    json_data['servers'].append(res.json()['servers'][0])
-                    
+		    response_body['servers'].append(res.json()['servers'][j])
         except:
             status_code = str(res.status_code)
 		
-    # Create status code response
-    # If there exists at least one image
-    if len(json_data['servers']) != 0:
-        response = json.dumps(json_data)
-    # No server exists
-    elif len(json_data['servers']) == 0:
-        response = json.dumps({'servers':[]})
-    
-    #status_code = str(res.status_code)
-    #response = res.json()
-    headers = res.headers
-    headers['Content-Length'] = str(len(response))
-    headers = ast.literal_eval(str(headers)).items()
-    
-    return status_code, headers, response
-    #return (res, status_code, headers)
+    return generate_formatted_response(res, response_body)
     
 
 # Show server details
 def nova_show_server_details(env):
 
-    print '*'*80
-    print env['PATH_INFO']
-    print '*'*80
-    
     site_pattern = re.compile(r'(?<=/servers/).*')
     match = site_pattern.search(env['PATH_INFO'])        
     server_id = match.group()
@@ -234,86 +188,21 @@ def nova_show_server_details(env):
         # Forward request to the relevant cloud
         res = GET_request_to_cloud(url, headers)
         
-        response = None
+        response_body = None
         # Successfully get response from cloud
         if res.status_code == 200:
             
-            response = res.json()
+            response_body = res.json()
             
             # Add cloud info to response 
             #for i in range(image_result.count()):
             #    response = add_cloud_info_to_response(image_result[i].cloud_address, response)
         
         else:
-            response = res.text
+            response_body = res.text
+        
+        return generate_formatted_response(res, response_body)
 
-        # Return response to end-user
-        status_code = str(res.status_code)
-        headers = res.headers
-        headers['Content-Length'] = str(len(json.dumps(response)))
-        headers = ast.literal_eval(str(headers)).items()
-
-        return status_code, headers, json.dumps(response)
-
-	'''
-        # Create suffix of service url
-        url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO'] 
-    
-    
-    urls = []
-    for server in result:
-        urls.append(server.cloud_address + ':' + url_suffix)
-    for site in SITES.values():
-        url = site + ':' + url_suffix
-        urls.append(url)
-
-    print urls
-    
-    threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
-
-    # Launch threads
-    for i in range(len(threads)):
-	threads[i].start()
-    # Wait until threads terminate
-    for i in range(len(threads)):
-        # Parse response from site	
-	#try:
-	res = threads[i].join()
-        print '!'*200
-        print res
-        # If VM not found
-        if res.status_code == 200:
-            response = res.json()
-            status_code = str(res.status_code)
-            #try:
-	    #    itemNotFound = res.json()['itemNotFound']
-            #    response = res.json()
-            #    status_code = str(res.status_code)
-            # VM found
-            #except:
-        else:
-                # Add cloud info to response 
-                #response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response)
-            status_code = str(res.status_code)
-            response = res.json()
-            headers = res.headers
-            headers['Content-Length'] = str(len(json.dumps(response)))
-            headers = ast.literal_eval(str(headers)).items()
-    
-            return status_code, headers, json.dumps(response)
-			
-	#except:
-        #    print 'except '*30
-        #    status_code = str(res.status_code)
-            #response = ''
-        #    response = res.json()
-    
-    headers = res.headers
-    headers['Content-Length'] = str(len(json.dumps(response)))
-    headers = ast.literal_eval(str(headers)).items()
-
-    return status_code, headers, json.dumps(response)
-    '''
 
 # Create VM                    
 def nova_create_server(env):
@@ -436,14 +325,13 @@ def nova_create_server(env):
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
 
     res = POST_request_to_cloud(url, headers, json.dumps(post_json))
-
     
-    # If network is successfully created in cloud
+    # If VM is successfully created in cloud
     if res.status_code == 202:
 
         # Retrive information from response
-        response = res.json()
-        instance_id = response['server']['id'] 
+        response_body = res.json()
+        instance_id = response_body['server']['id'] 
         # Retrive tenant id
         tenant_id_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
         match = tenant_id_pattern.search(env['PATH_INFO'])
@@ -454,21 +342,13 @@ def nova_create_server(env):
         # Add data to DB
         add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_instance)
         
-        response = add_cloud_info_to_response(cloud_address, response)
+        response_body = add_cloud_info_to_response(cloud_address, response_body)
         
-        # Return response to end-user
-        status_code = str(res.status_code)
-        headers = res.headers
-        headers['Content-Length'] = str(len(json.dumps(response)))
-        headers = ast.literal_eval(str(headers)).items()
-
-        return status_code, headers, json.dumps(response)
+        return generate_formatted_response(res, response_body)
     
     else:
-        status_code = str(res.status_code)
-        headers = ast.literal_eval(str(res.headers)).items()
-
-        return status_code, headers, json.dumps(res.json())
+        
+        return generate_formatted_response(res, res.json())
 
 
 # Delete image
@@ -484,7 +364,7 @@ def nova_delete_server(env):
     if instance_result.count() == 0:
     
         message = "Instance %s could not be found" % server_id
-        response_body = {"ItenNotFound":{"code": 404, "message" : message}}
+        response_body = {"ItemNotFound":{"code": 404, "message" : message}}
         return non_exist_response('404', json.dumps(response_body))
     
     # If subnet exists then delete
@@ -499,23 +379,15 @@ def nova_delete_server(env):
         # Construct url for deleting network
         url = instance_result[0].cloud_address + ':' + config.get('Nova','nova_public_interface') + env['PATH_INFO'] 
         
-        response = DELETE_request_to_cloud(url, headers)
+        res = DELETE_request_to_cloud(url, headers)
         
         # If instance deleted successfully
-	if response.status_code == 204:
+	if res.status_code == 204:
             
             # Delete network information in agent DB 
             delete_from_DB(AGENT_DB_ENGINE_CONNECTION, Instance, Instance.uuid_cloud, instance_result[0].uuid_cloud)
 
-            status_code = str(response.status_code)
-            headers = ast.literal_eval(str(response.headers)).items()
-
-            return status_code, headers, json.dumps(response.text)
-        else:
-            status_code = str(response.status_code)
-            headers = ast.literal_eval(str(response.headers)).items()
-
-            return status_code, headers, json.dumps(response.text)
+        return generate_formatted_response(res, res.text)
 
 
 # List servers

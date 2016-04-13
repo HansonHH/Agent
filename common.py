@@ -38,6 +38,7 @@ def non_exist_response(status_code, response_body):
         return status_code, headers, json.dumps(response_body)
 
 
+
 # A function to add cloud name and cloud ip to user response
 def add_cloud_info_to_response(search_context, response):
 
@@ -71,6 +72,17 @@ def remove_duplicate_info(items, keyword):
                 if item[keyword] == item2[keyword]:
                     item2['site'] = item2['site'] + ', ' + item['site']
     return rs
+
+
+# A function to generate well-formatted response to end user
+def generate_formatted_response(res, response_body):
+    
+    status_code = str(res.status_code)
+    headers = res.headers
+    headers['Content-Length'] = str(len(json.dumps(response_body)))
+    headers = ast.literal_eval(str(headers)).items()
+
+    return status_code, headers, json.dumps(response_body)
 
 
 def select_site_to_create_object():

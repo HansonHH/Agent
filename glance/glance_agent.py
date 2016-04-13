@@ -5,9 +5,13 @@ from models import *
 import uuid
 import os
 
+global TEST
+TEST = True
 
 # List images
 def glance_list_images(env):
+
+    print TEST
 
     # Get all rows of Image object
     result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Image)
@@ -15,7 +19,8 @@ def glance_list_images(env):
     # If network does not exist
     if len(result) == 0:
     
-        response_body = {"images": []}
+        #response_body = {"images": []}
+        response_body = {"images": [], "first": "/v2/images"}
         return non_exist_response('200', response_body)
     
     # If network exists then delete
@@ -48,8 +53,8 @@ def glance_list_images(env):
             # If user has access to the resource
             if res.status_code == 200:
                 threads_res.append(res)
-    
-        response = {'images':[]}
+        
+        response_body = {'images':[]}
         for image in threads_res:
     
             res = image.json()
@@ -63,18 +68,14 @@ def glance_list_images(env):
             
             # Add cloud info to response
             new_image_info = add_cloud_info_to_response(result[0].cloud_address, res)
-            response['images'].append(new_image_info)
+            response_body['images'].append(new_image_info)
          
-        if response['images'] != 0:
+        if response_body['images'] != 0:
             # Remove duplicate subnets        
-            response['images'] = remove_duplicate_info(response['images'], 'id')
-        
-        status_code = str(threads_res[0].status_code)
-        headers = threads_res[0].headers
-        headers['Content-Length'] = str(len(json.dumps(response)))
-        headers = ast.literal_eval(str(headers)).items()
-
-        return status_code, headers, json.dumps(response)
+            response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
+    
+        TEST = False
+        return generate_formatted_response(threads_res[0], response_body)
 
 
 
@@ -108,30 +109,23 @@ def glance_show_image_details(env):
         # Forward request to the relevant cloud
         res = GET_request_to_cloud(url, headers)
         
-        response = None
+        response_body = None
         # Successfully get response from cloud
         if res.status_code == 200:
             
-            response = res.json()
+            response_body = res.json()
         
             # Replace image's id by uuid_agent
-            response['id'] = image_result[0].uuid_agent
+            response_body['id'] = image_result[0].uuid_agent
             
             # Add cloud info to response 
             for i in range(image_result.count()):
-                response = add_cloud_info_to_response(image_result[i].cloud_address, response)
+                response_body = add_cloud_info_to_response(image_result[i].cloud_address, response_body)
         
         else:
-            response = res.text
+            response_body = res.text
 
-        # Return response to end-user
-        status_code = str(res.status_code)
-        headers = res.headers
-        headers['Content-Length'] = str(len(json.dumps(response)))
-        headers = ast.literal_eval(str(headers)).items()
-
-        return status_code, headers, json.dumps(response)
-
+        return generate_formatted_response(res, response_body)
 
 # Create image                    
 def glance_create_image(env):
@@ -174,33 +168,24 @@ def glance_create_image(env):
     if res.status_code == 201:
 
         # Retrive information from response
-        response = res.json()
-        tenant_id = response['owner'] 
-        image_id = response['id'] 
-        image_name = response['name']
+        response_body = res.json()
+        tenant_id = response_body['owner'] 
+        image_id = response_body['id'] 
+        image_name = response_body['name']
         
         new_image = Image(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = image_id, image_name = image_name, cloud_name = cloud_name, cloud_address = cloud_address)
         
         # Add data to DB
         add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_image)
 
-        response['id'] =  uuid_agent
-        response = add_cloud_info_to_response(cloud_address, response)
+        response_body['id'] =  uuid_agent
+        response_body = add_cloud_info_to_response(cloud_address, response_body)
         
-        # Return response to end-user
-        status_code = str(res.status_code)
-        headers = res.headers
-        headers['Content-Length'] = str(len(json.dumps(response)))
-        headers = ast.literal_eval(str(headers)).items()
-
-
-        return status_code, headers, json.dumps(response)
+        return generate_formatted_response(res, response_body)
     
     else:
-        status_code = str(res.status_code)
-        headers = ast.literal_eval(str(res.headers)).items()
-
-        return status_code, headers, json.dumps(res.json())
+        
+        return generate_formatted_response(res, res.json())
     
 
 # Upload binary image data                    
@@ -272,17 +257,9 @@ def glance_upload_binary_image_data(env):
             pass
 
         if len(SUCCESS_threads) != 0:
-            response = SUCCESS_threads[0]
-            status_code = str(response.status_code)
-            headers = ast.literal_eval(str(response.headers)).items()
-
-            return status_code, headers, json.dumps(response.text)
+            return generate_formatted_response(SUCCESS_threads[0], SUCCESS_threads[0].text)
         else:
-            response = FAIL_threads[0]
-            status_code = str(response.status_code)
-            headers = ast.literal_eval(str(response.headers)).items()
-
-            return status_code, headers, json.dumps(response.text)
+            return generate_formatted_response(FAIL_threads[0], FAIL_threads[0].text)
         
 
 
@@ -320,7 +297,6 @@ def glance_delete_image(env):
 
         # Get generated threads 
         threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, DELETE_request_to_cloud)
-
         # Launch threads
         for i in range(len(threads)):
 	    threads[i].start()
@@ -350,17 +326,29 @@ def glance_delete_image(env):
                 FAIL_threads.append(threads_res[i])
 
         if len(SUCCESS_threads) != 0:
-            response = SUCCESS_threads[0]
-            status_code = str(response.status_code)
-            headers = ast.literal_eval(str(response.headers)).items()
-
-            return status_code, headers, json.dumps(response.text)
+            return generate_formatted_response(SUCCESS_threads[0], SUCCESS_threads[0].text)
         else:
-            response = FAIL_threads[0]
-            status_code = str(response.status_code)
-            headers = ast.literal_eval(str(response.headers)).items()
-
-            return status_code, headers, json.dumps(response.text)
+            return generate_formatted_response(FAIL_threads[0], FAIL_threads[0].text)
     
 
 
+# Show image schema
+def glance_show_image_schema(env):
+
+    # Retrive token from request
+    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+    # Create request header
+    headers = {'X-Auth-Token': X_AUTH_TOKEN}
+
+    cloud_name =  random.choice(SITES.keys())
+    cloud_address = SITES[cloud_name]
+    url = cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/schemas/image'
+
+    # Forward request to the relevant cloud
+    res = GET_request_to_cloud(url, headers)
+                
+    response_body = res.json()
+        
+
+    return generate_formatted_response(res, response_body)
