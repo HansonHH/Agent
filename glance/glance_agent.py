@@ -5,77 +5,85 @@ from models import *
 import uuid
 import os
 
-global TEST
-TEST = True
 
 # List images
 def glance_list_images(env):
 
-    print TEST
+    MARKER = True
+    try:
+        QUERY_STRING = env['QUERY_STRING'].split('=')[1]
+    except:
+        MARKER = False
 
-    # Get all rows of Image object
-    result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Image)
+    if MARKER == True:
+        status_code = '200'
+        headers = ''
+        response_body = {"images": [], "schema": "/v2/schemas/images", "first": "/v2/images"}
     
-    # If network does not exist
-    if len(result) == 0:
-    
-        #response_body = {"images": []}
-        response_body = {"images": [], "first": "/v2/images"}
-        return non_exist_response('200', response_body)
-    
-    # If network exists then delete
+        return status_code, headers, json.dumps(response_body)
+
     else:
-        # Retrive token from request
-        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-        
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
-        
-        # Create suffix of service url
-        url_suffix = config.get('Glance', 'glance_public_interface') + '/v2/images/'  
-        urls = []
-        for image in result:
-            urls.append(image.cloud_address + ':' + url_suffix + image.uuid_cloud)
-        
-        # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
-
-        # Launch threads
-        for i in range(len(threads)):
-	    threads[i].start()
-
-        threads_res = []
+        # Get all rows of Image object
+        result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Image)
     
-        # Wait until threads terminate
-        for i in range(len(threads)):
+        # If network does not exist
+        if len(result) == 0:
+            response_body = {"images": []}
+            #response_body = {"images": [], "first": "/v2/images"}
+            return non_exist_response('200', response_body)
+    
+        # If network exists then delete
+        else:
+            # Retrive token from request
+            X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+            # Create request header
+            headers = {'X-Auth-Token': X_AUTH_TOKEN}
+        
+            # Create suffix of service url
+            url_suffix = config.get('Glance', 'glance_public_interface') + '/v2/images/'  
+            urls = []
+            for image in result:
+                urls.append(image.cloud_address + ':' + url_suffix + image.uuid_cloud)
+        
+            # Get generated threads 
+            threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
+
+            # Launch threads
+            for i in range(len(threads)):
+	        threads[i].start()
+
+            threads_res = []
+    
+            # Wait until threads terminate
+            for i in range(len(threads)):
 	
-	    res = threads[i].join()
-            # If user has access to the resource
-            if res.status_code == 200:
-                threads_res.append(res)
+	        res = threads[i].join()
+                # If user has access to the resource
+                if res.status_code == 200:
+                    threads_res.append(res)
         
-        response_body = {'images':[]}
-        for image in threads_res:
+            response_body = {'images':[]}
+            for image in threads_res:
     
-            res = image.json()
+                res = image.json()
             
-            # Image's uuid_cloud
-            image_uuid_cloud = res['id']
+                # Image's uuid_cloud
+                image_uuid_cloud = res['id']
             
-            # Replace image's id by image's uuid_agent
-            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_cloud], keywords = [image_uuid_cloud])
-            res['id'] = result[0].uuid_agent
+                # Replace image's id by image's uuid_agent
+                result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_cloud], keywords = [image_uuid_cloud])
+                res['id'] = result[0].uuid_agent
             
-            # Add cloud info to response
-            new_image_info = add_cloud_info_to_response(result[0].cloud_address, res)
-            response_body['images'].append(new_image_info)
+                # Add cloud info to response
+                new_image_info = add_cloud_info_to_response(result[0].cloud_address, res)
+                response_body['images'].append(new_image_info)
          
-        if response_body['images'] != 0:
-            # Remove duplicate subnets        
-            response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
+            if response_body['images'] != 0:
+                # Remove duplicate subnets        
+                response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
     
-        TEST = False
-        return generate_formatted_response(threads_res[0], response_body)
+            return generate_formatted_response(threads_res[0], response_body)
 
 
 
@@ -185,7 +193,7 @@ def glance_create_image(env):
     
     else:
         
-        return generate_formatted_response(res, res.json())
+        return generate_formatted_response(res, res.text)
     
 
 # Upload binary image data                    
@@ -261,8 +269,6 @@ def glance_upload_binary_image_data(env):
         else:
             return generate_formatted_response(FAIL_threads[0], FAIL_threads[0].text)
         
-
-
 
 # Delete image
 def glance_delete_image(env):
@@ -349,6 +355,8 @@ def glance_show_image_schema(env):
     res = GET_request_to_cloud(url, headers)
                 
     response_body = res.json()
-        
 
     return generate_formatted_response(res, response_body)
+
+
+

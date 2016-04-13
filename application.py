@@ -9,12 +9,9 @@ from agent import *
 #def api_catalog(env, start_response):
 def application(env, start_response):
 	
-    print env
+    #print env
     PATH_INFO = env['PATH_INFO']
-    print '~'*60
-    print PATH_INFO
-    print '~'*60
-	
+
     # API catalog
     # Identity API v3
     if PATH_INFO.startswith('/v3'):
@@ -151,58 +148,35 @@ def application(env, start_response):
 
 	# GET request
 	if env['REQUEST_METHOD'] == 'GET':
-            
 	    # Show image details
 	    if PATH_INFO.startswith('/v2/images/'):
 		status_code, headers, response = glance_show_image_details(env)
 	    
             # List images
             elif PATH_INFO.endswith('/v2/images'):
-                print 'list images '*40
-		status_code, headers, response = glance_list_images(env)
-                '''
-                if global ONCE:
-		    status_code, headers, response = glance_list_images(env)
-                    ONCE = False
-                else:
-                    status_code = '200'
-                    headers = ''
-                    response = {"images": [], "schema": "/v2/schemas/images", "first": "/v2/images"}
-                    response = json.dumps(response)
-                '''
+                status_code, headers, response = glance_list_images(env)
+            
             # Show image schema
             elif PATH_INFO.startswith('/v2/schemas/image'):
 		status_code, headers, response = glance_show_image_schema(env)
 
-	    start_response(status_code, headers)
-            
-            return response
-
         # POST request
         elif env['REQUEST_METHOD'] == 'POST':
-
             # Create image
             status_code, headers, response = glance_create_image(env)
-            start_response(status_code, headers)
-
-            return response
 
         # PUT request
         elif env['REQUEST_METHOD'] == 'PUT':
-            
             # Upload binary image data
             status_code, headers, response = glance_upload_binary_image_data(env)
-            start_response(status_code, headers)
-
-            return response
 
 	# DELETE request	
         elif env['REQUEST_METHOD'] == 'DELETE':
 	    # Delete image
             status_code, headers, response = glance_delete_image(env)
-            start_response(status_code, headers)
 
-            return response
+        start_response(status_code, headers)
+        return response
 
     # Network API v2.0
     # Network
