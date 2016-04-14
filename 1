@@ -9,30 +9,22 @@ import uuid
 # List networks
 def neutron_list_networks(env):
     
-    QUERY = True
+    ''' 
+    MARKER = True
     try:
         QUERY_STRING = env['QUERY_STRING'].split('=')[1]
+        print QUERY_STRING
     except:
-        QUERY = False
+        MARKER = False
 
-    if QUERY == True:
-	
-        status_code, headers, response = neutron_show_network_details(env)
-
-        response_body = {'networks':[]}
-        network_info = []
-        network_info.append(json.loads(response)['network'])
-        response_body['networks']=network_info
-
-        # Change response header's Content-Length
-        headers_dict = dict(headers)
-        headers_dict['Content-Length'] = str(len(json.dumps(response_body)))
-        headers = ast.literal_eval(str(headers_dict)).items()
-        
+    if MARKER == True:
+        status_code = '200'
+        headers = ''
+        response_body = {"networks": []}
+    
         return status_code, headers, json.dumps(response_body)
 
     else:
-        
         # Get all rows of Netowrk object
         network_result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Network)
     
@@ -78,7 +70,6 @@ def neutron_list_networks(env):
             for network in threads_res:
     
                 res = network.json()
-            
                 # Network's uuid_cloud
                 network_uuid_cloud = res['network']['id']
                 result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_cloud], keywords = [network_uuid_cloud])
@@ -95,16 +86,13 @@ def neutron_list_networks(env):
                         new_subnets.append(subnet_result[0].uuid_agent)
                     res['network']['subnets'] = new_subnets
             
-                # Add cloud site information to response
                 new_network_info = add_cloud_info_to_response(result[0].cloud_address, res['network'])
                 response_body['networks'].append(new_network_info)
             
+        
             if response_body['networks'] != 0:
                 # Remove duplicate subnets        
                 response_body['networks'] = remove_duplicate_info(response_body['networks'], 'id')
-
-            import pprint
-            pprint.pprint(response_body)
         
             return generate_formatted_response(threads_res[0], response_body)
 
@@ -151,6 +139,7 @@ def neutron_list_networks(env):
                 threads_res.append(res)
 
         response_body = {'networks':[]}
+        network_list = []
         
         for network in threads_res:
     
@@ -175,31 +164,32 @@ def neutron_list_networks(env):
             # Add cloud site information to response
             new_network_info = add_cloud_info_to_response(result[0].cloud_address, res['network'])
             response_body['networks'].append(new_network_info)
+            if len(network_list) < 1:
+                network_list.append(res['network'])
+                network_info = res['network']
+            else:
+                pass
             
         if response_body['networks'] != 0:
             # Remove duplicate subnets        
             response_body['networks'] = remove_duplicate_info(response_body['networks'], 'id')
 
+        #response_body['networks'] = network_list
+        #response_body['networks'] = network_info
+
+        #response_body = json.dumps(response_body)
         import pprint
         pprint.pprint(response_body)
         
         return generate_formatted_response(threads_res[0], response_body)
-    '''
+
 
 # Show network details
 def neutron_show_network_details(env):
 	
-    try:
-        QUERY_STRING = env['QUERY_STRING'].split('=')[1]
-        network_id = QUERY_STRING
-    except:
-        site_pattern = re.compile(r'(?<=/v2.0/networks/).*')
-        match = site_pattern.search(env['PATH_INFO'])
-        network_id = match.group()
-    
-    #site_pattern = re.compile(r'(?<=/v2.0/networks/).*')
-    #match = site_pattern.search(env['PATH_INFO'])
-    #network_id = match.group()
+    site_pattern = re.compile(r'(?<=/v2.0/networks/).*')
+    match = site_pattern.search(env['PATH_INFO'])
+    network_id = match.group()
             
     network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent], keywords = [network_id])
 
@@ -229,10 +219,6 @@ def neutron_show_network_details(env):
         
             response_body = res.json()
 
-            print '!'*100
-            print response_body
-            print '!'*100
-
             # Replace network's id by uuid_agent
             response_body['network']['id'] = network_result[0].uuid_agent
             # If network has subnets
@@ -246,13 +232,11 @@ def neutron_show_network_details(env):
                 response_body['network']['subnets'] = new_subnets
             
             # Add cloud info to response 
-            #for i in range(network_result.count()):
-            #    response_body['network'] = add_cloud_info_to_response(network_result[i].cloud_address, response_body['network'])
+            for i in range(network_result.count()):
+                response_body['network'] = add_cloud_info_to_response(network_result[i].cloud_address, response_body['network'])
 
         else:
             response_body = res.text
-
-        #response_body = {"network": {"status": "ACTIVE", "subnets": ["2378300c-af4a-45bd-a906-f6594e594390"], "name": "network_DEMO1", "admin_state_up": "true", "tenant_id": "98bdf671dfc74d51ba4969f4e963acca", "site": "Cloud3-10.0.1.12, Cloud2-10.0.1.11", "mtu": "1450", "router:external": "false", "port_security_enabled": "true", "shared": "false", "id": "359cde94-b306-4f29-b7dc-f240f25eec1c"}}
 
         return generate_formatted_response(res, response_body)
 

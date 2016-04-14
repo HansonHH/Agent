@@ -9,13 +9,13 @@ import os
 # List images
 def glance_list_images(env):
 
-    MARKER = True
+    QUERY = True
     try:
         QUERY_STRING = env['QUERY_STRING'].split('=')[1]
     except:
-        MARKER = False
+        QUERY = False
 
-    if MARKER == True:
+    if QUERY == True:
         status_code = '200'
         headers = ''
         response_body = {"images": [], "schema": "/v2/schemas/images", "first": "/v2/images"}

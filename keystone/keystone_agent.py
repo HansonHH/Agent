@@ -80,10 +80,21 @@ def endpoints_mapping(data):
 
     catalog = response['token']['catalog']
     
+    #import pprint
+    #pprint.pprint(response)
+    
     for i in range(len(catalog)):
         
         catalog_name = catalog[i]['name']
         
+        '''
+        if catalog_name == 'neutron':
+            for j in range(len(catalog[i]['endpoints'])):
+                url = catalog[i]['endpoints'][j]['url'] 
+                url_split = url.split('/')
+                catalog[i]['endpoints'][j]['url'] = AGENT_IP + ':' + config.get('Agent', 'listen_port') + '/'
+                #catalog[i]['endpoints'][j]['url'] = AGENT_IP + ':' + config.get('Agent', 'listen_port')
+        ''' 
         if catalog_name == 'neutron' or catalog_name == 'glance' or catalog_name == 's3' or catalog_name == 'ec2':
             for j in range(len(catalog[i]['endpoints'])):
                 url = catalog[i]['endpoints'][j]['url'] 

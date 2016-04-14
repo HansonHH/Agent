@@ -180,11 +180,33 @@ def application(env, start_response):
 
     # Network API v2.0
     # Network
-    elif PATH_INFO.startswith('/v2.0/networks'):
+    '''
+    elif PATH_INFO.startswith('//v2.0/networks'):
+	print '*'*30
+	print 'Network API v2.0 START WITH //v2.0'
+	print '*'*30
+        print env
+        print '!'*150
+
+        # GET request
+        if env['REQUEST_METHOD'] == 'GET':
+             
+            # List networks
+            #if env['PATH_INFO'].endswith('/networks'):
+            if ONCE:
+                status_code, headers, response = neutron_list_networks(env)
+                start_response(status_code, headers)
+                ONCE = False
+                print ONCE
+                return response
+    '''
+    if PATH_INFO.startswith('/v2.0/networks'):
 	print '*'*30
 	print 'Network API v2.0 START WITH /v2.0'
 	print '*'*30
 	
+        print env['PATH_INFO']
+
         # GET request
         if env['REQUEST_METHOD'] == 'GET':
              
