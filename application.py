@@ -11,6 +11,7 @@ def application(env, start_response):
 	
     #print env
     PATH_INFO = env['PATH_INFO']
+    REQUEST_METHOD = env['REQUEST_METHOD']
 
     # API catalog
     # Identity API v3
@@ -19,11 +20,8 @@ def application(env, start_response):
 	print 'Identity API v3 START WITH /v3'
 	print '*'*30
 
-        global ONCE
-        ONCE = True
-
         # GET request
-	if env['REQUEST_METHOD'] == 'GET':
+	if REQUEST_METHOD == 'GET':
 		
             status_code, headers, response = keystone_mapping_api_v3_endpoint(env)
 
@@ -32,7 +30,7 @@ def application(env, start_response):
             return response
         
         # POST request
-	if env['REQUEST_METHOD'] == 'POST':
+	if REQUEST_METHOD == 'POST':
 
             # Authentication and token management (Identity API v3)
             if PATH_INFO == '/v3/auth/tokens':
@@ -54,7 +52,7 @@ def application(env, start_response):
 	match = site_pattern.search(env['PATH_INFO'])
 	
         # GET request
-	if env['REQUEST_METHOD'] == 'GET':
+	if REQUEST_METHOD == 'GET':
               
             # Version discovery
             if PATH_INFO.endswith('/v2.1/'):
@@ -103,7 +101,7 @@ def application(env, start_response):
             '''
 
         # POST request
-        elif env['REQUEST_METHOD'] == 'POST':
+        elif REQUEST_METHOD == 'POST':
 	    
             # Create VM
             if PATH_INFO.endswith('/servers'):
@@ -120,7 +118,7 @@ def application(env, start_response):
             return response
 	
         # DELETE request	
-        elif env['REQUEST_METHOD'] == 'DELETE':
+        elif REQUEST_METHOD == 'DELETE':
             
             # API for server
             try:
@@ -147,11 +145,11 @@ def application(env, start_response):
 	print '*'*30
 
 	# GET request
-	if env['REQUEST_METHOD'] == 'GET':
+	if REQUEST_METHOD == 'GET':
 	    # Show image details
 	    if PATH_INFO.startswith('/v2/images/'):
 		status_code, headers, response = glance_show_image_details(env)
-	    
+            
             # List images
             elif PATH_INFO.endswith('/v2/images'):
                 status_code, headers, response = glance_list_images(env)
@@ -161,17 +159,17 @@ def application(env, start_response):
 		status_code, headers, response = glance_show_image_schema(env)
 
         # POST request
-        elif env['REQUEST_METHOD'] == 'POST':
+        elif REQUEST_METHOD == 'POST':
             # Create image
             status_code, headers, response = glance_create_image(env)
 
         # PUT request
-        elif env['REQUEST_METHOD'] == 'PUT':
+        elif REQUEST_METHOD == 'PUT':
             # Upload binary image data
             status_code, headers, response = glance_upload_binary_image_data(env)
 
 	# DELETE request	
-        elif env['REQUEST_METHOD'] == 'DELETE':
+        elif REQUEST_METHOD == 'DELETE':
 	    # Delete image
             status_code, headers, response = glance_delete_image(env)
 
@@ -180,38 +178,16 @@ def application(env, start_response):
 
     # Network API v2.0
     # Network
-    '''
-    elif PATH_INFO.startswith('//v2.0/networks'):
-	print '*'*30
-	print 'Network API v2.0 START WITH //v2.0'
-	print '*'*30
-        print env
-        print '!'*150
-
-        # GET request
-        if env['REQUEST_METHOD'] == 'GET':
-             
-            # List networks
-            #if env['PATH_INFO'].endswith('/networks'):
-            if ONCE:
-                status_code, headers, response = neutron_list_networks(env)
-                start_response(status_code, headers)
-                ONCE = False
-                print ONCE
-                return response
-    '''
     if PATH_INFO.startswith('/v2.0/networks'):
 	print '*'*30
 	print 'Network API v2.0 START WITH /v2.0'
 	print '*'*30
 	
-        print env['PATH_INFO']
-
         # GET request
-        if env['REQUEST_METHOD'] == 'GET':
+        if REQUEST_METHOD == 'GET':
              
             # List networks
-            if env['PATH_INFO'].endswith('/networks'):
+            if PATH_INFO.endswith('/networks') or PATH_INFO.endswith('/v2.0/networks.json'):
                 
                 status_code, headers, response = neutron_list_networks(env)
                 start_response(status_code, headers)
@@ -226,7 +202,7 @@ def application(env, start_response):
                 return response
 
         # POST request
-        elif env['REQUEST_METHOD'] == 'POST':
+        elif REQUEST_METHOD == 'POST':
             
             status_code, headers, response = neutron_create_network(env)
             start_response(status_code, headers)
@@ -234,7 +210,7 @@ def application(env, start_response):
             return response
 
 	# DELETE request	
-	elif env['REQUEST_METHOD'] == 'DELETE':
+	elif REQUEST_METHOD == 'DELETE':
             
             status_code, headers, response = neutron_delete_network(env)
             start_response(status_code, headers)
@@ -248,10 +224,10 @@ def application(env, start_response):
         print '*'*30
         
         # GET request
-        if env['REQUEST_METHOD'] == 'GET':
+        if REQUEST_METHOD == 'GET':
             
             # List subnets
-            if env['PATH_INFO'].endswith('/subnets'):
+            if PATH_INFO.endswith('/subnets') or PATH_INFO.startswith('/v2.0/subnets.json'):
                 
                 status_code, headers, response = neutron_list_subnets(env)
                 start_response(status_code, headers)
@@ -267,7 +243,7 @@ def application(env, start_response):
                     
 
         # POST request
-        elif env['REQUEST_METHOD'] == 'POST':
+        elif REQUEST_METHOD == 'POST':
 
             status_code, headers, response = neutron_create_subnet(env)
             start_response(status_code, headers)
@@ -276,7 +252,7 @@ def application(env, start_response):
 
 
 	# DELETE request	
-	elif env['REQUEST_METHOD'] == 'DELETE':
+	elif REQUEST_METHOD == 'DELETE':
             
             status_code, headers, response = neutron_delete_subnet(env)
             start_response(status_code, headers)

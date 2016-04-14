@@ -12,12 +12,24 @@ def neutron_list_networks(env):
     QUERY = True
     try:
         QUERY_STRING = env['QUERY_STRING'].split('=')[1]
+        QUERY_LIST = env['QUERY_STRING'].split('&')
+        
+        for item in QUERY_LIST:
+            if item.startswith('name'):
+                network_id = item.split('=')[1]
+                env['PATH_INFO'] = '/v2.0/networks' + '/' + network_id
+                del env['QUERY_STRING']
     except:
         QUERY = False
 
     if QUERY == True:
-	
+
         status_code, headers, response = neutron_show_network_details(env)
+
+        print '!'*100
+        print env
+        print response
+        print '!'*100
 
         response_body = {'networks':[]}
         network_info = []
@@ -103,9 +115,6 @@ def neutron_list_networks(env):
                 # Remove duplicate subnets        
                 response_body['networks'] = remove_duplicate_info(response_body['networks'], 'id')
 
-            import pprint
-            pprint.pprint(response_body)
-        
             return generate_formatted_response(threads_res[0], response_body)
 
 
@@ -229,10 +238,6 @@ def neutron_show_network_details(env):
         
             response_body = res.json()
 
-            print '!'*100
-            print response_body
-            print '!'*100
-
             # Replace network's id by uuid_agent
             response_body['network']['id'] = network_result[0].uuid_agent
             # If network has subnets
@@ -251,8 +256,6 @@ def neutron_show_network_details(env):
 
         else:
             response_body = res.text
-
-        #response_body = {"network": {"status": "ACTIVE", "subnets": ["2378300c-af4a-45bd-a906-f6594e594390"], "name": "network_DEMO1", "admin_state_up": "true", "tenant_id": "98bdf671dfc74d51ba4969f4e963acca", "site": "Cloud3-10.0.1.12, Cloud2-10.0.1.11", "mtu": "1450", "router:external": "false", "port_security_enabled": "true", "shared": "false", "id": "359cde94-b306-4f29-b7dc-f240f25eec1c"}}
 
         return generate_formatted_response(res, response_body)
 
@@ -308,6 +311,10 @@ def neutron_delete_network(env):
     site_pattern = re.compile(r'(?<=/networks/).*')
     match = site_pattern.search(env['PATH_INFO'])
     network_id = match.group()   
+    
+    # Request from CLI
+    if network_id.endswith('.json'):
+        network_id = network_id.split('.')[0]
     
     res = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent], keywords = [network_id])
     
