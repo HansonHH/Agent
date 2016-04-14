@@ -26,6 +26,7 @@ AGENT_DB_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/%s' % (DATABASE_US
 TEMP_IMAGE_PATH = config.get('Glance', 'temp_image_path')
 IMAGE_FILE_PATH = config.get('Glance', 'image_file_path')
 
+
 # A function to send resonse to end-user if resource info dose exist in agent local DB
 def non_exist_response(status_code, response_body):
     
@@ -36,8 +37,6 @@ def non_exist_response(status_code, response_body):
         return status_code, headers, response_body
     elif type(response_body) == dict:
         return status_code, headers, json.dumps(response_body)
-
-
 
 # A function to add cloud name and cloud ip to user response
 def add_cloud_info_to_response(search_context, response):
@@ -74,6 +73,14 @@ def remove_duplicate_info(items, keyword):
     return rs
 
 
+# Modify response header in terms of Content-Length
+def modify_response_header(headers, response_body):
+    headers_dict = dict(headers)
+    headers_dict['Content-Length'] = str(len(json.dumps(response_body)))
+    headers = ast.literal_eval(str(headers_dict)).items()
+
+    return headers
+
 # A function to generate well-formatted response to end user
 def generate_formatted_response(res, response_body):
     
@@ -90,8 +97,8 @@ def select_site_to_create_object():
     #cloud_name =  random.choice(SITES.keys())
     #cloud_address = SITES[cloud_name]
 
-    cloud_name = 'Cloud2'
-    cloud_address = 'http://10.0.1.11'
+    cloud_name = 'Cloud3'
+    cloud_address = 'http://10.0.1.12'
 
     return cloud_name, cloud_address
 

@@ -53,90 +53,98 @@ def application(env, start_response):
 	
         # GET request
 	if REQUEST_METHOD == 'GET':
-              
+
+            print '='*80
+            print PATH_INFO
+            print '='*80
+
+            
             # Version discovery
             if PATH_INFO.endswith('/v2.1/'):
-		status_code, headers, response = nova_api_version_discovery(env)
+		status_code, headers, response = nova_api_version_discovery(env)    
+
+            elif PATH_INFO.startswith('/v2.1'):
+                status_code = '404'
+                headers = ''
+                response = ''
                 
-            # List details for servers
-	    elif PATH_INFO.endswith('/servers/detail'):
-		status_code, headers, response = nova_list_details_servers(env)
-	    
-            # List servers
-	    elif PATH_INFO.endswith('/servers'):
-		status_code, headers, response = nova_list_servers(env)
+            # APIs for servers
+            elif 'servers' in PATH_INFO:
+                # List servers
+	        if PATH_INFO.endswith('/servers'):
+		    status_code, headers, response = nova_list_servers(env)
             
-            else:
-	        # Show server details
-                try:
-                    site_pattern = re.compile(r'(?<=/servers/).*')
-                    match = site_pattern.search(env['PATH_INFO'])        
-                    server_id = match.group()
-		    status_code, headers, response = nova_show_server_details(env)
-                except:
-                    print '404 '*100
-                    status_code = '404'
-                    headers = ''
-                    response = ''
+                # List details for servers
+	        elif PATH_INFO.endswith('/servers/detail'):
+		    status_code, headers, response = nova_list_details_servers(env)
+            
+                else:
+	            # Show server details
+                    try:
+                        site_pattern = re.compile(r'(?<=/servers/).*')
+                        match = site_pattern.search(env['PATH_INFO'])        
+                        server_id = match.group()
+		        status_code, headers, response = nova_show_server_details(env)
+                    except:
+                        print '404 '*50
+                        status_code = '404'
+                        headers = ''
+                        response = ''
 
-            start_response(status_code, headers)
-	   
-            return response
-
-            '''
             # APIs for flavors
-            # List details for flavors
-            elif PATH_INFO.endswith('/flavors/detail'):
-                response, status_code, headers = nova_list_details_flavors(env)
-	    # List flavors
-            elif PATH_INFO.endswith('/flavors'):
-                response, status_code, headers = nova_list_flavors(env)
-	    # Show flavor details
-	    else:
-		response, status_code, headers = nova_show_flavor_details(env)
+            elif 'flavors' in PATH_INFO:
+	    
+                # List flavors
+                if PATH_INFO.endswith('/flavors'):
+                    status_code, headers, response = nova_list_flavors(env)
+            
+                # List details for flavors
+                elif PATH_INFO.endswith('/flavors/detail'):
+                    status_code, headers, response = nova_list_details_flavors(env)
+	    
+                # Show flavor details
+	        else:
+                    status_code, headers, response = nova_show_flavor_details(env)
+              
+            # APIs for images
+            elif 'images' in PATH_INFO:
+                
+                if PATH_INFO.endswith('/images'):
+                    status_code, headers, response = nova_list_images(env)
+            
+                elif PATH_INFO.startswith('/v2.1/98bdf671dfc74d51ba4969f4e963acca/images'):
+                    status_code, headers, response = nova_show_image_details(env)
 	    
             start_response(status_code, headers)
 	   
             return response
-            '''
 
         # POST request
         elif REQUEST_METHOD == 'POST':
 	    
             # Create VM
             if PATH_INFO.endswith('/servers'):
-
                 status_code, headers, response = nova_create_server(env)
 
             # Create flavor
             elif PATH_INFO.endswith('/flavors'):
-                
                 status_code, headers, response = nova_create_flavor(env)
             
-            start_response(status_code, headers)
-
-            return response
 	
         # DELETE request	
         elif REQUEST_METHOD == 'DELETE':
             
-            # API for server
-            try:
-                res = match.group()
-                
+            if 'servers' in PATH_INFO:
                 # Delete server
                 status_code, headers, response = nova_delete_server(env)
             
-            # API for flavor
-            except:
-                pass
+            elif 'flavors' in PATH_INFO:
                 # Delete flavor
                 status_code, headers, response = nova_delete_flavor(env)
-                #response = nova_delete_flavor(env)	
+        
+        start_response(status_code, headers)
                 
-            start_response(status_code, headers)
-                
-            return response
+        return response
 	
     # Image API v2
     elif PATH_INFO.startswith('/v2/'):
@@ -216,6 +224,10 @@ def application(env, start_response):
             start_response(status_code, headers)
 
             return response
+        
+        #start_response(status_code, headers)
+
+        #return response
 
     # Subnet
     elif PATH_INFO.startswith('/v2.0/subnets'):
@@ -228,7 +240,6 @@ def application(env, start_response):
             
             # List subnets
             if PATH_INFO.endswith('/subnets') or PATH_INFO.startswith('/v2.0/subnets.json'):
-                
                 status_code, headers, response = neutron_list_subnets(env)
                 start_response(status_code, headers)
 

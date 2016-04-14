@@ -26,13 +26,12 @@ def glance_list_images(env):
         # Get all rows of Image object
         result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Image)
     
-        # If network does not exist
+        # If images does not exist
         if len(result) == 0:
             response_body = {"images": []}
-            #response_body = {"images": [], "first": "/v2/images"}
-            return non_exist_response('200', response_body)
+            return non_exist_response('404', response_body)
     
-        # If network exists then delete
+        # If images exist
         else:
             # Retrive token from request
             X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
@@ -90,6 +89,8 @@ def glance_list_images(env):
 # Show image details
 def glance_show_image_details(env):
 
+    print 'SHOW IMAGE DETAILS '*80
+
     site_pattern = re.compile(r'(?<=/v2/images/).*')
     match = site_pattern.search(env['PATH_INFO'])        
     image_id = match.group()
@@ -99,7 +100,7 @@ def glance_show_image_details(env):
     # If image does not exist
     if image_result.count() == 0:
         
-        message = "Failed to find image %s to delete" % image_id
+        message = "Failed to find image %s" % image_id
         response_body = "<html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1>%s<br/><br/></body></html>" 
         return non_exist_response('404', response_body)
     

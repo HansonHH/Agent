@@ -206,11 +206,18 @@ def nova_show_server_details(env):
 
 # Create VM                    
 def nova_create_server(env):
+
     
     # Request data 
     PostData = env['wsgi.input'].read()
    
     post_json = json.loads(PostData)
+    
+    #print '@'*80
+    #print env
+    #print '='*100
+    #print post_json
+    #print '@'*80
 
     # Retrive user options from request of creating an VM, if required options are not specified, then send response to end-user
     try:
@@ -392,56 +399,61 @@ def nova_delete_server(env):
 
 # List servers
 def nova_list_flavors(env):
+
+    print 'FLAVORS ' *300
     
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
     
-    url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO']
+    # Create request header
+    headers = {'X-Auth-Token': X_AUTH_TOKEN}
     
+    url = config.get('Agent', 'site_ip') + ':' + config.get('Nova', 'nova_public_interface') + env['PATH_INFO']
+
+    print '!'*300
+    print url
     
+    urls = []
+    urls.append(url)
     # Get generated threads 
-    threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
+    threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
     
     # Launch threads
     for i in range(len(threads)):
 	threads[i].start()
 
-    # Initiate response data structure
-    json_data = {'flavors':[]}	
-    headers = [('Content-Type','application/json')]	
-    status_code = ''
 
+    threads_res = []
     # Wait until threads terminate
     for i in range(len(threads)):
+	
+        # Parse response from site	
+	res = threads[i].join()
+        # If user has right to get access to the resource
+        if res.status_code == 200:
+            threads_res.append(res)
 		
-	# Parse response from site	
-        try:
+    response_body = {'flavors':[]}
+    for servers in threads_res:
+            
+        res = servers.json()
+	
+        for i in range(len(res['flavors'])):
+                
+            response_body['flavors'].append(res['flavors'][i])
+        
+    if response_body['flavors'] != 0:
+        # Remove duplicate subnets        
+        response_body['flavors'] = remove_duplicate_info(response_body['flavors'], 'id')
 
-	    response = json.loads(threads[i].join()[0])
-            status_code = str(threads[i].join()[1])
-
-	    # If image exists in cloud
-	    if len(response['flavors']) != 0:
-
-	        # Recursively look up images
-	        for j in range(len(response['flavors'])):
-                    # Add cloud info to response	
-                    new_response = add_cloud_info_to_response(vars(threads[i])['_Thread__args'][0], response['flavors'][j])
-		    json_data['flavors'].append(new_response)
-                    
-        except:
-            status_code = str(threads[i].join()[1])
-
-    # Create status code response
-    # If there exists at least one image
-    if len(json_data['flavors']) != 0:
-        res = json.dumps(json_data)
-    # No image exists
-    elif len(json_data['flavors']) == 0:
-        res = json.dumps({'flavors':[]})
-
-    return (res, status_code, headers)
-
+    import pprint
+    pprint.pprint(response_body)
+    print threads_res
+    print threads_res[0].status_code
+        
+    return generate_formatted_response(threads_res[0], response_body)
+        
+        
 
 # List details for flavors
 def nova_list_details_flavors(env):
@@ -494,7 +506,11 @@ def nova_list_details_flavors(env):
     return (res, status_code, headers)
 
 
-# Show server details
+
+
+
+
+# Show flavor details
 def nova_show_flavor_details(env):
 
     # Retrive token from request
@@ -503,8 +519,11 @@ def nova_show_flavor_details(env):
     # Create suffix of service url
     url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO'] 
     
+    # Create suffix of service url
+    url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO'] 
+    urls = []
     # Get generated threads 
-    threads = generate_threads(X_AUTH_TOKEN, url_suffix, GET_request_to_cloud)
+    threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
     
     # Launch threads
     for i in range(len(threads)):
@@ -856,3 +875,143 @@ def create_subnets_in_selected_cloud(X_AUTH_TOKEN, created_network_uuid_cloud, s
     return created_subnet_uuid_clouds
 
 
+# Nova list images
+def nova_list_images(env):
+
+    # Get all rows of Image object
+    result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Image)
+    
+    # If images does not exist
+    if len(result) == 0:
+        response_body = {"images": []}
+        return non_exist_response('404', response_body)
+    
+    # If images exist
+    else:
+        # Retrive token from request
+        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
+        
+        # Create suffix of service url
+        url_suffix = config.get('Nova', 'nova_public_interface') + env['PATH_INFO']  
+        urls = []
+        for image in result:
+            #urls.append(image.cloud_address + ':' + url_suffix + image.uuid_cloud)
+            urls.append(image.cloud_address + ':' + url_suffix)
+
+        print urls
+        
+        # Get generated threads 
+        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
+
+        # Launch threads
+        for i in range(len(threads)):
+	    threads[i].start()
+
+        threads_res = []
+    
+        # Wait until threads terminate
+        for i in range(len(threads)):
+	
+	    res = threads[i].join()
+            # If user has access to the resource
+            if res.status_code == 200:
+                threads_res.append(res)
+        
+        response_body = {'images':[]}
+        for image in threads_res:
+    
+            res = image.json()
+
+            import pprint
+            #pprint.pprint(res)
+
+            images_list = res['images']
+            #print len(images_list)
+            print '@'*200
+            for i in range(len(images_list)):
+                print i
+                # Image's uuid_cloud
+                image_uuid_cloud = images_list[i]['id']
+                print image_uuid_cloud
+                print '------------------'
+            
+                # Replace image's id by image's uuid_agent
+                result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_cloud], keywords = [image_uuid_cloud])
+                #print result[0].uuid_agent
+
+                try:
+                    images_list[i]['id'] = result[0].uuid_agent
+                except:
+                    pass
+                
+                #for j in range(len(images_list[i]['links'])):
+                #    images_list[i]['links'][j]['href'] = result[0].uuid_agent
+
+            #pprint.pprint(images_list)
+
+                response_body['images'].append(images_list[0])
+
+            #pprint.pprint(images_list)
+            pprint.pprint(response_body)
+            print len(response_body['images'])
+            
+        ''' 
+        if response_body['images'] != 0:
+            # Remove duplicate subnets        
+            response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
+        '''
+
+        return generate_formatted_response(threads_res[0], response_body)
+
+
+# Nova show image details
+def nova_show_image_details(env):
+
+    site_pattern = re.compile(r'(?<=images/).*')
+    match = site_pattern.search(env['PATH_INFO'])        
+    image_id = match.group()
+
+    image_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_agent], keywords = [image_id])
+
+    # If image does not exist
+    if image_result.count() == 0:
+        
+        message = "Failed to find image %s" % image_id
+        response_body = "<html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1>%s<br/><br/></body></html>" 
+        return non_exist_response('404', response_body)
+    
+    # If image exists then delete
+    else:
+        # Retrive token from request
+        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+        # Create request header
+        headers = {'X-Auth-Token': X_AUTH_TOKEN}
+
+        # Create url
+        url = image_result[0].cloud_address + ':' + config.get('Nova', 'nova_public_interface') + '/v2.1/' + image_result[0].tenant_id + '/images/' + image_result[0].uuid_cloud
+
+        # Forward request to the relevant cloud
+        res = GET_request_to_cloud(url, headers)
+        
+        response_body = None
+
+        # Successfully get response from cloud
+        if res.status_code == 200:
+            
+            response_body = res.json()
+
+            # Replace image's id by uuid_agent
+            response_body['id'] = image_result[0].uuid_agent
+            
+            # Add cloud info to response 
+            for i in range(image_result.count()):
+                response_body = add_cloud_info_to_response(image_result[i].cloud_address, response_body)
+        
+        else:
+            response_body = res.text
+
+        return generate_formatted_response(res, response_body)

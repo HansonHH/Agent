@@ -11,13 +11,13 @@ def neutron_list_networks(env):
     
     QUERY = True
     try:
-        QUERY_STRING = env['QUERY_STRING'].split('=')[1]
         QUERY_LIST = env['QUERY_STRING'].split('&')
         
+        # Retrive query keyword and modify user request (env)
         for item in QUERY_LIST:
             if item.startswith('name'):
-                network_id = item.split('=')[1]
-                env['PATH_INFO'] = '/v2.0/networks' + '/' + network_id
+                QUERY_NAME = item.split('=')[1]
+                env['PATH_INFO'] = env['PATH_INFO'].split('.json')[0] + '/' + QUERY_NAME
                 del env['QUERY_STRING']
     except:
         QUERY = False
@@ -25,21 +25,14 @@ def neutron_list_networks(env):
     if QUERY == True:
 
         status_code, headers, response = neutron_show_network_details(env)
-
-        print '!'*100
-        print env
-        print response
-        print '!'*100
-
+        
         response_body = {'networks':[]}
         network_info = []
         network_info.append(json.loads(response)['network'])
         response_body['networks']=network_info
 
-        # Change response header's Content-Length
-        headers_dict = dict(headers)
-        headers_dict['Content-Length'] = str(len(json.dumps(response_body)))
-        headers = ast.literal_eval(str(headers_dict)).items()
+        # Modify response header's Content-Length
+        headers = modify_response_header(headers, response_body)
         
         return status_code, headers, json.dumps(response_body)
 
@@ -118,97 +111,18 @@ def neutron_list_networks(env):
             return generate_formatted_response(threads_res[0], response_body)
 
 
-    '''
-    # Get all rows of Netowrk object
-    network_result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Network)
-    
-    # If network does not exist
-    if len(network_result) == 0:
-    
-        response_body = {"networks": []}
-        return non_exist_response('200', response_body)
-        
-    # If network exists then delete
-    else:
-        # Retrive token from request
-        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-    
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
-        
-        # Create suffix of service url
-        url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/'  
-        urls = []
-        for network in network_result:
-            urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
-        
-        # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
-
-        # Launch threads
-        for i in range(len(threads)):
-	    threads[i].start()
-
-        threads_res = []
-        # Wait until threads terminate
-        for i in range(len(threads)):
-	
-	    # Parse response from site	
-	    res = threads[i].join()
-            # If user has right to get access to the resource
-            if res.status_code == 200:
-                threads_res.append(res)
-
-        response_body = {'networks':[]}
-        
-        for network in threads_res:
-    
-            res = network.json()
-            
-            # Network's uuid_cloud
-            network_uuid_cloud = res['network']['id']
-            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_cloud], keywords = [network_uuid_cloud])
-
-            # Replace network's id by uuid_agent
-            res['network']['id'] = result[0].uuid_agent
-            
-            subnets = res['network']['subnets']
-            # If network has subnets
-            if len(subnets) != 0:
-                new_subnets = [] 
-                for subnet in subnets:
-                    subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [subnet])
-                    new_subnets.append(subnet_result[0].uuid_agent)
-                res['network']['subnets'] = new_subnets
-            
-            # Add cloud site information to response
-            new_network_info = add_cloud_info_to_response(result[0].cloud_address, res['network'])
-            response_body['networks'].append(new_network_info)
-            
-        if response_body['networks'] != 0:
-            # Remove duplicate subnets        
-            response_body['networks'] = remove_duplicate_info(response_body['networks'], 'id')
-
-        import pprint
-        pprint.pprint(response_body)
-        
-        return generate_formatted_response(threads_res[0], response_body)
-    '''
 
 # Show network details
 def neutron_show_network_details(env):
 	
     try:
-        QUERY_STRING = env['QUERY_STRING'].split('=')[1]
-        network_id = QUERY_STRING
+        QUERY_NAME = env['QUERY_STRING'].split('=')[1]
+        network_id = QUERY_NAME
     except:
         site_pattern = re.compile(r'(?<=/v2.0/networks/).*')
         match = site_pattern.search(env['PATH_INFO'])
         network_id = match.group()
     
-    #site_pattern = re.compile(r'(?<=/v2.0/networks/).*')
-    #match = site_pattern.search(env['PATH_INFO'])
-    #network_id = match.group()
             
     network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent], keywords = [network_id])
 
@@ -288,7 +202,6 @@ def neutron_create_network(env):
         network_id = response_body['network']['id'] 
         network_name = response_body['network']['name']
         uuid_agent = str(uuid.uuid4())
-        #uuid_agent = '8e6df216-d941-4276-8df3-4dee75294d12'
         
         new_network = Network(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = network_id, network_name = network_name, cloud_name = cloud_name, cloud_address = cloud_address)
         
@@ -385,74 +298,113 @@ def neutron_delete_network(env):
 
 # List subnets
 def neutron_list_subnets(env):
+    
 
-    # Get all rows of Subnet object
-    subnet_result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet)
-    
-    # If network does not exist
-    if len(subnet_result) == 0:
-    
-        response_body = {"subnets": []}
-        return non_exist_response('200', response_body)
-    
-    # If network exists then delete
-    else:
-        
-        # Retrive token from request
-        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-        
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
-        
-        # Create suffix of service url
-        url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
-        urls = []
-        for subnet in subnet_result:
-            urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
-        
-        # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
+    print '@'*80
+    print env
+    print '@'*80
 
-        # Launch threads
-        for i in range(len(threads)):
-	    threads[i].start()
 
-        threads_res = []
-    
-        # Wait until threads terminate
-        for i in range(len(threads)):
-	
-	    res = threads[i].join()
-            # If user has access to the resource
-            if res.status_code == 200:
-                threads_res.append(res)
-    
+    QUERY = True
+    try:
+        QUERY_LIST = env['QUERY_STRING'].split('&')
+
+        print QUERY_LIST
+        
+        # Retrive query keyword and modify user request (env)
+        for item in QUERY_LIST:
+            if item.startswith('name'):
+                QUERY_NAME = item.split('=')[1]
+                env['PATH_INFO'] = env['PATH_INFO'].split('.json')[0] + '/' + QUERY_NAME
+                del env['QUERY_STRING']
+    except:
+        QUERY = False
+
+    #if QUERY == True:
+
+    if QUERY == True and len(QUERY_LIST) <= 2:
+        
+        status_code, headers, response = neutron_show_subnet_details(env)
+        
         response_body = {'subnets':[]}
-        for subnet in threads_res:
-    
-            res = subnet.json()
-            
-            # Subnet's uuid_cloud
-            subnet_uuid_cloud = res['subnet']['id']
-            network_uuid_cloud = res['subnet']['network_id']
-            
-            # Replace subnet's id by subnet's uuid_agent
-            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [subnet_uuid_cloud])
-            res['subnet']['id'] = result[0].uuid_agent
-            
-            # Replace subnet's network_id by network's uuid_agent
-            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_cloud], keywords = [network_uuid_cloud])
-            res['subnet']['network_id'] = result[0].uuid_agent
-           
-            # Add cloud info to response
-            new_subnet_info = add_cloud_info_to_response(result[0].cloud_address, res['subnet'])
-            response_body['subnets'].append(new_subnet_info)
-         
-        if response_body['subnets'] != 0:
-            # Remove duplicate subnets        
-            response_body['subnets'] = remove_duplicate_info(response_body['subnets'], 'id')
+        subnet_info = []
+        subnet_info.append(json.loads(response)['subnet'])
+        response_body['subnets'] = subnet_info
+
+        # Modify response header's Content-Length
+        headers = modify_response_header(headers, response_body)
         
-        return generate_formatted_response(threads_res[0], response_body)
+        return status_code, headers, json.dumps(response_body)
+
+    else:
+
+        # Get all rows of Subnet object
+        subnet_result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet)
+    
+        # If network does not exist
+        if len(subnet_result) == 0:
+    
+            response_body = {"subnets": []}
+            return non_exist_response('200', response_body)
+    
+        # If network exists then delete
+        else:
+        
+            # Retrive token from request
+            X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+            # Create request header
+            headers = {'X-Auth-Token': X_AUTH_TOKEN}
+        
+            # Create suffix of service url
+            url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
+            urls = []
+            for subnet in subnet_result:
+                urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
+        
+            # Get generated threads 
+            threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
+
+            # Launch threads
+            for i in range(len(threads)):
+	        threads[i].start()
+
+            threads_res = []
+    
+            # Wait until threads terminate
+            for i in range(len(threads)):
+	
+	        res = threads[i].join()
+                # If user has access to the resource
+                if res.status_code == 200:
+                    threads_res.append(res)
+    
+            response_body = {'subnets':[]}
+            for subnet in threads_res:
+
+                res = subnet.json()
+            
+                # Subnet's uuid_cloud
+                subnet_uuid_cloud = res['subnet']['id']
+                network_uuid_cloud = res['subnet']['network_id']
+            
+                # Replace subnet's id by subnet's uuid_agent
+                result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [subnet_uuid_cloud])
+                res['subnet']['id'] = result[0].uuid_agent
+            
+                # Replace subnet's network_id by network's uuid_agent
+                result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_cloud], keywords = [network_uuid_cloud])
+                res['subnet']['network_id'] = result[0].uuid_agent
+           
+                # Add cloud info to response
+                new_subnet_info = add_cloud_info_to_response(result[0].cloud_address, res['subnet'])
+                response_body['subnets'].append(new_subnet_info)
+         
+            if response_body['subnets'] != 0:
+                # Remove duplicate subnets        
+                response_body['subnets'] = remove_duplicate_info(response_body['subnets'], 'id')
+        
+            return generate_formatted_response(threads_res[0], response_body)
 
 
 
@@ -463,12 +415,15 @@ def neutron_show_subnet_details(env):
     match = site_pattern.search(env['PATH_INFO'])        
     subnet_id = match.group()
 
+    if subnet_id.endswith('.json'):
+        subnet_id = subnet_id.split('.json')[0]
+
     subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_agent], keywords = [subnet_id])
 
     # If network does not exist
     if subnet_result.count() == 0:
         
-        message = "Subnet %s could not be found" % network_id
+        message = "Subnet %s could not be found" % subnet_id
         response_body = {"NeutronError":{"detail":"","message":message,"type":"SubnetNotFound"}}
         return non_exist_response('404', response_body)
     
@@ -623,6 +578,10 @@ def neutron_delete_subnet(env):
     site_pattern = re.compile(r'(?<=/subnets/).*')
     match = site_pattern.search(env['PATH_INFO'])
     subnet_id = match.group()   
+    
+    # Request from CLI
+    if subnet_id.endswith('.json'):
+        subnet_id = subnet_id.split('.')[0]
     
     res = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_agent], keywords = [subnet_id])
     
