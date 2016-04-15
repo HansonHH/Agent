@@ -48,8 +48,8 @@ def application(env, start_response):
 	print 'Compute API v2.1 START WITH /v2.1'
 	print '*'*30
 
-        site_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
-	match = site_pattern.search(env['PATH_INFO'])
+        #site_pattern = re.compile(r'(?<=/v2.1/).*(?=/servers)')
+	#match = site_pattern.search(env['PATH_INFO'])
 	
         # GET request
 	if REQUEST_METHOD == 'GET':
@@ -58,18 +58,8 @@ def application(env, start_response):
             print PATH_INFO
             print '='*80
             
-            # Version discovery
-            #if PATH_INFO.endswith('/v2.1/'):
-            if PATH_INFO.endswith('/v2.1/'):
-		status_code, headers, response = nova_api_version_discovery(env)    
-
-            elif PATH_INFO.endswith('/v2.1/98bdf671dfc74d51ba4969f4e963acca'):
-                status_code = '404'
-                headers = ''
-                response = ''
-             
             # APIs for servers
-            elif 'servers' in PATH_INFO:
+            if 'servers' in PATH_INFO:
                 # List servers
 	        if PATH_INFO.endswith('/servers'):
 		    status_code, headers, response = nova_list_servers(env)
@@ -110,19 +100,23 @@ def application(env, start_response):
               
             # APIs for images
             elif 'images' in PATH_INFO:
-
-                print 'images '*100
                 
                 if PATH_INFO.endswith('/images'):
+                    # List images
                     status_code, headers, response = nova_list_images(env)
             
-                elif PATH_INFO.startswith('/v2.1/98bdf671dfc74d51ba4969f4e963acca/images'):
+                elif not PATH_INFO.endswith('/images'):
+                    # Show image details
                     status_code, headers, response = nova_show_image_details(env)
 	    
-            print '!'*100
-            print status_code
-            print headers
-            print '!'*100
+            # Version discovery
+            elif PATH_INFO.endswith('/v2.1/'):
+		status_code, headers, response = nova_api_version_discovery(env)    
+
+            elif PATH_INFO.startswith('/v2.1/') and not PATH_INFO.endswith('/v2.1/'):
+                status_code = '404'
+                headers = ''
+                response = ''
 
             start_response(status_code, headers)
 	   
