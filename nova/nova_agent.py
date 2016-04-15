@@ -206,19 +206,12 @@ def nova_show_server_details(env):
 
 # Create VM                    
 def nova_create_server(env):
-
     
     # Request data 
     PostData = env['wsgi.input'].read()
    
     post_json = json.loads(PostData)
     
-    #print '@'*80
-    #print env
-    #print '='*100
-    #print post_json
-    #print '@'*80
-
     # Retrive user options from request of creating an VM, if required options are not specified, then send response to end-user
     try:
         res = get_options_from_create_VM_request(post_json)
@@ -258,6 +251,7 @@ def nova_create_server(env):
     
         # Image does not exist in selected cloud
         if image_exist_result.count() == 0:
+            print'Image does not exist in selected cloud'
        
             original_image_uuid_cloud = image_result[0].uuid_cloud
             agent_cloud_address = image_result[0].cloud_address
@@ -281,10 +275,11 @@ def nova_create_server(env):
         
         # Create the same image in selected cloud
         else:
+            print'Image exists in selected cloud'
             # Modify imageRef by changing it to image's uuid_cloud
             post_json['server']['imageRef'] = image_exist_result[0].uuid_cloud
 
-
+    
     # Check if network_ids are valid
     invalid_network_uuid_agents = []
     for network_id in networks:
@@ -308,6 +303,7 @@ def nova_create_server(env):
         
             # Network does not exist in selected cloud
             if network_exist_result.count() == 0:
+                print'Network does not exist in selected cloud'
                 
                 network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent], keywords = [network_id])
                 
@@ -320,6 +316,7 @@ def nova_create_server(env):
                 network_uuid_clouds.append(network_dict)
                 # Create sunbet in selected cloud
             else:
+                print'Network exists in selected cloud'
                 network_dict = {"uuid" : network_exist_result[0].uuid_cloud}
                 network_uuid_clouds.append(network_dict)
     
@@ -332,6 +329,7 @@ def nova_create_server(env):
     headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
 
     res = POST_request_to_cloud(url, headers, json.dumps(post_json))
+    
     
     # If VM is successfully created in cloud
     if res.status_code == 202:
@@ -356,6 +354,7 @@ def nova_create_server(env):
     else:
         
         return generate_formatted_response(res, res.json())
+    
 
 
 # Delete image
@@ -400,7 +399,7 @@ def nova_delete_server(env):
 # List servers
 def nova_list_flavors(env):
 
-    print 'FLAVORS ' *300
+    #print 'FLAVORS ' *300
     
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
@@ -410,8 +409,8 @@ def nova_list_flavors(env):
     
     url = config.get('Agent', 'site_ip') + ':' + config.get('Nova', 'nova_public_interface') + env['PATH_INFO']
 
-    print '!'*300
-    print url
+    #print '!'*300
+    #print url
     
     urls = []
     urls.append(url)
@@ -446,10 +445,10 @@ def nova_list_flavors(env):
         # Remove duplicate subnets        
         response_body['flavors'] = remove_duplicate_info(response_body['flavors'], 'id')
 
-    import pprint
-    pprint.pprint(response_body)
-    print threads_res
-    print threads_res[0].status_code
+    #import pprint
+    #pprint.pprint(response_body)
+    #print threads_res
+    #print threads_res[0].status_code
         
     return generate_formatted_response(threads_res[0], response_body)
         
@@ -508,10 +507,32 @@ def nova_list_details_flavors(env):
 
 
 
-
-
 # Show flavor details
 def nova_show_flavor_details(env):
+
+    
+    site_pattern = re.compile(r'(?<=/flavors/).*')
+    match = site_pattern.search(env['PATH_INFO'])        
+    flavor_id = match.group()
+
+    # Retrive token from request
+    X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
+        
+    # Create request header
+    headers = {'X-Auth-Token': X_AUTH_TOKEN}
+
+    # Create url
+    url = config.get('Agent', 'site_ip') + ':' + config.get('Nova', 'nova_public_interface') + env['PATH_INFO']
+    #print '!'*300
+    #print url
+
+    # Forward request to the relevant cloud
+    res = GET_request_to_cloud(url, headers)
+        
+    return generate_formatted_response(res, res.json())
+
+
+    '''
 
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
@@ -560,6 +581,7 @@ def nova_show_flavor_details(env):
             res = json.dumps(threads[i].join()[0])
     
     return (res, status_code, headers)
+    '''
 
 
 # Create flavor                    
@@ -877,6 +899,8 @@ def create_subnets_in_selected_cloud(X_AUTH_TOKEN, created_network_uuid_cloud, s
 
 # Nova list images
 def nova_list_images(env):
+    
+    print 'Nova list images'
 
     # Get all rows of Image object
     result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Image)
@@ -955,20 +979,20 @@ def nova_list_images(env):
                 response_body['images'].append(images_list[0])
 
             #pprint.pprint(images_list)
-            pprint.pprint(response_body)
-            print len(response_body['images'])
+            #pprint.pprint(response_body)
+            #print len(response_body['images'])
             
-        ''' 
-        if response_body['images'] != 0:
+        #if response_body['images'] != 0:
             # Remove duplicate subnets        
-            response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
-        '''
+        #    response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
 
         return generate_formatted_response(threads_res[0], response_body)
 
 
 # Nova show image details
 def nova_show_image_details(env):
+
+    print 'Nova show image details'
 
     site_pattern = re.compile(r'(?<=images/).*')
     match = site_pattern.search(env['PATH_INFO'])        
@@ -1005,13 +1029,21 @@ def nova_show_image_details(env):
             response_body = res.json()
 
             # Replace image's id by uuid_agent
-            response_body['id'] = image_result[0].uuid_agent
-            
+            response_body['image']['id'] = image_result[0].uuid_agent
+
+
+            for i in range(len(response_body['image']['links'])):
+                response_body['image']['links'][i]['href'] = 'http://10.0.1.12:9292/images/' + image_result[0].uuid_agent
+            #pprint.pprint(response_body)
             # Add cloud info to response 
-            for i in range(image_result.count()):
-                response_body = add_cloud_info_to_response(image_result[i].cloud_address, response_body)
+            #for i in range(image_result.count()):
+            #    response_body = add_cloud_info_to_response(image_result[i].cloud_address, response_body)
+            print '#'*80
+            import pprint
+            pprint.pprint(response_body)
+            print '#'*80
         
         else:
             response_body = res.text
-
+            
         return generate_formatted_response(res, response_body)

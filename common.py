@@ -94,11 +94,11 @@ def generate_formatted_response(res, response_body):
 
 def select_site_to_create_object():
     # Select a cloud at random
-    #cloud_name =  random.choice(SITES.keys())
-    #cloud_address = SITES[cloud_name]
+    cloud_name =  random.choice(SITES.keys())
+    cloud_address = SITES[cloud_name]
 
-    cloud_name = 'Cloud3'
-    cloud_address = 'http://10.0.1.12'
+    #cloud_name = 'Cloud3'
+    #cloud_address = 'http://10.0.1.12'
 
     return cloud_name, cloud_address
 

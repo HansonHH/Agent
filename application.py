@@ -57,17 +57,17 @@ def application(env, start_response):
             print '='*80
             print PATH_INFO
             print '='*80
-
             
             # Version discovery
+            #if PATH_INFO.endswith('/v2.1/'):
             if PATH_INFO.endswith('/v2.1/'):
 		status_code, headers, response = nova_api_version_discovery(env)    
 
-            elif PATH_INFO.startswith('/v2.1'):
+            elif PATH_INFO.endswith('/v2.1/98bdf671dfc74d51ba4969f4e963acca'):
                 status_code = '404'
                 headers = ''
                 response = ''
-                
+             
             # APIs for servers
             elif 'servers' in PATH_INFO:
                 # List servers
@@ -93,6 +93,8 @@ def application(env, start_response):
 
             # APIs for flavors
             elif 'flavors' in PATH_INFO:
+                
+                print 'flavors '*100
 	    
                 # List flavors
                 if PATH_INFO.endswith('/flavors'):
@@ -108,6 +110,8 @@ def application(env, start_response):
               
             # APIs for images
             elif 'images' in PATH_INFO:
+
+                print 'images '*100
                 
                 if PATH_INFO.endswith('/images'):
                     status_code, headers, response = nova_list_images(env)
@@ -115,6 +119,11 @@ def application(env, start_response):
                 elif PATH_INFO.startswith('/v2.1/98bdf671dfc74d51ba4969f4e963acca/images'):
                     status_code, headers, response = nova_show_image_details(env)
 	    
+            print '!'*100
+            print status_code
+            print headers
+            print '!'*100
+
             start_response(status_code, headers)
 	   
             return response

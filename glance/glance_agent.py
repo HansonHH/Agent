@@ -89,8 +89,6 @@ def glance_list_images(env):
 # Show image details
 def glance_show_image_details(env):
 
-    print 'SHOW IMAGE DETAILS '*80
-
     site_pattern = re.compile(r'(?<=/v2/images/).*')
     match = site_pattern.search(env['PATH_INFO'])        
     image_id = match.group()
