@@ -11,7 +11,11 @@ def neutron_list_networks(env):
     
     QUERY = True
     try:
+        
         QUERY_LIST = env['QUERY_STRING'].split('&')
+        
+        if len(QUERY_LIST) == 1:
+            QUERY = False
         
         # Retrive query keyword and modify user request (env)
         for item in QUERY_LIST:

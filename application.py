@@ -160,7 +160,7 @@ def application(env, start_response):
 	    # Show image details
 	    if PATH_INFO.startswith('/v2/images/'):
 		status_code, headers, response = glance_show_image_details(env)
-            
+
             # List images
             elif PATH_INFO.endswith('/v2/images'):
                 status_code, headers, response = glance_list_images(env)

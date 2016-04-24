@@ -17,7 +17,7 @@ def glance_list_images(env):
 
     if QUERY == True:
         status_code = '200'
-        headers = ''
+        headers = [('Content-Type', 'application/json; charset=UTF-8')]
         response_body = {"images": [], "schema": "/v2/schemas/images", "first": "/v2/images"}
     
         return status_code, headers, json.dumps(response_body)
