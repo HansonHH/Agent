@@ -5,6 +5,11 @@ from glance.glance_agent import *
 from neutron.neutron_agent import * 
 from agent import *
 
+from cyclon.peer import Peer
+
+peer = Peer(5)
+peer.setDaemon(True)
+peer.start()
 
 #def api_catalog(env, start_response):
 def application(env, start_response):

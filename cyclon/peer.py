@@ -13,6 +13,8 @@
 
 from threading import Thread
 import time
+import datetime
+from time import gmtime, strftime
 
 class Peer(Thread):
      
@@ -24,4 +26,5 @@ class Peer(Thread):
     def run(self):
         while not self.STOP:
             time.sleep(self.interval)
-            print 'interval: %d seconds' % self.interval
+            #print 'CYCLON protocol runs every %d seconds, current time: %s' % (self.interval, datetime.datetime.now().time()) 
+            print 'CYCLON protocol runs every %d seconds, %s' % (self.interval, strftime("%Y-%m-%d %H:%M:%S", gmtime())) 
