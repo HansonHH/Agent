@@ -16,8 +16,11 @@ from common import *
 from db import *
 from models import *
 import time
+from cyclon.peer import Peer
 
 
+
+# Agent upload binary image data to selected cloud from temporary file
 def agent_upload_binary_image_data_to_selected_cloud(env):
 
     # Retrive token from request
@@ -97,7 +100,28 @@ def agent_upload_binary_image_data_to_selected_cloud(env):
     return status_code, headers, json.dumps(response)
 
 
+# Launch Peer thread in order to make peer run CYCLON Protocol periodically
+def agent_launch_cyclon_peer_thread():
 
+    peer = Peer(INTERVAL)
+    peer.setDaemon(True)
+    peer.start()
+
+
+# Agent changes view of its knowledge of the whole network periodically based on CYCLON protocol
+def agent_cyclon_view_exchange(env):
+
+    print 'CYCLON View Exchange'
+
+    print get_lan_ip()
+
+    status_code = '200'
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    response = 'VIEW EXCHANGE HIT!!!'
+    #headers['Content-Length'] = str(len(json.dumps(response)))
+    #headers = ast.literal_eval(str(headers)).items()
+
+    return status_code, headers, json.dumps(response)
 
 
 

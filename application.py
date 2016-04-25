@@ -4,12 +4,13 @@ from nova.nova_agent import *
 from glance.glance_agent import * 
 from neutron.neutron_agent import * 
 from agent import *
+#from cyclon.peer import Peer
 
-from cyclon.peer import Peer
-
-peer = Peer(5)
-peer.setDaemon(True)
-peer.start()
+# Launch Peer Thread
+agent_launch_cyclon_peer_thread()
+#peer = Peer(5)
+#peer.setDaemon(True)
+#peer.start()
 
 #def api_catalog(env, start_response):
 def application(env, start_response):
@@ -290,6 +291,15 @@ def application(env, start_response):
         return response
 
 
+    elif PATH_INFO.startswith('/v1/agent/cyclon/view_exchange'):
+        print '*'*30
+        print 'Agent v1.0 CYCLON View Exchange'
+        print '*'*30
+
+        status_code, headers, response = agent_cyclon_view_exchange(env)
+        start_response(status_code, headers)
+
+        return response
 
 
 

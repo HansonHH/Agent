@@ -57,6 +57,9 @@ def query_from_DB(connection, obj, **options):
     for i in range(len(columns)):
         filter_context.append(columns[i] == keywords[i])  
 
+    #print '!'*80
+    #print filter_context[0]
+
     engine = create_engine(connection, echo = False)
     
     DBSession = sessionmaker(bind = engine)
@@ -78,13 +81,38 @@ def add_to_DB(connection, obj):
     DBSession = sessionmaker(bind = engine)
     session = DBSession()
             
-    # Add instance to session
+    # Add obj to session
     session.add(obj)
 
     # Commit session
     session_commit(session)
     session.close()
 
+# Update data in local agent database
+def update_in_DB(connection, obj, **options):
+    
+    columns = options.get("columns")
+    keywords = options.get("keywords")
+    new_value_dic = options.get("new_value_dic")
+
+    filter_context = []
+    for i in range(len(columns)):
+        filter_context.append(columns[i] == keywords[i])  
+    
+    engine = create_engine(connection, echo = False)
+    
+    # Write to network table of agent DB 
+    # Create session of network table of agent DB
+    DBSession = sessionmaker(bind = engine)
+    session = DBSession()
+            
+    # Add instance to session
+    session.query(obj).filter(*filter_context).update(new_value_dic)
+
+    
+    # Commit session
+    session_commit(session)
+    session.close()
     
 # Delete data from local agent database
 def delete_from_DB(connection, obj, column, keyword):

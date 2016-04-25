@@ -120,6 +120,26 @@ class Instance(Base):
         #return "<Instance (tenant_id=%s, uuid_agent=%s, uuid_cloud=%s, instance_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_agent, self.uuid_cloud, self.instance_name, self.cloud_name, self.cloud_address)
         return "<Instance (tenant_id=%s, uuid_cloud=%s, instance_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_cloud, self.instance_name, self.cloud_name, self.cloud_address)
 
+
+# Define Instance class
+class Neighbor(Base):
+
+    # Name of table
+    __tablename__ = 'neighbor'
+    # Table configuration
+    __table_args__ = TABLE_ARGS
+
+    # Data structure of table
+    neighbor_id = Column(String(36), primary_key=True)
+    #age = Column(Integer())
+    age = Column(Integer)
+    #cloud_name = Column(String(40))
+    cloud_address = Column(String(40))
+
+    def __repr__(self):
+        return "<Neighbor (neighbor_id=%d, age=%d, cloud_address=%s)>" % (self.__neighbor_id, self.age, self.cloud_address)
+
+
 # Data structure of Glance Image
 class GlanceImage(object):
     pass
@@ -140,3 +160,6 @@ class NeutronSubnet(object):
 class NovaInstance(object):
     pass
 
+# Data structure of CYCLON neighbor
+class CyclonNeighbor(object):
+    pass

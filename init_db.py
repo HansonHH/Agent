@@ -1,7 +1,5 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-# vim:fenc=utf-8
-#
 
 """
 
@@ -10,6 +8,7 @@ Init local agent database
 """
 from db import *
 from models import *
+from common import get_interface_ip, get_lan_ip 
 import ConfigParser
 import ast
 import uuid
@@ -21,7 +20,11 @@ DATABASE_USERNAME = config.get('Database', 'DATABASE_USERNAME')
 DATABASE_PASSWORD = config.get('Database', 'DATABASE_PASSWORD')
 SITES = ast.literal_eval(config.get('Clouds','sites'))
 AGENT_SITE_NAME = config.get('Agent', 'site')
-AGENT_SITE_IP = SITES[AGENT_SITE_NAME]
+#AGENT_SITE_IP = SITES[AGENT_SITE_NAME]
+AGENT_SITE_IP = 'http://' + get_lan_ip()
+# Get introducer's ip address (CYCLON Protocol)
+INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip')
+
 
 # Configuration of DB engine connection
 GLANCE_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/glance' % (DATABASE_USERNAME, DATABASE_PASSWORD)
@@ -144,8 +147,8 @@ def Sync_Instance():
     # Read data of instance from database
     res = read_from_DB(NOVA_ENGINE_CONNECTION, 'instances', NovaInstance)
     
-    # Write to image table of agent DB 
-    # Create session of image table of agetn DB
+    # Write to instance table of agent DB 
+    # Create session of instance table of agetn DB
     DBSession = sessionmaker(bind = agentDB_engine)
     W_session = DBSession()
     
@@ -154,13 +157,36 @@ def Sync_Instance():
         # Check if flavor already exists in agent DB, if flavor does not exist in agent DB then add it 
         if instance.deleted == 0 and len(W_session.query(Instance).filter_by(uuid_cloud=instance.uuid).all()) == 0:
             # Synchorize instance uuid to data table of agent 
-            #new_instance = Instance(tenant_id = instance.project_id, uuid_agent = uuid.uuid4(), uuid_cloud = instance.uuid, instance_name = instance.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
             new_instance = Instance(tenant_id = instance.project_id, uuid_cloud = instance.uuid, instance_name = instance.display_name, cloud_name = AGENT_SITE_NAME, cloud_address = AGENT_SITE_IP)
             # Add instance to session
             W_session.add(new_instance)
 
     # Commit session
     session_commit(W_session)
+
+# Synchorize agent's Neighbor table
+def Sync_Neighbor():
+   
+    print 'introducer: %s' % INTRODUCER_IP
+    print 'agent: %s' % AGENT_SITE_IP
+    
+    # Write to neighbor table of agent DB 
+    # Create session of neighbor table of agetn DB
+    DBSession = sessionmaker(bind = agentDB_engine)
+    W_session = DBSession()
+    
+    new_neighbor = Neighbor(neighbor_id = uuid.uuid4(), age = 0, cloud_address = AGENT_SITE_IP)
+    # Add neighbor to session
+    W_session.add(new_neighbor)
+
+    if INTRODUCER_IP != AGENT_SITE_IP:
+        new_neighbor = Neighbor(neighbor_id = uuid.uuid4(), age = 0, cloud_address = INTRODUCER_IP)
+        # Add neighbor to session
+        W_session.add(new_neighbor)
+
+    # Commit session
+    session_commit(W_session)
+        
 
 if __name__ == '__main__':
     create_tables()
@@ -169,3 +195,4 @@ if __name__ == '__main__':
     Sync_Network()
     Sync_Subnet()
     Sync_Instance()
+    Sync_Neighbor()
