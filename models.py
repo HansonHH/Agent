@@ -14,8 +14,6 @@ TABLE_ARGS = {
     'mysql_charset': 'utf8'
 }
 
-
-
 # Create Base class
 Base = declarative_base()
 
@@ -120,7 +118,7 @@ class Instance(Base):
         #return "<Instance (tenant_id=%s, uuid_agent=%s, uuid_cloud=%s, instance_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_agent, self.uuid_cloud, self.instance_name, self.cloud_name, self.cloud_address)
         return "<Instance (tenant_id=%s, uuid_cloud=%s, instance_name=%s, cloud_name=%s, cloud_address=%s)>" % (self.tenant_id, self.uuid_cloud, self.instance_name, self.cloud_name, self.cloud_address)
 
-
+'''
 # Define Instance class
 class Neighbor(Base):
 
@@ -138,7 +136,7 @@ class Neighbor(Base):
 
     def __repr__(self):
         return "<Neighbor (neighbor_id=%d, age=%d, cloud_address=%s)>" % (self.__neighbor_id, self.age, self.cloud_address)
-
+'''
 
 # Data structure of Glance Image
 class GlanceImage(object):
@@ -160,6 +158,8 @@ class NeutronSubnet(object):
 class NovaInstance(object):
     pass
 
+'''
 # Data structure of CYCLON neighbor
 class CyclonNeighbor(object):
     pass
+'''

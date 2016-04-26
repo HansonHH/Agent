@@ -16,8 +16,7 @@ from common import *
 from db import *
 from models import *
 import time
-from cyclon.peer import Peer
-
+from cyclon.peer import *
 
 
 # Agent upload binary image data to selected cloud from temporary file
@@ -118,6 +117,7 @@ def agent_cyclon_view_exchange(env):
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     response = 'VIEW EXCHANGE HIT!!!'
+    response = str(NEIGHBORS[0].neighbor_id) + ', ' + NEIGHBORS[0].ip_address + ', ' + str(NEIGHBORS[0].age)
     #headers['Content-Length'] = str(len(json.dumps(response)))
     #headers = ast.literal_eval(str(headers)).items()
 

@@ -23,7 +23,7 @@ AGENT_SITE_NAME = config.get('Agent', 'site')
 #AGENT_SITE_IP = SITES[AGENT_SITE_NAME]
 AGENT_SITE_IP = 'http://' + get_lan_ip()
 # Get introducer's ip address (CYCLON Protocol)
-INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip')
+#INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip')
 
 
 # Configuration of DB engine connection
@@ -164,6 +164,7 @@ def Sync_Instance():
     # Commit session
     session_commit(W_session)
 
+'''
 # Synchorize agent's Neighbor table
 def Sync_Neighbor():
    
@@ -186,7 +187,7 @@ def Sync_Neighbor():
 
     # Commit session
     session_commit(W_session)
-        
+'''   
 
 if __name__ == '__main__':
     create_tables()
@@ -195,4 +196,4 @@ if __name__ == '__main__':
     Sync_Network()
     Sync_Subnet()
     Sync_Instance()
-    Sync_Neighbor()
+    #Sync_Neighbor()
