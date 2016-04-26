@@ -106,18 +106,23 @@ def agent_launch_cyclon_peer_thread():
     peer.setDaemon(True)
     peer.start()
 
-
 # Agent changes view of its knowledge of the whole network periodically based on CYCLON protocol
 def agent_cyclon_view_exchange(env):
 
     print 'CYCLON View Exchange'
-
     print get_lan_ip()
 
+    print '!'*200
+    neighbor = mc.get("cache")
+    print neighbor.neighbor_id
+    print neighbor.ip_address
+    print neighbor.age
+    print '!'*200
+    
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     response = 'VIEW EXCHANGE HIT!!!'
-    response = str(NEIGHBORS[0].neighbor_id) + ', ' + NEIGHBORS[0].ip_address + ', ' + str(NEIGHBORS[0].age)
+    response = str(neighbor.neighbor_id) + ', ' + neighbor.ip_address + ', ' + str(neighbor.age)
     #headers['Content-Length'] = str(len(json.dumps(response)))
     #headers = ast.literal_eval(str(headers)).items()
 

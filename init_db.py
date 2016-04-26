@@ -38,7 +38,7 @@ agentDB_engine = create_engine('mysql+mysqldb://%s:%s@localhost/%s'%(DATABASE_US
 # Create tables in database
 def create_tables():
     try:
-        Base.metadata.create_all(agentDB_engine)
+    	Base.metadata.create_all(agentDB_engine)
     except exc:
         print exc.message
 

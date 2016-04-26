@@ -14,9 +14,13 @@ from db import *
 from models import *
 import uuid
 
+import memcache
+mc = memcache.Client(['127.0.0.1:11211'], debug=1)
+
 # Get introducer's ip address (CYCLON Protocol)
 INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip')
 NEIGHBORS = []
+
 
 # Neighbor object
 class Neighbor(object):
@@ -39,6 +43,7 @@ class Peer(Thread):
             NEIGHBORS.append(introducer)
                              
     def run(self):
+        #for i in range(3):
         while not self.STOP:
             time.sleep(self.interval)
             print 'CYCLON protocol runs every %d seconds, %s' % (self.interval, strftime("%Y-%m-%d %H:%M:%S", gmtime())) 
@@ -46,6 +51,7 @@ class Peer(Thread):
             self.update_age()
             print 'FIXED_SIZE_CACHE: %s' % FIXED_SIZE_CACHE
             print 'SHUFFLE_LENGTH: %s' % SHUFFLE_LENGTH
+            print len(NEIGHBORS)
 
     def update_age(self):
 
@@ -54,16 +60,19 @@ class Peer(Thread):
         else:
             for i in range(len(NEIGHBORS)):
                 # Update neighbor's age by one                
-                neighbor1 = NEIGHBORS[i]
-                neighbor2 = Neighbor(NEIGHBORS[i].neighbor_id, NEIGHBORS[i].ip_address, NEIGHBORS[i].age+1)
-                NEIGHBORS.remove(neighbor1)
-                NEIGHBORS.append(neighbor2)
-                #NEIGHBORS[i].age = NEIGHBORS[i].age + 1
+                #neighbor1 = global_variable.NEIGHBORS[i]
+                #neighbor2 = Neighbor(global_variable.NEIGHBORS[i].neighbor_id, global_variable.NEIGHBORS[i].ip_address, global_variable.NEIGHBORS[i].age+1)
+                #global_variable.NEIGHBORS.remove(neighbor1)
+                #global_variable.NEIGHBORS.append(neighbor2)
+
+                NEIGHBORS[i].age = NEIGHBORS[i].age + 1
                 print '-'*50
                 print NEIGHBORS[i].neighbor_id
                 print NEIGHBORS[i].age
                 print NEIGHBORS[i].ip_address
                 print '-'*50
+
+                mc.set("cache", NEIGHBORS[i])
 
 
 

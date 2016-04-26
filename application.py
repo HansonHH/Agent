@@ -4,20 +4,22 @@ from nova.nova_agent import *
 from glance.glance_agent import * 
 from neutron.neutron_agent import * 
 from agent import *
-#from cyclon.peer import Peer
 
+import global_variable
+global_variable.init()
+
+import memcache
+mc = memcache.Client(['127.0.0.1:11211'], debug=1)
+#mc.set("cache","mmp")
 # Launch Peer Thread
 agent_launch_cyclon_peer_thread()
-#peer = Peer(5)
-#peer.setDaemon(True)
-#peer.start()
 
-#def api_catalog(env, start_response):
 def application(env, start_response):
 	
     #print env
     PATH_INFO = env['PATH_INFO']
     REQUEST_METHOD = env['REQUEST_METHOD']
+
 
     # API catalog
     # Identity API v3

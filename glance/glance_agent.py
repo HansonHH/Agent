@@ -81,7 +81,7 @@ def glance_list_images(env):
             if response_body['images'] != 0:
                 # Remove duplicate subnets        
                 response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
-    
+
             return generate_formatted_response(threads_res[0], response_body)
 
 
