@@ -128,7 +128,6 @@ def select_site_to_create_object():
 
     return cloud_name, cloud_address
 
-
 def get_interface_ip(ifname):
     import fcntl
     import struct
@@ -146,7 +145,6 @@ def get_lan_ip():
                 break
             except IOError:
                 pass
-    
     return ip
 
 

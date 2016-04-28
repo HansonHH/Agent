@@ -102,7 +102,7 @@ def agent_upload_binary_image_data_to_selected_cloud(env):
 # Launch Peer thread in order to make peer run CYCLON Protocol periodically
 def agent_launch_cyclon_peer_thread():
 
-    peer = Peer(INTERVAL)
+    peer = Peer(INTERVAL, [])
     peer.setDaemon(True)
     peer.start()
 
@@ -112,21 +112,35 @@ def agent_cyclon_view_exchange(env):
     print 'CYCLON View Exchange'
     print get_lan_ip()
 
-    print '!'*200
-    neighbor = mc.get("cache")
-    print neighbor.neighbor_id
+    print '!'*50
+    neighbor = mc.get("neighbors")[0]
+    print neighbor
+    #print neighbor.neighbor_id
     print neighbor.ip_address
     print neighbor.age
-    print '!'*200
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
-    response = 'VIEW EXCHANGE HIT!!!'
-    response = str(neighbor.neighbor_id) + ', ' + neighbor.ip_address + ', ' + str(neighbor.age)
+    #response = 'VIEW EXCHANGE HIT!!!'
+    response = neighbor.ip_address + ', ' + str(neighbor.age)
     #headers['Content-Length'] = str(len(json.dumps(response)))
     #headers = ast.literal_eval(str(headers)).items()
+    print '!'*50
 
     return status_code, headers, json.dumps(response)
+
+
+def agent_cyclon_new_peer_join(env):
+    
+    print 'CYCLON View Exchange'
+    PostData = env['wsgi.input'].read()
+    
+    uuid_agent = None
+    post_data_json = json.loads(PostData)
+    print '='*20
+    print post_data_json
+    print '='*20
+
 
 
 

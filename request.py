@@ -1,8 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2016 Xin Han <hxinhan@gmail.com>
-#
 
 import ConfigParser
 from nova.thread import ThreadWithReturnValue
@@ -10,10 +8,6 @@ import ast
 import requests
 import json
 import re
-
-#from cStringIO import StringIO
-#import cStringIO
-
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
