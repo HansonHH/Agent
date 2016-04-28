@@ -75,8 +75,8 @@ class Peer(Thread):
     def peer_join(self, introducer_ip, agent_ip):
         print 'Peer Join!!!'
         headers = {'Content-Type':'application/json; charset=UTF-8'}
-        #url = introducer_ip + '/v1/agent/cyclon/new_peer_join'
-        url = 'http://127.0.0.1:18090/v1/agent/cyclon/new_peer_join'
+        url = introducer_ip + '/v1/agent/cyclon/new_peer_join'
+        #url = 'http://127.0.0.1:18090/v1/agent/cyclon/new_peer_join'
         dic = {"new_peer" : {"ip_address" : agent_ip} }
         print url
         print dic
