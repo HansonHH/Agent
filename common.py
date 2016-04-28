@@ -31,8 +31,8 @@ IMAGE_FILE_PATH = config.get('Glance', 'image_file_path')
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
 
-global NEIGHBORS
-NEIGHBORS = []
+#global NEIGHBORS
+#NEIGHBORS = []
 INTERVAL = int(config.get('CYCLON', 'interval'))
 FIXED_SIZE_CACHE = int(config.get('CYCLON', 'fixed_size_cache'))
 SHUFFLE_LENGTH = int(config.get('CYCLON', 'shuffle_length'))

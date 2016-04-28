@@ -33,7 +33,7 @@ def application(env, start_response):
         print '*'*30
         print 'Agent v1.0 CYCLON New Peer Join'
         print '*'*30
-        
+
         status_code, headers, response = agent_cyclon_new_peer_join(env)
         start_response(status_code, headers)
 

@@ -110,22 +110,14 @@ def agent_launch_cyclon_peer_thread():
 def agent_cyclon_view_exchange(env):
 
     print 'CYCLON View Exchange'
-    print get_lan_ip()
 
-    print '!'*50
     neighbor = mc.get("neighbors")[0]
-    print neighbor
-    #print neighbor.neighbor_id
     print neighbor.ip_address
     print neighbor.age
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
-    #response = 'VIEW EXCHANGE HIT!!!'
     response = neighbor.ip_address + ', ' + str(neighbor.age)
-    #headers['Content-Length'] = str(len(json.dumps(response)))
-    #headers = ast.literal_eval(str(headers)).items()
-    print '!'*50
 
     return status_code, headers, json.dumps(response)
 
@@ -133,14 +125,28 @@ def agent_cyclon_view_exchange(env):
 def agent_cyclon_new_peer_join(env):
     
     print 'CYCLON View Exchange'
+    # Get neighbor list from memory cache
+    neighbors = mc.get("neighbors")
+    # Get new peer's request
     PostData = env['wsgi.input'].read()
-    
-    uuid_agent = None
     post_data_json = json.loads(PostData)
-    print '='*20
-    print post_data_json
-    print '='*20
 
+    print '!'*60
+    print post_data_json
+    new_peer_ip_address = post_data_json['new_peer']['ip_address']
+    print new_peer_ip_address
+    for neighbor in neighbors:
+        print "ip: %s, age: %s" % (neighbor.ip_address,neighbor.age)
+    print '!'*60
+
+    if len(neighbors) < FIXED_SIZE_CACHE:
+        print 'len(neighbors) < FIXED_SIZE_CACHE !!!'
+        new_peer = Neighbor(new_peer_ip_address, 0)
+        response_list = neighbors
+        neighbors.append(new_peer)
+        # Update neighbors list
+        mc.set("neighbors", neighbors)
+        print len(neighbors)
 
 
 
