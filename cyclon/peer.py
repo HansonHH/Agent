@@ -14,7 +14,9 @@ from models import *
 from request import *
 
 import memcache
-mc = memcache.Client(['127.0.0.1:11211'], debug=1)
+#MEMCACHED_SERVER_IP = confige.get('CYCLON', 'memcached_server_ip')
+mc = memcache.Client([MEMCACHED_SERVER_IP], debug=1)
+#mc = memcache.Client(['127.0.0.1:11211'], debug=1)
 
 # Get introducer's ip address (CYCLON Protocol)
 INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip') 
@@ -38,8 +40,6 @@ class Peer(Thread):
         self.interval = interval
         self.neighbors = neighbors
         
-        #if len(NEIGHBORS) == 0:
-        #introducer = Neighbor(uuid.uuid4(), INTRODUCER_IP, 0)
         introducer = Neighbor(INTRODUCER_IP, 0)
         self.neighbors.append(introducer)
         # Save neighbor list to memcached (expiration up to 30 days)
@@ -58,10 +58,11 @@ class Peer(Thread):
                 self.peer_join(INTRODUCER_IP, agent_ip)
             else:
                 print 'Introducer is agent itself...'
+                self.isJoined = True
                 #self.peer_join(INTRODUCER_IP, agent_ip)
 
         #for i in range(3):
-        while not self.STOP:
+        while not self.STOP and self.isJoined:
             time.sleep(self.interval)
             print 'CYCLON protocol runs every %d seconds, %s' % (self.interval, strftime("%Y-%m-%d %H:%M:%S", gmtime())) 
             
@@ -77,11 +78,14 @@ class Peer(Thread):
         url = introducer_ip + '/v1/agent/cyclon/new_peer_join'
         #url = 'http://127.0.0.1:18090/v1/agent/cyclon/new_peer_join'
         dic = {"new_peer" : {"ip_address" : agent_ip} }
-        #print url
-        #print dic
-        #print json.dumps(dic)
         res = POST_request_to_cloud(url, headers, json.dumps(dic))
+        print '~'*60
         print res
+        print res.json()
+        neighbors_response = res.json()['neighbors']
+        print neighbors_response
+        print '~'*60
+        # New peer generates several threads to initiat a shuffle of lenght 1 with nonadjance nodes received from its introducer
         self.isJoined = True
     
     

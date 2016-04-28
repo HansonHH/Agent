@@ -124,29 +124,78 @@ def agent_cyclon_view_exchange(env):
 
 def agent_cyclon_new_peer_join(env):
     
-    print 'CYCLON View Exchange'
+    print 'CYCLON New Peer Join'
     # Get neighbor list from memory cache
     neighbors = mc.get("neighbors")
+    print neighbors[0].age
     # Get new peer's request
     PostData = env['wsgi.input'].read()
     post_data_json = json.loads(PostData)
 
     print '!'*60
-    print post_data_json
     new_peer_ip_address = post_data_json['new_peer']['ip_address']
     print new_peer_ip_address
-    for neighbor in neighbors:
-        print "ip: %s, age: %s" % (neighbor.ip_address,neighbor.age)
-    print '!'*60
 
+    response = None
+    # Add new peer's information to memory cache
     if len(neighbors) < FIXED_SIZE_CACHE:
         print 'len(neighbors) < FIXED_SIZE_CACHE !!!'
+        print neighbors[0].age
         new_peer = Neighbor(new_peer_ip_address, 0)
-        response_list = neighbors
+        #neighbors_response = neighbors
+        response = generate_neighbors_response(neighbors)
         neighbors.append(new_peer)
         # Update neighbors list
         mc.set("neighbors", neighbors)
         print len(neighbors)
+    # Replace the oldest neighbor with new peer
+    else:
+        pass
+        
+    status_code = '200'
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    print response
+    print '!'*60
+
+    return status_code, headers, json.dumps(response)
+
+# Generate response contatining n neighbors' information, n is less or equal to SHUFFLE_LENGTH
+def generate_neighbors_response(neighbors):
+    neighbors_list = []
+    # If length of neighbors list is less than SHUFFLE_LENGTH, then add all neighbors' infomation to response
+    if len(neighbors) <= SHUFFLE_LENGTH:
+        print 'len(neighbors) < SHUFFLE_LENGTH'
+        for neighbor in neighbors:
+            neighbors_list.append({"ip_address":neighbor.ip_address})
+    # Pick SHUFFLE_LENGTH neighbors at random and add selected neighbors' information to response 
+    else:
+        random_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
+        for neighbor in neighbors:
+            neighbors_list.append({"ip_address":neighbor.ip_address})
+
+    return {"neighbors":neighbors_list}
+
+# Randomly pick n neighbors
+def pick_neighbors_at_random(neighbors, number):
+
+    # Select a cloud at random
+    random_neighbors = []
+    for i in range(number):
+        neighbor =  random.choice(neighbors)
+        random_neighbors.append(neighbor)
+    # Remove duplicated neighbor
+    random_neighbors2 = []
+    random_neighbors = neighbors
+    for i in range(len(random_neighbors)):
+        if random_neighbors[i] not in random_neighbors2:
+            random_neighbors2.append(random_neighbors[i])
+
+    return random_neighbors2
+    
+
+
+
+
 
 
 
