@@ -84,10 +84,11 @@ class Peer(Thread):
             self.neighbors = mc.get("neighbors")
             neighbors_response = res.json()['neighbors']
             print neighbors_response
-	    for neighbor in neighbors_response:
+	    for neighbor in neighbors_response['neighbors']:
                 new_neighbor = Neighbor(neighbor['ip_address'], 0)
 		self.neighbors.append(new_neighbor)
 	    mc.set("neighbors", self.neighbors)
+        print len(self.neighbors)
         print '~'*60
         # New peer generates several threads to initiat a shuffle of lenght 1 with nonadjance nodes received from its introducer
         self.isJoined = True

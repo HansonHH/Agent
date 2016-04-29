@@ -112,8 +112,6 @@ def agent_cyclon_view_exchange(env):
     print 'CYCLON View Exchange'
 
     neighbor = mc.get("neighbors")[0]
-    print neighbor.ip_address
-    print neighbor.age
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
@@ -150,7 +148,7 @@ def agent_cyclon_new_peer_join(env):
     else:
         status_code = '202'
         pass
-        
+    print response
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     print '!'*60
 
