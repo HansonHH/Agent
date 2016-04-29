@@ -251,7 +251,7 @@ def agent_cyclon_handle_peer_join_notification(env):
 def agent_cyclon_receive_from_introducer_neighbors(env):
     print 'Receive from Introducer Neighbors !!!!!!!'
     
-    recevied_data = json.loads(env['wsgi.input'].read())
+    received_data = json.loads(env['wsgi.input'].read())
     print received_data
 
 
