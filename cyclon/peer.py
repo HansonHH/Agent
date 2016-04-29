@@ -14,9 +14,7 @@ from models import *
 from request import *
 
 import memcache
-#MEMCACHED_SERVER_IP = confige.get('CYCLON', 'memcached_server_ip')
 mc = memcache.Client([MEMCACHED_SERVER_IP], debug=1)
-#mc = memcache.Client(['127.0.0.1:11211'], debug=1)
 
 # Get introducer's ip address (CYCLON Protocol)
 INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip') 
@@ -25,9 +23,7 @@ NEIGHBORS = []
 # Neighbor object
 class Neighbor(object):
 
-    #def __init__(self, neighbor_id, ip_address, age):
     def __init__(self, ip_address, age):
-        #self.neighbor_id = neighbor_id
         self.ip_address = ip_address
         self.age = int(age)
 
