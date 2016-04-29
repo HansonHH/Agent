@@ -182,14 +182,14 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
             threads[i].start()
 
         threads_res = []
-    
         # Wait until threads terminate
         for i in range(len(threads)):
+            print '%'*100
 	    res = threads[i].join()
+            print res.status_code
             # If user has access to the resource
             if res.status_code == 200:
                 threads_res.append(res)
-                print '%'*100
                 print res.json()
                 print '%'*100
 
@@ -236,7 +236,7 @@ def agent_cyclon_handle_peer_join_notification(env):
     print post_data_json
 
     neighbors = mc.get("neighbors")
-    if len(neighbors) < FIXED_CACHE_SIZE:
+    if len(neighbors) < FIXED_SIZE_CACHE:
     	# Randomly pick up a neighbor as response
     	random_neighbor = pick_neighbors_at_random(neighbors,1)
     	# Set new peer's age to 0 and add its information to memory cache 
