@@ -56,7 +56,7 @@ def glance_list_images(env):
     
             # Wait until threads terminate
             for i in range(len(threads)):
-	        	res = threads[i].join()
+	        res = threads[i].join()
                 # If user has access to the resource
                 if res.status_code == 200:
                     threads_res.append(res)
