@@ -92,14 +92,14 @@ class Peer(Thread):
         self.isJoined = True
     
     # Return a list of neighbors' ip addresses
-    def get_neighbors_ip_list(neighbors):
+    def get_neighbors_ip_list(self, neighbors):
         neighbors_ip_list = []
         for neighbor in neighbors:
             neighbors_ip_list.append(neighbor.ip_address)
         return neighbors_ip_list
 
     # Check if new peer is already in
-    def is_in_neighbors(neighbors_ip_list, new_peer_ip_address):
+    def is_in_neighbors(self, neighbors_ip_list, new_peer_ip_address):
         if new_peer_ip_address in neighbors_ip_list:
             return True
         else:
