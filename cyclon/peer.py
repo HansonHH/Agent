@@ -67,7 +67,7 @@ class Peer(Thread):
             # Select neighbor with highest age
             #self.pick_up_neighbor_with_highest_age():
     
-    # Peer sends a request to its introducer to join the P2P network
+    # New peer sends a request to its introducer to join the P2P network
     def peer_join(self, introducer_ip, agent_ip):
         print 'Peer is joining the P2P network...'
         headers = {'Content-Type':'application/json; charset=UTF-8'}
@@ -76,9 +76,11 @@ class Peer(Thread):
         dic = {"new_peer" : {"ip_address" : agent_ip} }
         res = POST_request_to_cloud(url, headers, json.dumps(dic))
         print '~'*60
-        print res.json()
 	# If introducer's length of neighbors list is less than FIXED_CACHE_SIZE
 	if res.status_code == 201:
+	    print 'Waiting for responses from introducer\'s neighbors...'
+
+	    '''
             self.neighbors = mc.get("neighbors")
             neighbors_ip_list = self.get_neighbors_ip_list(self.neighbors)
             neighbors_response = res.json()
@@ -89,6 +91,7 @@ class Peer(Thread):
 		    self.neighbors.append(new_neighbor)
 	    
             mc.set("neighbors", self.neighbors)
+	    '''
         print '~'*60
         # New peer generates several threads to initiat a shuffle of lenght 1 with nonadjance nodes received from its introducer
         self.isJoined = True

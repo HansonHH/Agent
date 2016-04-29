@@ -141,7 +141,7 @@ def agent_cyclon_new_peer_join(env):
         new_peer = Neighbor(new_peer_ip_address, 0)
         neighbors.append(new_peer)
         # Update neighbors list
-        mc.set("neighbors", neighbors)
+        mc.set("neighbors", neighbors, 0)
     # Initiate random walk
     else:
         status_code = '202'
@@ -221,14 +221,13 @@ def agent_cyclon_handle_peer_join_notification(env):
 
     neighbors = mc.get("neighbors")
     # Randomly pick up a neighbor as response
-    #random_neighbor = pick_neighbors_at_random(neighbors,1)[0]
     random_neighbor = random.choice(neighbors)
     
     # Set new peer's age to 0 and add its information to memory cache 
     if len(neighbors) < FIXED_SIZE_CACHE:
     	new_neighbor = Neighbor(recevied_data['new_peer'], 0)
 	neighbors.append(new_neighbor)
-    	mc.set("neighbors", neighbors)
+    	mc.set("neighbors", neighbors, 0)
     
     print '%'*100
     print random_neighbor.ip_address
@@ -257,6 +256,16 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
     
     received_data = json.loads(env['wsgi.input'].read())
     print received_data
+    res_neighbor_ip = received_data['neighbors']['ip_address']
+    res_neighbor_age = received_data['neighbors']['age']
+    
+    neighbors = mc.get("neighbors")
+    neighbors_ip_list = get_neighbors_ip_list(neighbors)
+    if len(neighbors) < FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, res_neighbor_ip):
+        print '#'*150
+        new_neighbor = Neighbor(res_neighbor_ip, res_neighbor_age)
+        neighbors.append(new_neighbor)
+        mc.set("neighbors", neighbors, 0)
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
@@ -265,6 +274,19 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
     return status_code, headers, json.dumps(response)
 
 
+# Return a list of neighbors' ip addresses
+def get_neighbors_ip_list(neighbors):
+    neighbors_ip_list = []
+    for neighbor in neighbors:
+        neighbors_ip_list.append(neighbor.ip_address)
+    return neighbors_ip_list
+
+# Check if new peer is already in
+def is_in_neighbors(neighbors_ip_list, new_peer_ip_address):
+    if new_peer_ip_address in neighbors_ip_list:
+        return True
+    else:
+        return False
 
 
 
