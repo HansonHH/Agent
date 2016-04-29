@@ -80,13 +80,15 @@ class Peer(Thread):
 	# If introducer's length of neighbors list is less than FIXED_CACHE_SIZE 
 	if res.status_code == 201:
             self.neighbors = mc.get("neighbors")
-            neighbors_ip_list = get_neighbors_ip_list(neighbors)
+            neighbors_ip_list = self.get_neighbors_ip_list(self.neighbors)
             neighbors_response = res.json()
+            # Add introducer's neighbors to local neighbors list
 	    for neighbor in neighbors_response['neighbors']:
-                if not is_in_neighbors(neighbors_ip_list, neighbor['ip_address']):
+                if not self.is_in_neighbors(neighbors_ip_list, neighbor['ip_address']):
                     new_neighbor = Neighbor(neighbor['ip_address'], 0)
 		    self.neighbors.append(new_neighbor)
-	    mc.set("neighbors", self.neighbors)
+	    
+            mc.set("neighbors", self.neighbors)
         print '~'*60
         # New peer generates several threads to initiat a shuffle of lenght 1 with nonadjance nodes received from its introducer
         self.isJoined = True
