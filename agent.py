@@ -228,13 +228,15 @@ def agent_cyclon_handle_peer_join_notification(env):
     	new_neighbor = Neighbor(recevied_data['new_peer'], 0)
 	neighbors.append(new_neighbor)
     	mc.set("neighbors", neighbors)
+    
+    print '%'*100
+    random_neighbor.ip_address
 
     headers = {'Content-Type': 'application/json'}
     url = recevied_data['new_peer'] + '/v1/agent/cyclon/receive_from_introducer_neighbors'
     dic = {'neighbor':{'ip_address':random_neighbor.ip_address, 'age':random_neighbor.age}}
     res = POST_request_to_cloud(url, headers, json.dumps(dic))
 
-    print '%'*100
     print res
     print res.status_code
     print res.text
