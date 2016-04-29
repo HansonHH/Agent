@@ -238,7 +238,7 @@ def agent_cyclon_handle_peer_join_notification(env):
     neighbors = mc.get("neighbors")
     if len(neighbors) < FIXED_SIZE_CACHE:
     	# Randomly pick up a neighbor as response
-    	random_neighbor_ip_address = pick_neighbors_at_random(neighbors,1)[0]
+    	random_neighbor = pick_neighbors_at_random(neighbors,1)[0]
     	# Set new peer's age to 0 and add its information to memory cache 
     	new_neighbor = Neighbor(post_data_json['new_peer'], 0)
 	neighbors.append(new_neighbor)
@@ -246,7 +246,7 @@ def agent_cyclon_handle_peer_join_notification(env):
 
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
-    response = {'neighbor':{'ip_address':random_neighbor_ip_address, 'age':random_neighbor.age}}
+    response = {'neighbor':{'ip_address':random_neighbor.ip_address, 'age':random_neighbor.age}}
 
     return status_code, headers, json.dumps(response)
 
