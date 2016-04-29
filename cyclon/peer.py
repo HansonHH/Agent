@@ -80,7 +80,7 @@ class Peer(Thread):
 	# If introducer's length of neighbors list is less than FIXED_CACHE_SIZE 
 	if res.status_code == 201:
             self.neighbors = mc.get("neighbors")
-            neighbors_ip_addresses_list = get_neighbors_ip_addresses_list(neighbors)
+            neighbors_ip_addresses_list = get_neighbors_ip_addresses(neighbors)
             neighbors_response = res.json()
 	    for neighbor in neighbors_response['neighbors']:
                 if not is_in_neighbors(neighbors_ip_addresses_list, neighbor['ip_address']):
