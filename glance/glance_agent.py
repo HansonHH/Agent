@@ -50,14 +50,13 @@ def glance_list_images(env):
 
             # Launch threads
             for i in range(len(threads)):
-	        threads[i].start()
+	        	threads[i].start()
 
             threads_res = []
     
             # Wait until threads terminate
             for i in range(len(threads)):
-	
-	        res = threads[i].join()
+	        	res = threads[i].join()
                 # If user has access to the resource
                 if res.status_code == 200:
                     threads_res.append(res)
@@ -69,7 +68,7 @@ def glance_list_images(env):
             
                 # Image's uuid_cloud
                 image_uuid_cloud = res['id']
-            
+
                 # Replace image's id by image's uuid_agent
                 result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Image, columns = [Image.uuid_cloud], keywords = [image_uuid_cloud])
                 res['id'] = result[0].uuid_agent
@@ -79,8 +78,8 @@ def glance_list_images(env):
                 response_body['images'].append(new_image_info)
          
             if response_body['images'] != 0:
-                # Remove duplicate subnets        
-                response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
+               	# Remove duplicate subnets        
+			   	response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
 
             return generate_formatted_response(threads_res[0], response_body)
 
