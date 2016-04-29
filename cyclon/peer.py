@@ -83,6 +83,7 @@ class Peer(Thread):
 	if res.status_code == '201':
             self.neighbors = mc.get("neighbors")
             neighbors_response = res.json()
+            print '@'*80
             print neighbors_response
             print neighbors_response['neighbors']
 	    for neighbor in neighbors_response['neighbors']:
