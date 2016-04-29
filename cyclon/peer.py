@@ -76,22 +76,16 @@ class Peer(Thread):
         dic = {"new_peer" : {"ip_address" : agent_ip} }
         res = POST_request_to_cloud(url, headers, json.dumps(dic))
         print '~'*60
-        print res
         print res.json()
-	print type(res.status_code)
 	# If introducer's length of neighbors list is less than FIXED_CACHE_SIZE 
-	if res.status_code == '201':
+	if res.status_code == 201:
             self.neighbors = mc.get("neighbors")
             neighbors_response = res.json()
             print '@'*80
-            print neighbors_response
-            print neighbors_response['neighbors']
 	    for neighbor in neighbors_response['neighbors']:
                 new_neighbor = Neighbor(neighbor['ip_address'], 0)
 		self.neighbors.append(new_neighbor)
 	    mc.set("neighbors", self.neighbors)
-        print len(self.neighbors)
-        print self.neighbors
         print '~'*60
         # New peer generates several threads to initiat a shuffle of lenght 1 with nonadjance nodes received from its introducer
         self.isJoined = True
