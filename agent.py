@@ -127,7 +127,6 @@ def agent_cyclon_new_peer_join(env):
     print 'CYCLON New Peer Join'
     # Get neighbor list from memory cache
     neighbors = mc.get("neighbors")
-    print neighbors[0].age
     # Get new peer's request
     PostData = env['wsgi.input'].read()
     post_data_json = json.loads(PostData)
@@ -136,25 +135,23 @@ def agent_cyclon_new_peer_join(env):
     new_peer_ip_address = post_data_json['new_peer']['ip_address']
     print new_peer_ip_address
 
+    status_code = ''
     response = None
     # Add new peer's information to memory cache
     if len(neighbors) < FIXED_SIZE_CACHE:
         print 'len(neighbors) < FIXED_SIZE_CACHE !!!'
-        print neighbors[0].age
         new_peer = Neighbor(new_peer_ip_address, 0)
-        #neighbors_response = neighbors
         response = generate_neighbors_response(neighbors)
+        status_code = '201'
         neighbors.append(new_peer)
         # Update neighbors list
         mc.set("neighbors", neighbors)
-        print len(neighbors)
     # Replace the oldest neighbor with new peer
     else:
+        status_code = '202'
         pass
         
-    status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
-    print response
     print '!'*60
 
     return status_code, headers, json.dumps(response)
