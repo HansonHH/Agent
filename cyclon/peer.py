@@ -80,16 +80,30 @@ class Peer(Thread):
 	# If introducer's length of neighbors list is less than FIXED_CACHE_SIZE 
 	if res.status_code == 201:
             self.neighbors = mc.get("neighbors")
+            neighbors_ip_addresses_list = get_neighbors_ip_addresses_list(neighbors)
             neighbors_response = res.json()
-            print '@'*80
 	    for neighbor in neighbors_response['neighbors']:
-                new_neighbor = Neighbor(neighbor['ip_address'], 0)
-		self.neighbors.append(new_neighbor)
+                if not is_in_neighbors(neighbors_ip_addresses_list, neighbor['ip_address']):
+                    new_neighbor = Neighbor(neighbor['ip_address'], 0)
+		    self.neighbors.append(new_neighbor)
 	    mc.set("neighbors", self.neighbors)
         print '~'*60
         # New peer generates several threads to initiat a shuffle of lenght 1 with nonadjance nodes received from its introducer
         self.isJoined = True
     
+    # Return a list of neighbors' ip addresses
+    def get_neighbors_ip_addresses(neighbors):
+        neighbors_ip_addresses_list = []
+        for neighbor in neighbors:
+            neighbors_ip_addresses_list.append(neighbor.ip_address)
+        return neighbors_ip_addresses_list
+
+    # Check if new peer is already in
+    def is_in_neighbors(neighbors_ip_addresses_list, new_peer_ip_address):
+        if new_peer_ip_address in neighbors_ip_addresses_list:
+            return True
+        else:
+            return False
     
     # Update peer's all neighbors' age by one
     def update_age(self):
