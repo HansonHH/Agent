@@ -165,55 +165,34 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
     headers = {'Content-Type': 'application/json'}
     agent_ip = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
     post_data = {"new_peer":new_peer_ip_address}
-    #data_set = []
+    data_set = []
     neighbors_list = []
     for neighbor in neighbors:
         if agent_ip != neighbor.ip_address:
             url = neighbor.ip_address + '/v1/agent/cyclon/handle_peer_join_notification'
             neighbors_list.append(url)
-	    #data_set.append(json.dumps(post_data))
-
-    print neighbors_list
+	    data_set.append(json.dumps(post_data))
 
     if len(neighbors_list) != 0:
 
-        res = POST_request_to_cloud(neighbors_list[0], headers, json.dumps(post_data))
-
-        print res
-        print res.status_code
-        print res.text
-        print res.json()
-
-        '''
-        # Create threads
-        #threads = [None] * len(neighbors_list)
-        #for i in range(len(threads)):
-        #    threads[i] = ThreadWithReturnValue(target = POST_request_to_cloud, args = (neighbors_list[i], headers, json.dumps(post_data),))
-        
-	#threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_to_cloud, data_set)
-        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
-        print '1'*200
-        print len(threads)
+	threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_to_cloud, data_set)
     
         # Launch threads
         for i in range(len(threads)):
             threads[i].start()
-        print '2'*200
 
         threads_res = []
     
         # Wait until threads terminate
         for i in range(len(threads)):
 	    res = threads[i].join()
-            
-            print res
-
             # If user has access to the resource
             if res.status_code == 200:
                 threads_res.append(res)
+                print '%'*100
+                print res.json()
+                print '%'*100
 
-        print threads_res
-        '''
 
 # Generate response contatining n neighbors' information, n is less or equal to SHUFFLE_LENGTH
 def generate_neighbors_response(neighbors):
@@ -255,15 +234,19 @@ def agent_cyclon_handle_peer_join_notification(env):
     # Request data 
     post_data_json = json.loads(env['wsgi.input'].read())
     print post_data_json
-    # Set new peer's age to 0 and add its information to memory cache 
-    new_neighbor = Neighbor(post_data_json['new_peer'], 0)
+
     neighbors = mc.get("neighbors")
-    neighbors.append(new_neighbor)
-    mc.set("neighbors", neighbors)
+    if len(neighbors) < FIXED_CACHE_SIZE:
+    	# Randomly pick up a neighbor as response
+    	random_neighbor = pick_neighbors_at_random(neighbors,1)
+    	# Set new peer's age to 0 and add its information to memory cache 
+    	new_neighbor = Neighbor(post_data_json['new_peer'], 0)
+	neighbors.append(new_neighbor)
+    	mc.set("neighbors", neighbors)
 
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
-    response = ''
+    response = {'neighbor':{'ip_address':random_neighbor.ip_address, 'age':random_neighbor.age}}
 
     return status_code, headers, json.dumps(response)
 

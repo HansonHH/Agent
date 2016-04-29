@@ -292,7 +292,6 @@ def application(env, start_response):
 
         return response
 
-
     elif PATH_INFO.startswith('/v1/agent/cyclon/view_exchange'):
         print '*'*30
         print 'Agent v1.0 CYCLON View Exchange'
@@ -303,6 +302,7 @@ def application(env, start_response):
 
         return response
 
+    # Introducer handles new peer join event
     elif PATH_INFO.startswith('/v1/agent/cyclon/new_peer_join'):
         print '*'*30
         print 'Agent v1.0 CYCLON New Peer Join'
