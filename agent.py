@@ -256,8 +256,8 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
     
     received_data = json.loads(env['wsgi.input'].read())
     print received_data
-    res_neighbor_ip = received_data['neighbors']['ip_address']
-    res_neighbor_age = received_data['neighbors']['age']
+    res_neighbor_ip = received_data['neighbor']['ip_address']
+    res_neighbor_age = received_data['neighbor']['age']
     
     neighbors = mc.get("neighbors")
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
