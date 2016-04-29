@@ -63,7 +63,6 @@ def agent_upload_binary_image_data_to_selected_cloud(env):
         return status_code, headers, json.dumps(response)
 
 
-
     if res.status_code == 204:
         print 'Image uploaded successfully !!!'
             
@@ -128,15 +127,13 @@ def agent_cyclon_new_peer_join(env):
     PostData = env['wsgi.input'].read()
     post_data_json = json.loads(PostData)
 
-    print '!'*60
     new_peer_ip_address = post_data_json['new_peer']['ip_address']
 
     status_code = ''
     response = None
     # Add new peer's information to memory cache
     if len(neighbors) < FIXED_SIZE_CACHE:
-        print 'len(neighbors) < FIXED_SIZE_CACHE !!!'
-        # Introducer sends notification of peer joining to its neighbors
+        # Introducer sends notification of peer joining to its neighbors, instead of initiating random walk
         send_peer_join_notification(neighbors, new_peer_ip_address)
 
         response = generate_neighbors_response(neighbors)
@@ -145,13 +142,11 @@ def agent_cyclon_new_peer_join(env):
         neighbors.append(new_peer)
         # Update neighbors list
         mc.set("neighbors", neighbors)
-    # Replace the oldest neighbor with new peer
+    # Initiate random walk
     else:
         status_code = '202'
         pass
-    print response
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
-    print '!'*60
 
     return status_code, headers, json.dumps(response)
 
@@ -181,17 +176,9 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
         for i in range(len(threads)):
             threads[i].start()
 
-        threads_res = []
         # Wait until threads terminate
         for i in range(len(threads)):
-            print '%'*100
 	    res = threads[i].join()
-            print res.status_code
-            # If user has access to the resource
-            if res.status_code == 200:
-                threads_res.append(res)
-                print res.json()
-                print '%'*100
 
 
 # Generate response contatining n neighbors' information, n is less or equal to SHUFFLE_LENGTH
@@ -199,7 +186,6 @@ def generate_neighbors_response(neighbors):
     neighbors_list = []
     # If length of neighbors list is less than SHUFFLE_LENGTH, then add all neighbors' infomation to response
     if len(neighbors) <= SHUFFLE_LENGTH:
-        print 'len(neighbors) < SHUFFLE_LENGTH'
         for neighbor in neighbors:
             neighbors_list.append({"ip_address":neighbor.ip_address})
     # Pick SHUFFLE_LENGTH neighbors at random and add selected neighbors' information to response 
@@ -231,24 +217,42 @@ def pick_neighbors_at_random(neighbors, number):
 def agent_cyclon_handle_peer_join_notification(env):
     print 'Handle Peer Join Notification !!!!!!!'
     
-    # Request data 
-    post_data_json = json.loads(env['wsgi.input'].read())
-    print post_data_json
+    recevied_data = json.loads(env['wsgi.input'].read())
 
     neighbors = mc.get("neighbors")
+    # Randomly pick up a neighbor as response
+    random_neighbor = pick_neighbors_at_random(neighbors,1)[0]
+    
+    # Set new peer's age to 0 and add its information to memory cache 
     if len(neighbors) < FIXED_SIZE_CACHE:
-    	# Randomly pick up a neighbor as response
-    	random_neighbor = pick_neighbors_at_random(neighbors,1)[0]
-    	# Set new peer's age to 0 and add its information to memory cache 
-    	new_neighbor = Neighbor(post_data_json['new_peer'], 0)
+    	new_neighbor = Neighbor(recevied_data['new_peer'], 0)
 	neighbors.append(new_neighbor)
     	mc.set("neighbors", neighbors)
 
-    status_code = '200'
+    headers = {'Content-Type': 'application/json'}
+    url = recevied_data['new_peer'] + '/v1/agent/cyclon/receive_from_introducer_neighbors'
+    dic = {'neighbor':{'ip_address':random_neighbor.ip_address, 'age':random_neighbor.age}}
+    res = POST_request_to_cloud(url, headers, json.dumps(dic))
+
+    print '%'*100
+    print res
+    print res.status_code
+    print res.text
+    print '%'*100
+
+    #status_code = '200'
+    status_code = res.status_code
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
-    response = {'neighbor':{'ip_address':random_neighbor.ip_address, 'age':random_neighbor.age}}
+    response = ''
 
     return status_code, headers, json.dumps(response)
+
+
+def agent_cyclon_receive_from_introducer_neighbors(env):
+    print 'Receive from Introducer Neighbors !!!!!!!'
+    
+    recevied_data = json.loads(env['wsgi.input'].read())
+    print received_data
 
 
 

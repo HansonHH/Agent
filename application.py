@@ -319,6 +319,7 @@ def application(env, start_response):
 
         return response
 
+    # Introducer's neighbors handle new peer join notification
     elif PATH_INFO.startswith('/v1/agent/cyclon/handle_peer_join_notification'):
         print '*'*30
         print 'Agent v1.0 CYCLON Handle Peer Join Notification'
@@ -326,14 +327,26 @@ def application(env, start_response):
 
         status_code, headers, response = agent_cyclon_handle_peer_join_notification(env)
         start_response(status_code, headers)
-
         print '='*20
         print status_code
         print headers
         print response
         print '='*20
-
         return response
+    
+    # New peer receives response from introducer's neighbors
+    elif PATH_INFO.startswith('/v1/agent/cyclon/receive_from_introducer_neighbors'):
+        print '*'*30
+        print 'Agent v1.0 CYCLON New Peer Receives from Introducer Neighbors'
+        print '*'*30
 
+        status_code, headers, response = agent_cyclon_receive_from_introducer_neighbors(env)
+        start_response(status_code, headers)
+        print '='*20
+        print status_code
+        print headers
+        print response
+        print '='*20
+        return response
 
 
