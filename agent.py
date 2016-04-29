@@ -255,6 +255,11 @@ def agent_cyclon_handle_peer_join_notification(env):
     # Request data 
     post_data_json = json.loads(env['wsgi.input'].read())
     print post_data_json
+    # Set new peer's age to 0 and add its information to memory cache 
+    new_neighbor = Neighbor(post_data_json['new_peer'], 0)
+    neighbors = mc.get("neighbors")
+    neighbors.append(new_neighbor)
+    mc.set("neighbors", neighbors)
 
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]

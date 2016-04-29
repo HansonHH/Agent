@@ -77,7 +77,7 @@ class Peer(Thread):
         res = POST_request_to_cloud(url, headers, json.dumps(dic))
         print '~'*60
         print res.json()
-	# If introducer's length of neighbors list is less than FIXED_CACHE_SIZE 
+	# If introducer's length of neighbors list is less than FIXED_CACHE_SIZE
 	if res.status_code == 201:
             self.neighbors = mc.get("neighbors")
             neighbors_ip_list = self.get_neighbors_ip_list(self.neighbors)
