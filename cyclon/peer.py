@@ -96,6 +96,7 @@ class Peer(Thread):
         # New peer generates several threads to initiat a shuffle of lenght 1 with nonadjance nodes received from its introducer
         self.isJoined = True
     
+    '''
     # Return a list of neighbors' ip addresses
     def get_neighbors_ip_list(self, neighbors):
         neighbors_ip_list = []
@@ -109,7 +110,8 @@ class Peer(Thread):
             return True
         else:
             return False
-    
+    '''
+
     # Update peer's all neighbors' age by one
     def update_age(self):
 
