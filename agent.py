@@ -233,7 +233,7 @@ def agent_cyclon_deliver_random_walk_message(env):
         random_neighbor = random.choice(neighbors)
         url = random_neighbor.ip_address + '/v1/agent/cyclon/receive_from_introducer_neighbors'
         # Decrease TTL by one
-        post_data = {"neighbor":{'ip_address': random_neighbor.ip_address, 'age':random_neighbor.age}
+        post_data = {"neighbor":{'ip_address': random_neighbor.ip_address, 'age':random_neighbor.age}}
         POST_request_connection_close(url, headers, json.dumps(post_data))
         # Replace randomly selected neighbor with the new peer
         neighbors_list = []
