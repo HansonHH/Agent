@@ -121,6 +121,7 @@ def agent_cyclon_view_exchange(env):
 def agent_cyclon_new_peer_join(env):
     
     print 'CYCLON New Peer Join'
+    print '123 '*200
     # Get neighbor list from memory cache
     neighbors = mc.get("neighbors")
     # Get new peer's request
@@ -133,6 +134,7 @@ def agent_cyclon_new_peer_join(env):
     response = None
     # SIZE CACHE is not filled up yet, add new peer's information to agent's (act as introducer) memory cache
     if len(neighbors) < FIXED_SIZE_CACHE and not is_in_neighbors(get_neighbors_ip_list(neighbors), new_peer_ip_address):
+        print 'SIZE CACHE is not yet filled up, send peer join notification to neighbors...'
         # Introducer sends notification of peer joining to its neighbors, instead of initiating random walk
         send_peer_join_notification(neighbors, new_peer_ip_address)
 
@@ -146,15 +148,17 @@ def agent_cyclon_new_peer_join(env):
     
     # SIZE CACHE is already filled up, then initiate random walk
     else:
-        print 'SIZE CACHE is already filled up, then initiate random walk'
+        print 'SIZE CACHE is already filled up, then initiate random walk...'
         status_code = '202'
-
-    print '1'*500
-    #time.sleep(20)
 
     #headers = [('Content-Type', 'application/json; charset=UTF-8')]
 
     #return status_code, headers, json.dumps(response)
+    status_code = '200'
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    response = ''
+
+    return status_code, headers, json.dumps(response)
 
 
 # Introducer sends notification of peer joining to neighbors
@@ -176,29 +180,24 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
     if len(neighbors_list) != 0:
 
 	#threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_to_cloud, data_set)
-	threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_to_cloud_Keep_Alive, data_set)
+	threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_connection_close, data_set)
     
         # Launch threads
         for i in range(len(threads)):
             threads[i].start()
 
-        print '2'*500
-        
         # Wait until threads terminate
         for i in range(len(threads)):
 	    res = threads[i].join()
-            print res
-            print res.status_code
-            print res.json()
-            print '3'*500
 
 
-def POST_request_to_cloud_Keep_Alive(url ,headers, PostData):
+def POST_request_connection_close(url ,headers, PostData):
     s = requests.session()
-    s.keep_alive = False
-    res = requests.post(url, headers = headers, data = json.dumps(dic))
-    print 'Keep Alive = False ' *60
-    return res
+    #s.keep_alive = False
+    res = requests.post(url, headers = headers, data = PostData)
+    res.connection.close()
+    print 'Connection closed... ' * 30
+
 
 '''
 # Generate response contatining n neighbors' information, n is less or equal to SHUFFLE_LENGTH
@@ -250,21 +249,20 @@ def agent_cyclon_handle_peer_join_notification(env):
 	neighbors.append(new_neighbor)
     	mc.set("neighbors", neighbors, 0)
     
-    print '%'*100
+    print '%'*60
+    print 'Random Neighbor IP Address...'
     print random_neighbor.ip_address
 
     headers = {'Content-Type': 'application/json'}
     url = recevied_data['new_peer'] + '/v1/agent/cyclon/receive_from_introducer_neighbors'
     dic = {'neighbor':{'ip_address':random_neighbor.ip_address, 'age':random_neighbor.age}}
     res = POST_request_to_cloud(url, headers, json.dumps(dic))
+    res.connection.close()
 
-    print res
-    print res.status_code
-    print res.text
-    print '%'*100
+    print '%'*60
 
-    #status_code = '200'
-    status_code = str(res.status_code)
+    status_code = '200'
+    #status_code = str(res.status_code)
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     response = ''
 
@@ -274,17 +272,14 @@ def agent_cyclon_handle_peer_join_notification(env):
 # New peer receives response from its introducer's neighbors
 def agent_cyclon_receive_from_introducer_neighbors(env):
     print 'Receive from Introducer Neighbors !!!!!!!'
-    print env
     
     received_data = json.loads(env['wsgi.input'].read())
-    print received_data
     res_neighbor_ip = received_data['neighbor']['ip_address']
     res_neighbor_age = received_data['neighbor']['age']
     
     neighbors = mc.get("neighbors")
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
     if len(neighbors) < FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, res_neighbor_ip):
-        print '#'*150
         new_neighbor = Neighbor(res_neighbor_ip, res_neighbor_age)
         neighbors.append(new_neighbor)
         mc.set("neighbors", neighbors, 0)
