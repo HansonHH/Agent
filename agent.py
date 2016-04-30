@@ -204,7 +204,7 @@ def init_random_walk(new_peer_ip_address, n, TTL):
     data_set = []
     neighbors_list = []
     for i in range(n):
-        neighbors_list.append(random.choice(neighbors).ip_address + '/v1/agent/cyclon/handle_random_walk')
+        neighbors_list.append(random.choice(neighbors).ip_address + '/v1/agent/cyclon/deliver_random_walk_message')
 	data_set.append(json.dumps(post_data))
 
     print neighbors_list

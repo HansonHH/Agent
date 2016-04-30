@@ -326,7 +326,7 @@ def application(env, start_response):
 	return response
      
     # Peer delivers random walk message
-    elif PATH_INFO.startswith('/v1/agent/cyclon/deliver_random_walk'):
+    elif PATH_INFO.startswith('/v1/agent/cyclon/deliver_random_walk_message'):
         print '*'*30
         print 'Agent v1.0 CYCLON Deliver Random Walk'
         print '*'*30
