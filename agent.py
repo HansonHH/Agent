@@ -147,8 +147,8 @@ def agent_cyclon_new_peer_join(env):
     # SIZE CACHE is already filled up, then initiate random walk
     else:
         print 'SIZE CACHE is already filled up, then initiate random walk...'
-        # Initiate n random walk
-        init_random_walk(len(neighbors))
+        # Initiate n random walk, TTL (time to live) = 4
+        init_random_walk(new_peer_ip_address, len(neighbors), RANDOM_WALK_TTL)
         status_code = '202'
 
     #headers = [('Content-Type', 'application/json; charset=UTF-8')]
@@ -191,10 +191,50 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
 
 
 # Initiate n random walks
-def init_ranwom_walk(n):
+def init_random_walk(new_peer_ip_address, n, TTL):
+    print 'Initiating %d Random Walks... TTL = %d' % (n, TTL)
     print 'Initiating Random Walk...'
     print 'Initiating Random Walk...'
-    print 'Initiating Random Walk...'
+    
+    # Get neighbor list from memory cache
+    neighbors = mc.get("neighbors")
+
+    headers = {'Content-Type': 'application/json'}
+    post_data = {"new_peer_ip_address":new_peer_ip_address, 'TTL':TTL}
+    data_set = []
+    neighbors_list = []
+    for i in range(n):
+        neighbors_list.append(random.choice(neighbors).ip_address + '/v1/agent/cyclon/handle_random_walk')
+	data_set.append(json.dumps(post_data))
+
+    print neighbors_list
+
+    
+    threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_connection_close, data_set)
+    
+    # Launch threads
+    for i in range(len(threads)):
+        threads[i].start()
+
+    # Wait until threads terminate
+    for i in range(len(threads)):
+	res = threads[i].join()
+   
+# Peer delivers random walk message
+def agent_cyclon_deliver_random_walk_message(env):
+    print 'Peer Delivers Random Walk Message...'
+    
+    recevied_data = json.loads(env['wsgi.input'].read())
+
+    print '='*40
+    print received_data
+    print received_data['new_peer_ip_address']
+    print received_data['TTL']
+    print '='*40
+
+    neighbors = mc.get("neighbors")
+    # Randomly pick up a neighbor as response
+    random_neighbor = random.choice(neighbors)
 
 
 '''
