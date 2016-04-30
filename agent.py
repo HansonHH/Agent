@@ -121,7 +121,6 @@ def agent_cyclon_view_exchange(env):
 def agent_cyclon_new_peer_join(env):
     
     print 'CYCLON New Peer Join'
-    print '123 '*200
     # Get neighbor list from memory cache
     neighbors = mc.get("neighbors")
     # Get new peer's request
@@ -154,7 +153,6 @@ def agent_cyclon_new_peer_join(env):
     #headers = [('Content-Type', 'application/json; charset=UTF-8')]
 
     #return status_code, headers, json.dumps(response)
-    status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     response = ''
 
@@ -164,7 +162,7 @@ def agent_cyclon_new_peer_join(env):
 # Introducer sends notification of peer joining to neighbors
 def send_peer_join_notification(neighbors, new_peer_ip_address):
 
-    print 'SEND NOTIFICATION OF PEER JOIN'
+    print 'Introducer Sends Notification of Peer Join to Neighbors...'
 
     headers = {'Content-Type': 'application/json'}
     agent_ip = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
@@ -189,6 +187,9 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
         # Wait until threads terminate
         for i in range(len(threads)):
 	    res = threads[i].join()
+            print '$'*400
+            print res
+            print res.status_code
 
 
 def POST_request_connection_close(url ,headers, PostData):
@@ -196,7 +197,7 @@ def POST_request_connection_close(url ,headers, PostData):
     #s.keep_alive = False
     res = requests.post(url, headers = headers, data = PostData)
     res.connection.close()
-    print 'Connection closed... ' * 30
+    print 'Connection closed... ' * 10
 
 
 '''
@@ -235,7 +236,7 @@ def pick_neighbors_at_random(neighbors, number):
     
 # Handles peer join notification sent from new peer's introducer
 def agent_cyclon_handle_peer_join_notification(env):
-    print 'Handle Peer Join Notification !!!!!!!'
+    print 'Neighbors of New Peer\'s Introducer Handles Peer Join Notification...'
     
     recevied_data = json.loads(env['wsgi.input'].read())
 
