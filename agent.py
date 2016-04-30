@@ -208,7 +208,6 @@ def init_random_walk(new_peer_ip_address, n, TTL):
 	data_set.append(json.dumps(post_data))
 
     print neighbors_list
-
     
     threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_connection_close, data_set)
     
@@ -219,23 +218,41 @@ def init_random_walk(new_peer_ip_address, n, TTL):
     # Wait until threads terminate
     for i in range(len(threads)):
 	res = threads[i].join()
-   
+  
+
 # Peer delivers random walk message
 def agent_cyclon_deliver_random_walk_message(env):
     print 'Peer Delivers Random Walk Message...'
     
-    recevied_data = json.loads(env['wsgi.input'].read())
-
+    received_data = json.loads(env['wsgi.input'].read())
+    TTL = int(received_data['TTL'])
+    
     print '='*40
-    print received_data
     print received_data['new_peer_ip_address']
     print received_data['TTL']
     print '='*40
+    
+    # Exchange view with new peer
+    if TTL == 0:
+        print 'Random Walk Ends Here...'
+    # Continue with random walk, randomly pick up a neighbor and send random walk message to it
+    else:
+        print 'Random Walk TTL = %d' % TTL
+        new_peer_ip_address = received_data['new_peer_ip_address']
+        neighbors = mc.get("neighbors")
+        # Randomly pick up a neighbor as response
+        random_neighbor = random.choice(neighbors)
+        headers = {'Content-Type': 'application/json'}
+        url = random_neighbor.ip_address + '/v1/agent/cyclon/deliver_random_walk_message'
+        # Decrease TTL by one
+        post_data = {"new_peer_ip_address":new_peer_ip_address, 'TTL':TTL-1}
+        res = POST_request_connection_close(url, headers, json.dumps(post_data))
 
-    neighbors = mc.get("neighbors")
-    # Randomly pick up a neighbor as response
-    random_neighbor = random.choice(neighbors)
+    status_code = '200'
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    response = ''
 
+    return status_code, headers, json.dumps(response)
 
 '''
 # Generate response contatining n neighbors' information, n is less or equal to SHUFFLE_LENGTH
