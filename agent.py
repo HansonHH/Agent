@@ -235,6 +235,7 @@ def agent_cyclon_deliver_random_walk_message(env):
     # Exchange view with new peer
     if TTL == 0:
         print 'Random Walk Ends Here...'
+        print '$'*500
     # Continue with random walk, randomly pick up a neighbor and send random walk message to it
     else:
         print 'Random Walk TTL = %d' % TTL
