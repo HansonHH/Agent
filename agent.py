@@ -187,14 +187,9 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
         # Wait until threads terminate
         for i in range(len(threads)):
 	    res = threads[i].join()
-            print '$'*400
-            print res
-            print res.status_code
-
 
 def POST_request_connection_close(url ,headers, PostData):
-    s = requests.session()
-    #s.keep_alive = False
+    
     res = requests.post(url, headers = headers, data = PostData)
     res.connection.close()
     print 'Connection closed... ' * 10
