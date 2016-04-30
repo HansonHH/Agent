@@ -138,16 +138,17 @@ def agent_cyclon_new_peer_join(env):
         send_peer_join_notification(neighbors, new_peer_ip_address)
 
         #response = generate_neighbors_response(neighbors)
-        response = ''
-        status_code = '201'
         new_peer = Neighbor(new_peer_ip_address, 0)
         neighbors.append(new_peer)
         # Update neighbors list
         mc.set("neighbors", neighbors, 0)
+        status_code = '201'
     
     # SIZE CACHE is already filled up, then initiate random walk
     else:
         print 'SIZE CACHE is already filled up, then initiate random walk...'
+        # Initiate n random walk
+        init_random_walk(len(neighbors))
         status_code = '202'
 
     #headers = [('Content-Type', 'application/json; charset=UTF-8')]
@@ -189,6 +190,13 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
 	    res = threads[i].join()
 
 
+# Initiate n random walks
+def init_ranwom_walk(n):
+    print 'Initiating Random Walk...'
+    print 'Initiating Random Walk...'
+    print 'Initiating Random Walk...'
+
+
 '''
 # Generate response contatining n neighbors' information, n is less or equal to SHUFFLE_LENGTH
 def generate_neighbors_response(neighbors):
@@ -225,7 +233,7 @@ def pick_neighbors_at_random(neighbors, number):
     
 # Handles peer join notification sent from new peer's introducer
 def agent_cyclon_handle_peer_join_notification(env):
-    print 'Neighbors of New Peer\'s Introducer Handles Peer Join Notification...'
+    print 'Neighbor of New Peer\'s Introducer Handles Peer Join Notification...'
     
     recevied_data = json.loads(env['wsgi.input'].read())
 
@@ -242,6 +250,7 @@ def agent_cyclon_handle_peer_join_notification(env):
     print '%'*60
     print 'Random Neighbor IP Address...'
     print random_neighbor.ip_address
+    print '%'*60
 
     headers = {'Content-Type': 'application/json'}
     url = recevied_data['new_peer'] + '/v1/agent/cyclon/receive_from_introducer_neighbors'
@@ -249,10 +258,7 @@ def agent_cyclon_handle_peer_join_notification(env):
     res = POST_request_to_cloud(url, headers, json.dumps(dic))
     res.connection.close()
 
-    print '%'*60
-
     status_code = '200'
-    #status_code = str(res.status_code)
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     response = ''
 
@@ -261,7 +267,7 @@ def agent_cyclon_handle_peer_join_notification(env):
 
 # New peer receives response from its introducer's neighbors
 def agent_cyclon_receive_from_introducer_neighbors(env):
-    print 'Receive from Introducer Neighbors !!!!!!!'
+    print 'New Peer Receives Response from Introducer\'s Neighbors !!!!!!!'
     
     received_data = json.loads(env['wsgi.input'].read())
     res_neighbor_ip = received_data['neighbor']['ip_address']
