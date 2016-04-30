@@ -336,6 +336,19 @@ def application(env, start_response):
         
 	return response
     
+    '''
+    # Peer delivers random walk message
+    elif PATH_INFO.startswith('/v1/agent/cyclon/receive_from_random_walk_endpoint'):
+        print '*'*30
+        print 'Agent v1.0 CYCLON New Peer Receives From Ranwom Walk Endpoint'
+        print '*'*30
+
+        status_code, headers, response = agent_cyclon_receive_from_random_walk_endpoint(env)
+        start_response(status_code, headers)
+        
+	return response
+    '''
+
     # New peer receives response from introducer's neighbors
     elif PATH_INFO.startswith('/v1/agent/cyclon/receive_from_introducer_neighbors'):
         print '*'*30
