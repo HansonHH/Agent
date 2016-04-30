@@ -178,7 +178,6 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
 
     if len(neighbors_list) != 0:
 
-	#threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_to_cloud, data_set)
 	threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_connection_close, data_set)
     
         # Launch threads
@@ -209,6 +208,8 @@ def init_random_walk(new_peer_ip_address, n, TTL):
 
     print neighbors_list
     
+    #POST_request_connection_close('http://10.0.1.11:18090/v1/agent/cyclon/deliver_random_walk_message', headers, json.dumps(post_data))
+
     threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_connection_close, data_set)
     
     # Launch threads
@@ -218,7 +219,6 @@ def init_random_walk(new_peer_ip_address, n, TTL):
     # Wait until threads terminate
     for i in range(len(threads)):
 	res = threads[i].join()
-  
 
 # Peer delivers random walk message
 def agent_cyclon_deliver_random_walk_message(env):
@@ -244,15 +244,17 @@ def agent_cyclon_deliver_random_walk_message(env):
         random_neighbor = random.choice(neighbors)
         headers = {'Content-Type': 'application/json'}
         url = random_neighbor.ip_address + '/v1/agent/cyclon/deliver_random_walk_message'
+        #url = 'http://10.0.1.11:18090/v1/agent/cyclon/deliver_random_walk_message'
         # Decrease TTL by one
         post_data = {"new_peer_ip_address":new_peer_ip_address, 'TTL':TTL-1}
-        res = POST_request_connection_close(url, headers, json.dumps(post_data))
+        POST_request_connection_close(url, headers, json.dumps(post_data))
 
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     response = ''
 
     return status_code, headers, json.dumps(response)
+
 
 '''
 # Generate response contatining n neighbors' information, n is less or equal to SHUFFLE_LENGTH
