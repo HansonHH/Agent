@@ -325,6 +325,17 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     response = ''
+            
+    neighbors = mc.get('neighbors')
+    print '*'*50
+    print 'FIXED_SIZE_CACHE: %s' % FIXED_SIZE_CACHE
+    print 'SHUFFLE_LENGTH: %s' % SHUFFLE_LENGTH
+    print 'len of neighbors list: %d' % len(neighbors)
+    for neighbor in neighbors:
+    	print "age: %s" % neighbor.age
+        print "ip_address: %s" % neighbor.ip_address
+        # Save neighbor list to memcached (expiration up to 30 days)
+    print '*'*50
 
     return status_code, headers, json.dumps(response)
 
