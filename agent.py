@@ -188,12 +188,6 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
         for i in range(len(threads)):
 	    res = threads[i].join()
 
-def POST_request_connection_close(url ,headers, PostData):
-    
-    res = requests.post(url, headers = headers, data = PostData)
-    res.connection.close()
-    print 'Connection closed... ' * 10
-
 
 '''
 # Generate response contatining n neighbors' information, n is less or equal to SHUFFLE_LENGTH

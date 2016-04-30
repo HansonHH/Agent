@@ -21,6 +21,13 @@ def POST_request_to_cloud(url, headers, PostData):
     
     return res
 
+# Close connection immediately after sending POST request
+def POST_request_connection_close(url ,headers, PostData):
+    
+    res = requests.post(url, headers = headers, data = PostData)
+    res.connection.close()
+    print 'Connection closed... ' * 10
+
 # PUT request to cloud
 def PUT_request_to_cloud(url, headers, temp_file_path):
 

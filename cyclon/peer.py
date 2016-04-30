@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
+
 CYCLON Protocol Peer Class
+
 """
 
 from threading import Thread
@@ -70,52 +72,22 @@ class Peer(Thread):
     # New peer sends a request to its introducer to join the P2P network
     def peer_join(self, introducer_ip, agent_ip):
         print 'Peer is joining the P2P network...'
+        
         headers = {'Content-Type':'application/json; charset=UTF-8'}
         url = introducer_ip + '/v1/agent/cyclon/new_peer_join'
-        #url = 'http://127.0.0.1:18090/v1/agent/cyclon/new_peer_join'
         dic = {"new_peer" : {"ip_address" : agent_ip} }
+        
         res = POST_request_to_cloud(url, headers, json.dumps(dic))
-        #s = requests.session()
-        #s.keep_alive = False
-    	#res = requests.post(url, headers = headers, data = json.dumps(dic))
-        #res.connection.close()
 
-        print '~'*60
 	# If introducer's length of neighbors list is less than FIXED_CACHE_SIZE
 	if res.status_code == 201:
 	    print 'Waiting for responses from introducer\'s neighbors...'
+        elif res.status_code == 202:
+	    print 'Waiting for random walk endpoint\' response...'
 
-	    '''
-            self.neighbors = mc.get("neighbors")
-            neighbors_ip_list = self.get_neighbors_ip_list(self.neighbors)
-            neighbors_response = res.json()
-            # Add introducer's neighbors to local neighbors list
-	    for neighbor in neighbors_response['neighbors']:
-                if not self.is_in_neighbors(neighbors_ip_list, neighbor['ip_address']):
-                    new_neighbor = Neighbor(neighbor['ip_address'], 0)
-		    self.neighbors.append(new_neighbor)
-	    
-            mc.set("neighbors", self.neighbors)
-	    '''
-        print '~'*60
         # New peer generates several threads to initiat a shuffle of lenght 1 with nonadjance nodes received from its introducer
         self.isJoined = True
     
-    '''
-    # Return a list of neighbors' ip addresses
-    def get_neighbors_ip_list(self, neighbors):
-        neighbors_ip_list = []
-        for neighbor in neighbors:
-            neighbors_ip_list.append(neighbor.ip_address)
-        return neighbors_ip_list
-
-    # Check if new peer is already in
-    def is_in_neighbors(self, neighbors_ip_list, new_peer_ip_address):
-        if new_peer_ip_address in neighbors_ip_list:
-            return True
-        else:
-            return False
-    '''
 
     # Update peer's all neighbors' age by one
     def update_age(self):
