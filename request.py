@@ -15,7 +15,7 @@ SITES = ast.literal_eval(config.get('Clouds','sites'))
 print SITES
 
 # POST request cloud
-def POST_request_to_cloud(url, headers, PostData):
+def POST_request_to_cloud(url, headers, Keep_Alive, PostData):
     
     res = requests.post(url, headers = headers, data = PostData)
     

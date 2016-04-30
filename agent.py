@@ -149,9 +149,13 @@ def agent_cyclon_new_peer_join(env):
         print 'SIZE CACHE is already filled up, then initiate random walk'
         status_code = '202'
 
-    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    print '1'*500
+    #time.sleep(20)
 
-    return status_code, headers, json.dumps(response)
+    #headers = [('Content-Type', 'application/json; charset=UTF-8')]
+
+    #return status_code, headers, json.dumps(response)
+
 
 # Introducer sends notification of peer joining to neighbors
 def send_peer_join_notification(neighbors, new_peer_ip_address):
@@ -171,16 +175,30 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
 
     if len(neighbors_list) != 0:
 
-	threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_to_cloud, data_set)
+	#threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_to_cloud, data_set)
+	threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_to_cloud_Keep_Alive, data_set)
     
         # Launch threads
         for i in range(len(threads)):
             threads[i].start()
 
+        print '2'*500
+        
         # Wait until threads terminate
         for i in range(len(threads)):
 	    res = threads[i].join()
+            print res
+            print res.status_code
+            print res.json()
+            print '3'*500
 
+
+def POST_request_to_cloud_Keep_Alive(url ,headers, PostData):
+    s = requests.session()
+    s.keep_alive = False
+    res = requests.post(url, headers = headers, data = json.dumps(dic))
+    print 'Keep Alive = False ' *60
+    return res
 
 '''
 # Generate response contatining n neighbors' information, n is less or equal to SHUFFLE_LENGTH

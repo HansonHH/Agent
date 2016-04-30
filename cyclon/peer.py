@@ -74,7 +74,12 @@ class Peer(Thread):
         url = introducer_ip + '/v1/agent/cyclon/new_peer_join'
         #url = 'http://127.0.0.1:18090/v1/agent/cyclon/new_peer_join'
         dic = {"new_peer" : {"ip_address" : agent_ip} }
-        res = POST_request_to_cloud(url, headers, json.dumps(dic))
+        #res = POST_request_to_cloud(url, headers, json.dumps(dic))
+        s = requests.session()
+        s.keep_alive = False
+    	res = requests.post(url, headers = headers, data = json.dumps(dic))
+        print 'Keep Alive = False ' *60
+
         print '~'*60
 	# If introducer's length of neighbors list is less than FIXED_CACHE_SIZE
 	if res.status_code == 201:
