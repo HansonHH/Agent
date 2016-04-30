@@ -28,11 +28,6 @@ AGENT_DB_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/%s' % (DATABASE_US
 TEMP_IMAGE_PATH = config.get('Glance', 'temp_image_path')
 IMAGE_FILE_PATH = config.get('Glance', 'image_file_path')
 
-config = ConfigParser.ConfigParser()
-config.read('agent.conf')
-
-#global NEIGHBORS
-#NEIGHBORS = []
 INTERVAL = int(config.get('CYCLON', 'interval'))
 FIXED_SIZE_CACHE = int(config.get('CYCLON', 'fixed_size_cache'))
 SHUFFLE_LENGTH = int(config.get('CYCLON', 'shuffle_length'))
