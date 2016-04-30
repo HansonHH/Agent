@@ -151,9 +151,6 @@ def agent_cyclon_new_peer_join(env):
         init_random_walk(new_peer_ip_address, len(neighbors), RANDOM_WALK_TTL)
         status_code = '202'
 
-    #headers = [('Content-Type', 'application/json; charset=UTF-8')]
-
-    #return status_code, headers, json.dumps(response)
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     response = ''
 
@@ -192,8 +189,6 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
 # Initiate n random walks
 def init_random_walk(new_peer_ip_address, n, TTL):
     print 'Initiating %d Random Walks... TTL = %d' % (n, TTL)
-    print 'Initiating Random Walk...'
-    print 'Initiating Random Walk...'
     
     # Get neighbor list from memory cache
     neighbors = mc.get("neighbors")
@@ -262,23 +257,6 @@ def agent_cyclon_deliver_random_walk_message(env):
     return status_code, headers, json.dumps(response)
 
 
-'''
-# Generate response contatining n neighbors' information, n is less or equal to SHUFFLE_LENGTH
-def generate_neighbors_response(neighbors):
-    neighbors_list = []
-    # If length of neighbors list is less than SHUFFLE_LENGTH, then add all neighbors' infomation to response
-    if len(neighbors) <= SHUFFLE_LENGTH:
-        for neighbor in neighbors:
-            neighbors_list.append({"ip_address":neighbor.ip_address})
-    # Pick SHUFFLE_LENGTH neighbors at random and add selected neighbors' information to response 
-    else:
-        random_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
-        for neighbor in neighbors:
-            neighbors_list.append({"ip_address":neighbor.ip_address})
-
-    return {"neighbors":neighbors_list}
-'''
-
 # Randomly pick n neighbors
 def pick_neighbors_at_random(neighbors, number):
 
@@ -312,11 +290,6 @@ def agent_cyclon_handle_peer_join_notification(env):
 	neighbors.append(new_neighbor)
     	mc.set("neighbors", neighbors, 0)
     
-    print '%'*60
-    print 'Random Neighbor IP Address...'
-    print random_neighbor.ip_address
-    print '%'*60
-
     headers = {'Content-Type': 'application/json'}
     url = recevied_data['new_peer'] + '/v1/agent/cyclon/receive_from_introducer_neighbors'
     dic = {'neighbor':{'ip_address':random_neighbor.ip_address, 'age':random_neighbor.age}}
@@ -328,7 +301,6 @@ def agent_cyclon_handle_peer_join_notification(env):
     response = ''
 
     return status_code, headers, json.dumps(response)
-
 
 # New peer receives response from its introducer's neighbors
 def agent_cyclon_receive_from_introducer_neighbors(env):
