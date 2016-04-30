@@ -241,7 +241,7 @@ def agent_cyclon_deliver_random_walk_message(env):
             if neighbor != random_neighbor:
                 neighbors_list.append(neighbor)
         # Update neighbors list in memory cache
-        new_peer = Neighbor(new_peer_ip_address)
+        new_peer = Neighbor(new_peer_ip_address, 0)
         neighbors_list.append(new_peer)
         mc.set('neighbors', neighbors_list, 0)
 
