@@ -8,6 +8,10 @@ import random
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
 
+# Get introducer's ip address (CYCLON Protocol)
+INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip') 
+AGENT_IP = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
+NEIGHBORS = []
 INTERVAL = int(config.get('CYCLON', 'interval'))
 FIXED_SIZE_CACHE = int(config.get('CYCLON', 'fixed_size_cache'))
 SHUFFLE_LENGTH = int(config.get('CYCLON', 'shuffle_length'))

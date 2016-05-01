@@ -19,10 +19,6 @@ from cyclon.common import *
 import memcache
 mc = memcache.Client([MEMCACHED_SERVER_IP], debug=1)
 
-# Get introducer's ip address (CYCLON Protocol)
-INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip') 
-AGENT_IP = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
-NEIGHBORS = []
 
 # Neighbor object
 class Neighbor(object):
