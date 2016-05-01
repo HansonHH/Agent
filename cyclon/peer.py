@@ -161,9 +161,12 @@ class Peer(Thread):
 	oldest_neighbor = neighbors[0]
         oldest_neighbors = []
 	for neighbor in neighbors:
-	    if neighbor.age >= oldest_neighbor.age:
+	    if neighbor.age > oldest_neighbor.age:
 	        oldest_neighbor = neighbor
-                oldest_neighbors.append(oldest_neighbor)
+        
+        for neighbor in neighbors:
+            if neighbor.age == oldest_neighbor.age:
+            oldest_neighbors.append(oldest_neighbor)
 	
 	return random.choice(oldest_neighbors)
 	
@@ -285,7 +288,18 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
                 random_neighbor = random.choice(filtered_received_neighbors)
                 if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
                     neighbors.append(random_neighbor)
-                    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+                    #filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+                else:
+                    # Update neighbor's age
+                    updated_neighbors = []
+                    for neighbor in neighbors:
+                        if neighbor.ip_address == random_neighbor.ip_address:
+                            updated_neighbor = Neighbor(neighbor.ip_address, 0)
+                            updated_neighbors.append(updated_neighbors)
+                        else:
+                            updated_neighbors.append(neighbor)
+                    mc.set("neighbors", updated_neighbors, 0)
+
                 #neighbors.append(random_neighbor)
                 #filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
