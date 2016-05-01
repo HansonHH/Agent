@@ -104,6 +104,7 @@ def agent_launch_cyclon_peer_thread():
     peer.setDaemon(True)
     peer.start()
 
+
 # Agent changes view of its knowledge of the whole network periodically based on CYCLON protocol
 def agent_cyclon_view_exchange(env):
 
@@ -116,6 +117,7 @@ def agent_cyclon_view_exchange(env):
     response = neighbor.ip_address + ', ' + str(neighbor.age)
 
     return status_code, headers, json.dumps(response)
+
 
 # Act as introducer and handle request of new peer join
 def agent_cyclon_new_peer_join(env):
@@ -211,6 +213,7 @@ def init_random_walk(new_peer_ip_address, n, TTL):
     for i in range(len(threads)):
 	res = threads[i].join()
 
+
 # Peer delivers random walk message
 def agent_cyclon_deliver_random_walk_message(env):
     print 'Peer Delivers Random Walk Message...'
@@ -279,6 +282,7 @@ def pick_neighbors_at_random(neighbors, number):
 
     return random_neighbors2
     
+
 # Handles peer join notification sent from new peer's introducer
 def agent_cyclon_handle_peer_join_notification(env):
     print 'Neighbor of New Peer\'s Introducer Handles Peer Join Notification...'
@@ -307,6 +311,7 @@ def agent_cyclon_handle_peer_join_notification(env):
 
     return status_code, headers, json.dumps(response)
 
+
 # New peer receives response from its introducer's neighbors
 def agent_cyclon_receive_from_introducer_neighbors(env):
     print 'New Peer Receives Response from Introducer\'s Neighbors !!!!!!!'
@@ -326,6 +331,7 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     response = ''
             
+    # Print out neighbors list
     neighbors = mc.get('neighbors')
     print '*'*50
     print 'FIXED_SIZE_CACHE: %s' % FIXED_SIZE_CACHE
