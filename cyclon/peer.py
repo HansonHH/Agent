@@ -10,19 +10,19 @@ CYCLON Protocol Peer Class
 from threading import Thread
 import time
 from time import gmtime, strftime
-from common import *
+#from common import *
 from db import *
 from models import *
 from request import *
+from cyclon.config import *
 from cyclon.common import *
 
-#import memcache
-#mc = memcache.Client([MEMCACHED_SERVER_IP], debug=1)
 
 # Get introducer's ip address (CYCLON Protocol)
 INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip') 
 AGENT_IP = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
 NEIGHBORS = []
+
 
 # Neighbor object
 class Neighbor(object):
@@ -189,18 +189,6 @@ class Peer(Thread):
 
         return subset
 
-    '''
-    # Update agent's neighbor list
-    def update_neighbor_list(self, oldest_neighbor, subset):
-        neighbors = mc.get("neighbors")
-        new_neighbors = []
-        for neighbor in neighbors:
-            #if neighbor not in subset and neighbor is not oldest_neighbor:
-            if neighbor.ip_address != oldest_neighbor.ip_address:
-            #if neighbor != oldest_neighbor:
-                new_neighbors.append(neighbor)
-        #mc.set("neighbors", new_neighbors, 0)
-    '''
 
     def send_to_oldest_neighbor(self, oldest_neighbor, subset):
         print 'Send to oldest neighbor...'
@@ -220,7 +208,90 @@ class Peer(Thread):
         res = POST_request_to_cloud(url, headers, json.dumps(post_data))
         
 
+# Remove a item from a list
+def remove_from_list(items, target):
+    new_items = []
+    for item in items:
+        if item != target:
+            new_items.append(item)
+    return new_items
+
+# Return a list of neighbors' ip addresses
+def get_neighbors_ip_list(neighbors):
+    neighbors_ip_list = []
+    for neighbor in neighbors:
+        neighbors_ip_list.append(neighbor.ip_address)
+    return neighbors_ip_list
+
+# Check if new peer is already in
+def is_in_neighbors(neighbors_ip_list, new_peer_ip_address):
+    if new_peer_ip_address in neighbors_ip_list:
+        return True
+    else:
+        return False
+
+# Remove duplicated neighbor
+def remove_neighbors_with_same_ip(neighbors):
+
+    new_neighbors = []
+    for i in range(len(neighbors)):
+        neighbors_ip_list = get_neighbors_ip_list(new_neighbors)
+        if neighbors[i].ip_address not in neighbors_ip_list:
+            new_neighbors.append(neighbors[i])
+    return new_neighbors
+
+# Randomly pick n neighbors
+def pick_neighbors_at_random(neighbors, number):
+
+    # Select a cloud at random
+    random_neighbors = []
+    for i in range(number):
+        neighbor =  random.choice(neighbors)
+        random_neighbors.append(neighbor)
+
+    return random_neighbors
 
 
+def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
 
+    # Discard entries pointing to agent, and entries that are already in anget's cache
+    filtered_received_neighbors = []
+    neighbors_ip_list = get_neighbors_ip_list(neighbors)
 
+    for neighbor in received_neighbors:
+        #if neighbor['ip_address'] not in neighbors_ip_list and neighbor['ip_address'] != AGENT_IP:
+        #agent_ip = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
+        if neighbor['ip_address'] != AGENT_IP:
+            neighbor = Neighbor(neighbor['ip_address'], int(neighbor['age']))
+            filtered_received_neighbors.append(neighbor)
+    
+    # Remove redundant neighbors	
+    filtered_received_neighbors = remove_neighbors_with_same_ip(filtered_received_neighbors)
+
+    # Update peer's cache to include all remaining entries 
+    # Firstly, use empty cache slots (if any)
+    if len(neighbors) < FIXED_SIZE_CACHE:
+        for i in range(FIXED_SIZE_CACHE-len(neighbors)):
+            neighbors_ip_list = get_neighbors_ip_list(neighbors)
+            random_neighbor = random.choice(filtered_received_neighbors)
+            #if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+            #    neighbors.append(random_neighbor)
+            #    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+            neighbors.append(random_neighbor)
+            filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+
+    # Secondly, replace entries among the ones originally sent to the other peer
+    if len(neighbors) == FIXED_SIZE_CACHE:
+        #response_neighbors_cp = response_neighbors
+        for i in range(len(filtered_received_neighbors)):
+
+            random_neighbor = random.choice(filtered_received_neighbors)
+            filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+
+            random_response_neighbor = random.choice(response_neighbors)
+            response_neighbors = remove_from_list(response_neighbors, random_response_neighbor)
+
+            neighbors = remove_from_list(neighbors, random_response_neighbor)
+            neighbors.append(random_neighbor)
+
+    mc.set("neighbors", neighbors, 0)
