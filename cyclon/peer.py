@@ -204,16 +204,15 @@ class Peer(Thread):
         post_data = {"neighbors":neighbors}
         res = POST_request_to_cloud(url, headers, json.dumps(post_data))
 
-        print 'HAHA '*80
-        print res.json()
-        print 'HAHA '*80
+        #print 'HAHA '*80
+        #print res.json()
+        #print 'HAHA '*80
 
         sent_neighbors = res.json()['received_neighbors']
         response_neighbors = res.json()['response_neighbors']
     
         neighbors = mc.get("neighbors")
         # Update local neighbors list in memeory cache    
-        #update_neighbors_cache(neighbors, received_neighbors, response_neighbors)
         update_neighbors_cache(neighbors, response_neighbors, sent_neighbors)
 
         
@@ -296,14 +295,16 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
         #response_neighbors_cp = response_neighbors
         for i in range(len(filtered_received_neighbors)):
 
-            random_neighbor = random.choice(filtered_received_neighbors)
-            filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+	    if len(neighbors) <= FIXED_SIZE_CACHE:
 
-            random_response_neighbor = random.choice(response_neighbors)
-            response_neighbors = remove_from_list(response_neighbors, random_response_neighbor)
+            	random_neighbor = random.choice(filtered_received_neighbors)
+            	filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
-            neighbors = remove_from_list(neighbors, random_response_neighbor)
-            neighbors.append(random_neighbor)
+            	random_response_neighbor = random.choice(response_neighbors)
+            	response_neighbors = remove_from_list(response_neighbors, random_response_neighbor)
+
+            	neighbors = remove_from_list(neighbors, random_response_neighbor)
+            	neighbors.append(random_neighbor)
 
     mc.set("neighbors", neighbors, 0)
 
