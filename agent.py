@@ -352,9 +352,9 @@ def agent_cyclon_receive_view_exchange_request(env):
     
     
     response = {"response_neighbors":response_neighbors_data, "received_neighbors":received_data['neighbors']}
-    print '='*80
+    print 'FUCK '*80
     print response
-    print '='*80
+    print 'FUCK '*80
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
