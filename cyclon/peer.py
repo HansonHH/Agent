@@ -166,7 +166,7 @@ class Peer(Thread):
         
         for neighbor in neighbors:
             if neighbor.age == oldest_neighbor.age:
-            oldest_neighbors.append(oldest_neighbor)
+                oldest_neighbors.append(oldest_neighbor)
 	
 	return random.choice(oldest_neighbors)
 	
