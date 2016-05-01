@@ -353,10 +353,10 @@ def agent_cyclon_receive_view_exchange_request(env):
     print 'Peer Receives Request of View Exchange From Its Neighbor...'
 
     received_data = json.loads(env['wsgi.input'].read())
-    neighbors = received_data['neighbors']
+    print received_data
+    #neighbors = received_data['neighbors']
     print '#'*80
-    print neighbors
-
+    #print neighbors
 
 
 # Return a list of neighbors' ip addresses
