@@ -29,6 +29,9 @@ class Neighbor(object):
     def __init__(self, ip_address, age):
         self.ip_address = ip_address
         self.age = int(age)
+    
+    def __str__(self):
+        return "ip_address: %s, age: %s" % (self.ip_address, self.age)
 
 class Peer(Thread):
      
@@ -47,6 +50,9 @@ class Peer(Thread):
             mc.set("neighbors", self.neighbors, 0)
         else:
             mc.set("neighbors", [], 0)
+    
+    #def __str__(self):
+    #    return "neighbors: %" % (self.neighbors)
 
     def run(self):
 

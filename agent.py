@@ -335,25 +335,24 @@ def agent_cyclon_receive_view_exchange_request(env):
     print 'Peer Receives Request of View Exchange From Its Neighbor...'
 
     received_data = json.loads(env['wsgi.input'].read())
-    print received_data
     received_neighbors = received_data['neighbors']
     print '#'*80
-    print received_neighbors
 
     neighbors = mc.get("neighbors")
 
     # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
     response_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
+    
+    update_neighbors_cache(neighbors, response_neighbors)
 
-    # Discard entries pointing to agent, and entries that are already in anget's cache
-    neighbors_ip_list = get_neighbors_ip_list(neighbors)
-    for neighbor in received_neighbors:
-        if neighbor['ip_address'] not in neighbors_ip_list and neighbor['ip_address'] != AGENT_IP:
-            print '@'*80
-            print neighbor['ip_address']
-            print neighbor['age']
-            print '@'*80
 
+# Remove a item from a list
+def remove_from_list(items, target):
+    new_items = []
+    for item in items:
+        if item != target:
+            new_items.append(item)
+    return new_items
 
 # Return a list of neighbors' ip addresses
 def get_neighbors_ip_list(neighbors):
@@ -370,6 +369,14 @@ def is_in_neighbors(neighbors_ip_list, new_peer_ip_address):
     else:
         return False
 
+# Remove duplicated neighbor
+def remove_neighbors_with_same_ip(neighbors):
+    neighbors2 = []
+    for i in range(len(neighbors)):
+        neighbors_ip_list = get_neighbors_ip_list(neighbors2)
+        if neighbors[i].ip_address not in neighbors_ip_list:
+            neighbors2.append(neighbors[i])
+    return neighbors2
 
 # Randomly pick n neighbors
 def pick_neighbors_at_random(neighbors, number):
@@ -379,12 +386,46 @@ def pick_neighbors_at_random(neighbors, number):
     for i in range(number):
         neighbor =  random.choice(neighbors)
         random_neighbors.append(neighbor)
-    # Remove duplicated neighbor
-    #random_neighbors2 = []
-    #random_neighbors = neighbors
-    #for i in range(len(random_neighbors)):
-    #    if random_neighbors[i] not in random_neighbors2:
-    #        random_neighbors2.append(random_neighbors[i])
 
     return random_neighbors
+
+def update_neighbors_cache(neighbors, response_neighbors):
+    # Discard entries pointing to agent, and entries that are already in anget's cache
+    filtered_received_neighbors = []
+    neighbors_ip_list = get_neighbors_ip_list(neighbors)
+    for neighbor in received_neighbors:
+        if neighbor['ip_address'] not in neighbors_ip_list and neighbor['ip_address'] != AGENT_IP:
+            neighbor = Neighbor(neighbor['ip_address'], neighbor['age'])
+            filtered_received_neighbors.append(neighbor)
+    
+    # Remove redundant neighbors	
+    filtered_received_neighbors = remove_neighbors_with_same_ip(filtered_received_neighbors)
+
+    # Update peer's cache to include all remaining entries 
+    # Firstly, use empty cache slots (if any)
+    if len(neighbors) < FIXED_SIZE_CACHE:
+        for i in range(FIXED_SIZE_CACHE-len(neighbors)):
+            neighbors_ip_list = get_neighbors_ip_list(neighbors)
+            random_neighbor = random.choice(filtered_received_neighbors)
+            if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+                neighbors.append(random_neighbor)
+                filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+
+    # Secondly, replace entries among the ones originally sent to the other peer
+    if len(neighbors) == FIXED_SIZE_CACHE:
+        response_neighbors_cp = response_neighbors
+        for i in range(len(filtered_received_neighbors)):
+
+            random_neighbor = random.choice(filtered_received_neighbors)
+            filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+
+            random_response_neighbor = random.choice(response_neighbors_cp)
+            response_neighbors_cp = remove_from_list(response_neighbors_cp, random_response_neighbor)
+
+            neighbors = remove_from_list(neighbors, random_response_neighbor)
+            neighbors.append(random_neighbor)
+
+    mc.set("neighbors", neighbors, 0)
+    
+
 
