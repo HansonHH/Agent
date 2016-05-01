@@ -202,14 +202,15 @@ class Peer(Thread):
         url = oldest_neighbor.ip_address + '/v1/agent/cyclon/receive_view_exchange_request'
         neighbors = []
         for neighbor in subset:
+            #dic = {"neighbor":{"ip_address":neighbor.ip_address, "age":neighbor.age}}
             dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
             neighbors.append(dic)
 
-        post_data = {"neighbors":str(neighbors)}
+        post_data = {"neighbors":neighbors}
         print post_data
         print '-'*50
         print json.dumps(post_data)
-        res = POST_request_to_cloud(url, headers, json.dumps(dic))
+        res = POST_request_to_cloud(url, headers, json.dumps(post_data))
         
 
 
