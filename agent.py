@@ -267,24 +267,6 @@ def agent_cyclon_deliver_random_walk_message(env):
     return status_code, headers, json.dumps(response)
 
 
-# Randomly pick n neighbors
-def pick_neighbors_at_random(neighbors, number):
-
-    # Select a cloud at random
-    random_neighbors = []
-    for i in range(number):
-        neighbor =  random.choice(neighbors)
-        random_neighbors.append(neighbor)
-    # Remove duplicated neighbor
-    random_neighbors2 = []
-    random_neighbors = neighbors
-    for i in range(len(random_neighbors)):
-        if random_neighbors[i] not in random_neighbors2:
-            random_neighbors2.append(random_neighbors[i])
-
-    return random_neighbors2
-    
-
 # Handles peer join notification sent from new peer's introducer
 def agent_cyclon_handle_peer_join_notification(env):
     print 'Neighbor of New Peer\'s Introducer Handles Peer Join Notification...'
@@ -354,9 +336,23 @@ def agent_cyclon_receive_view_exchange_request(env):
 
     received_data = json.loads(env['wsgi.input'].read())
     print received_data
-    neighbors = received_data['neighbors']
+    received_neighbors = received_data['neighbors']
     print '#'*80
-    print neighbors
+    print received_neighbors
+
+    neighbors = mc.get("neighbors")
+
+    # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
+    response_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
+
+    # Discard entries pointing to agent, and entries that are already in anget's cache
+    neighbors_ip_list = get_neighbors_ip_list(neighbors)
+    for neighbor in received_neighbors:
+        if neighbor['ip_address'] not in neighbors_ip_list and neighbor['ip_address'] != AGENT_IP:
+            print '@'*80
+            print neighbor['ip_address']
+            print neighbor['age']
+            print '@'*80
 
 
 # Return a list of neighbors' ip addresses
@@ -366,6 +362,7 @@ def get_neighbors_ip_list(neighbors):
         neighbors_ip_list.append(neighbor.ip_address)
     return neighbors_ip_list
 
+
 # Check if new peer is already in
 def is_in_neighbors(neighbors_ip_list, new_peer_ip_address):
     if new_peer_ip_address in neighbors_ip_list:
@@ -374,4 +371,20 @@ def is_in_neighbors(neighbors_ip_list, new_peer_ip_address):
         return False
 
 
+# Randomly pick n neighbors
+def pick_neighbors_at_random(neighbors, number):
+
+    # Select a cloud at random
+    random_neighbors = []
+    for i in range(number):
+        neighbor =  random.choice(neighbors)
+        random_neighbors.append(neighbor)
+    # Remove duplicated neighbor
+    #random_neighbors2 = []
+    #random_neighbors = neighbors
+    #for i in range(len(random_neighbors)):
+    #    if random_neighbors[i] not in random_neighbors2:
+    #        random_neighbors2.append(random_neighbors[i])
+
+    return random_neighbors
 
