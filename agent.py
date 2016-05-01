@@ -345,6 +345,23 @@ def agent_cyclon_receive_view_exchange_request(env):
     # Update local neighbors list in memeory cache    
     update_neighbors_cache(neighbors, received_neighbors, response_neighbors)
 
+    response_neighbors_data = []
+    for neighbor in response_neighbors:
+        dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
+        response_neighbors_data.append(dic)
+    
+    
+    response = {"response_neighbors":response_neighbors_data, "received_neighbors":received_data['neighbors']}
+    print '='*80
+    print response
+    print '='*80
+    
+    status_code = '200'
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    
+    return status_code, headers, json.dumps(response)
+
+
 
     
 

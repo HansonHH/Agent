@@ -2,6 +2,7 @@ import ConfigParser
 import memcache
 import socket
 import os
+import random
 
 
 config = ConfigParser.ConfigParser()
