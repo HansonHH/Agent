@@ -265,20 +265,28 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
             neighbor = Neighbor(neighbor['ip_address'], int(neighbor['age']))
             filtered_received_neighbors.append(neighbor)
     
+    print '!'*400
+    print filtered_received_neighbors[0].ip_address
     # Remove redundant neighbors	
     filtered_received_neighbors = remove_neighbors_with_same_ip(filtered_received_neighbors)
+    print filtered_received_neighbors[0].ip_address
+    print '!'*400
 
     # Update peer's cache to include all remaining entries 
     # Firstly, use empty cache slots (if any)
     if len(neighbors) < FIXED_SIZE_CACHE:
         for i in range(FIXED_SIZE_CACHE-len(neighbors)):
-            neighbors_ip_list = get_neighbors_ip_list(neighbors)
-            random_neighbor = random.choice(filtered_received_neighbors)
-            #if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
-            #    neighbors.append(random_neighbor)
-            #    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
-            neighbors.append(random_neighbor)
-            filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+            if len(filtered_received_neighbors) != 0:
+                neighbors_ip_list = get_neighbors_ip_list(neighbors)
+                print '1'*200
+                random_neighbor = random.choice(filtered_received_neighbors)
+                print random_neighbor
+                print '2'*200
+                #if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+                #    neighbors.append(random_neighbor)
+                #    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+                neighbors.append(random_neighbor)
+                filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
     # Secondly, replace entries among the ones originally sent to the other peer
     if len(neighbors) == FIXED_SIZE_CACHE:
