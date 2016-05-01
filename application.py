@@ -347,4 +347,14 @@ def application(env, start_response):
         
 	return response
 
+    # Peer receives request of view exchange
+    elif PATH_INFO.startswith('/v1/agent/cyclon/receive_view_exchange_request'):
+        print '*'*30
+        print 'Agent v1.0 CYCLON Peer Receives Request of View Exhcange'
+        print '*'*30
+
+        status_code, headers, response = agent_cyclon_receive_view_exchange_request(env)
+        start_response(status_code, headers)
+        
+	return response
 

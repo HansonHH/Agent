@@ -100,6 +100,8 @@ def agent_upload_binary_image_data_to_selected_cloud(env):
 # Launch Peer thread in order to make peer run CYCLON Protocol periodically
 def agent_launch_cyclon_peer_thread():
 
+    #import threading
+    #lock = threading.Lock()
     peer = Peer(INTERVAL, [])
     peer.setDaemon(True)
     peer.start()
@@ -314,7 +316,7 @@ def agent_cyclon_handle_peer_join_notification(env):
 
 # New peer receives response from its introducer's neighbors
 def agent_cyclon_receive_from_introducer_neighbors(env):
-    print 'New Peer Receives Response from Introducer\'s Neighbors !!!!!!!'
+    print 'New Peer Receives Response from Introducer\'s Neighbors...'
     
     received_data = json.loads(env['wsgi.input'].read())
     res_neighbor_ip = received_data['neighbor']['ip_address']
@@ -344,6 +346,17 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
     print '*'*50
 
     return status_code, headers, json.dumps(response)
+
+
+# Peer receives request of view exchange from its neighbor
+def agent_cyclon_receive_view_exchange_request(env):
+    print 'Peer Receives Request of View Exchange From Its Neighbor...'
+
+    received_data = json.loads(env['wsgi.input'].read())
+    neighbors = received_data['neighbors']
+    print '#'*80
+    print neighbors
+
 
 
 # Return a list of neighbors' ip addresses

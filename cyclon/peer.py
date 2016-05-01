@@ -38,6 +38,7 @@ class Peer(Thread):
         self.STOP = False
         self.interval = interval
         self.neighbors = neighbors
+        #self.lock = lock
         
         if INTRODUCER_IP != AGENT_IP:
             introducer = Neighbor(INTRODUCER_IP, 0)
@@ -70,7 +71,11 @@ class Peer(Thread):
             
             # Update all neighbors' age by one
             self.update_age()
+            #self.lock.acquire()
+            #print 'CYCLON Thread Lock Acquire...'
 	    self.view_exchange()
+            #self.lock.release()
+            #print 'CYCLON Thread Lock Release...'
     
 
     # New peer sends a request to its introducer to join the P2P network
@@ -144,7 +149,7 @@ class Peer(Thread):
 
     # Pick up the oldest neighbor from neighbors list
     def pick_neighbor_with_highest_age(self, neighbors):
-        print 'Pick Up Oldest neighbor...'
+        print 'Pick up oldest neighbor...'
 
 	oldest_neighbor = neighbors[0]
         oldest_neighbors = []
@@ -177,12 +182,24 @@ class Peer(Thread):
 
         return subset
 
+    '''
+    # Update agent's neighbor list
+    def update_neighbor_list(self, oldest_neighbor, subset):
+        neighbors = mc.get("neighbors")
+        new_neighbors = []
+        for neighbor in neighbors:
+            #if neighbor not in subset and neighbor is not oldest_neighbor:
+            if neighbor.ip_address != oldest_neighbor.ip_address:
+            #if neighbor != oldest_neighbor:
+                new_neighbors.append(neighbor)
+        #mc.set("neighbors", new_neighbors, 0)
+    '''
+
     def send_to_oldest_neighbor(self, oldest_neighbor, subset):
-        print 'Push to Oldest Neighbor...'
+        print 'Send to oldest neighbor...'
         
         headers = {'Content-Type': 'application/json'}
-        url = oldest_neighbor.ip_address + '/v1/agent/cyclon/message_from_view_exchange'
-        #dic = {"neighbors":{}}
+        url = oldest_neighbor.ip_address + '/v1/agent/cyclon/receive_view_exchange_request'
         neighbors = []
         for neighbor in subset:
             dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
@@ -192,7 +209,7 @@ class Peer(Thread):
         print post_data
         print '-'*50
         print json.dumps(post_data)
-        #res = POST_request_to_cloud(url, headers, json.dumps(dic))
+        res = POST_request_to_cloud(url, headers, json.dumps(dic))
         
 
 
