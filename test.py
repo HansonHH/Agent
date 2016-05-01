@@ -1,4 +1,5 @@
 from cyclon.peer import *
+import random
 
 
 # Remove a item from a list
@@ -6,6 +7,7 @@ def remove_from_list(items, target):
     new_items = []
     for item in items:
         if item != target:
+        #if item.ip_address != target.ip_address and item.age != target.ip_address:
             new_items.append(item)
     return new_items
 
@@ -47,11 +49,10 @@ for neighbor in neighbors:
 #response_neighbors.append(Neighbor('http://10.0.1.12', 0))
 
 filtered_received_neighbors = []
-filtered_received_neighbors.append(Neighbor('http://10.0.1.13',0))
-filtered_received_neighbors.append(Neighbor('http://10.0.1.14',0))
-filtered_received_neighbors.append(Neighbor('http://10.0.1.15',0))
-filtered_received_neighbors.append(Neighbor('http://10.0.1.15',0))
-filtered_received_neighbors.append(Neighbor('http://10.0.1.16',0))
+filtered_received_neighbors.append(Neighbor('http://10.0.1.13',1))
+filtered_received_neighbors.append(Neighbor('http://10.0.1.14',2))
+filtered_received_neighbors.append(Neighbor('http://10.0.1.12',3))
+filtered_received_neighbors.append(Neighbor('http://10.0.1.15',4))
 
 filtered_received_neighbors = remove_neighbors_with_same_ip(filtered_received_neighbors)
 
@@ -63,15 +64,9 @@ if len(neighbors) < FIXED_SIZE_CACHE:
     for i in range(FIXED_SIZE_CACHE-len(neighbors)):
         neighbors_ip_list = get_neighbors_ip_list(neighbors)
         random_neighbor = random.choice(filtered_received_neighbors)
-        if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
-            neighbors.append(random_neighbor)
-            filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
-
-for neighbor in neighbors:
-    print neighbor
-print '-'*100
-for neighbor in response_neighbors:
-    print neighbor
+        #if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+        neighbors.append(random_neighbor)
+        filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
 print '!'*100
 print '*'*50

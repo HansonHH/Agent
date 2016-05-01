@@ -100,9 +100,11 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
         for i in range(FIXED_SIZE_CACHE-len(neighbors)):
             neighbors_ip_list = get_neighbors_ip_list(neighbors)
             random_neighbor = random.choice(filtered_received_neighbors)
-            if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
-                neighbors.append(random_neighbor)
-                filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+            #if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+            #    neighbors.append(random_neighbor)
+            #    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+            neighbors.append(random_neighbor)
+            filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
     # Secondly, replace entries among the ones originally sent to the other peer
     if len(neighbors) == FIXED_SIZE_CACHE:
@@ -119,3 +121,8 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
             neighbors.append(random_neighbor)
 
     mc.set("neighbors", neighbors, 0)
+
+
+
+
+
