@@ -205,7 +205,7 @@ class Peer(Thread):
             dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
             neighbors.append(dic)
 
-        post_data = str({"neighbors":neighbors})
+        post_data = {"neighbors":str(neighbors)}
         print post_data
         print '-'*50
         print json.dumps(post_data)
