@@ -13,8 +13,8 @@ import ast
 import re
 import json
 import random
-import os
-import socket
+#import os
+#import socket
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
@@ -28,11 +28,6 @@ AGENT_DB_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/%s' % (DATABASE_US
 TEMP_IMAGE_PATH = config.get('Glance', 'temp_image_path')
 IMAGE_FILE_PATH = config.get('Glance', 'image_file_path')
 
-INTERVAL = int(config.get('CYCLON', 'interval'))
-FIXED_SIZE_CACHE = int(config.get('CYCLON', 'fixed_size_cache'))
-SHUFFLE_LENGTH = int(config.get('CYCLON', 'shuffle_length'))
-RANDOM_WALK_TTL = int(config.get('CYCLON', 'random_walk_TTL'))
-MEMCACHED_SERVER_IP = config.get('CYCLON', 'memcached_server_ip')
 
 # A function to send resonse to end-user if resource info dose exist in agent local DB
 def non_exist_response(status_code, response_body):
@@ -124,24 +119,6 @@ def select_site_to_create_object():
 
     return cloud_name, cloud_address
 
-def get_interface_ip(ifname):
-    import fcntl
-    import struct
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15]))[20:24])
-
-# Get agent's lan ip address
-def get_lan_ip():
-    ip = socket.gethostbyname(socket.gethostname())
-    if ip.startswith("127.") and os.name != "nt":
-        interfaces = ["eth1", "eth0", "eth2","wlan0","wlan1","wifi0","ath0","ath1","ppp0"]
-        for ifname in interfaces:
-            try:
-                ip = get_interface_ip(ifname)
-                break
-            except IOError:
-                pass
-    return ip
 
 
 

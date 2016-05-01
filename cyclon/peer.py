@@ -14,6 +14,7 @@ from common import *
 from db import *
 from models import *
 from request import *
+from cyclon.common import *
 
 import memcache
 mc = memcache.Client([MEMCACHED_SERVER_IP], debug=1)
