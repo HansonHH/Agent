@@ -142,14 +142,14 @@ class Peer(Thread):
             # Create a subset containing SHUFFLE_LENGTH neighbors
             subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
 
-	    print '!'*80
-            print 'Oldest Neighbor IP Address: %s' % oldest_neighbor.ip_address
-            print 'Oldest Neighbor Age: %s' % oldest_neighbor.age
-            print 'Subset Length: %d' % len(subset)
-            for item in subset:
-                print item.ip_address
-                print item.age
-	    print '!'*80
+	    #print '!'*80
+            #print 'Oldest Neighbor IP Address: %s' % oldest_neighbor.ip_address
+            #print 'Oldest Neighbor Age: %s' % oldest_neighbor.age
+            #print 'Subset Length: %d' % len(subset)
+            #for item in subset:
+            #    print item.ip_address
+            #    print item.age
+	    #print '!'*80
             # Send selected subset to the oldest neighbor
             self.send_to_oldest_neighbor(oldest_neighbor, subset)
 
@@ -172,7 +172,6 @@ class Peer(Thread):
     def select_subnet_randomly(self, neighbors, oldest_neighbor):
         print 'Select Subnet Randomly...'
 
-        print '*'*100
         temp_list = []
         for neighbor in neighbors:
             if neighbor != oldest_neighbor:
@@ -284,11 +283,11 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
             if len(filtered_received_neighbors) != 0:
                 neighbors_ip_list = get_neighbors_ip_list(neighbors)
                 random_neighbor = random.choice(filtered_received_neighbors)
-                #if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
-                #    neighbors.append(random_neighbor)
-                #    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
-                neighbors.append(random_neighbor)
-                filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+                if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+                    neighbors.append(random_neighbor)
+                    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+                #neighbors.append(random_neighbor)
+                #filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
     # Secondly, replace entries among the ones originally sent to the other peer
     if len(neighbors) == FIXED_SIZE_CACHE:
