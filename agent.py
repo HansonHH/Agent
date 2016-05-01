@@ -343,7 +343,7 @@ def agent_cyclon_receive_view_exchange_request(env):
     # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
     response_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
     
-    update_neighbors_cache(neighbors, response_neighbors)
+    update_neighbors_cache(neighbors, received_neighbors, response_neighbors)
 
 
 # Remove a item from a list
@@ -371,12 +371,13 @@ def is_in_neighbors(neighbors_ip_list, new_peer_ip_address):
 
 # Remove duplicated neighbor
 def remove_neighbors_with_same_ip(neighbors):
-    neighbors2 = []
+
+    new_neighbors = []
     for i in range(len(neighbors)):
-        neighbors_ip_list = get_neighbors_ip_list(neighbors2)
+        neighbors_ip_list = get_neighbors_ip_list(new_neighbors)
         if neighbors[i].ip_address not in neighbors_ip_list:
-            neighbors2.append(neighbors[i])
-    return neighbors2
+            new_neighbors.append(neighbors[i])
+    return new_neighbors
 
 # Randomly pick n neighbors
 def pick_neighbors_at_random(neighbors, number):
@@ -389,12 +390,16 @@ def pick_neighbors_at_random(neighbors, number):
 
     return random_neighbors
 
-def update_neighbors_cache(neighbors, response_neighbors):
+def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
+
     # Discard entries pointing to agent, and entries that are already in anget's cache
     filtered_received_neighbors = []
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
+    print neighbors_ip_list
     for neighbor in received_neighbors:
-        if neighbor['ip_address'] not in neighbors_ip_list and neighbor['ip_address'] != AGENT_IP:
+        print neighbor
+        #if neighbor['ip_address'] not in neighbors_ip_list and neighbor['ip_address'] != AGENT_IP:
+        if neighbor['ip_address'] != AGENT_IP:
             neighbor = Neighbor(neighbor['ip_address'], neighbor['age'])
             filtered_received_neighbors.append(neighbor)
     
@@ -413,14 +418,14 @@ def update_neighbors_cache(neighbors, response_neighbors):
 
     # Secondly, replace entries among the ones originally sent to the other peer
     if len(neighbors) == FIXED_SIZE_CACHE:
-        response_neighbors_cp = response_neighbors
+        #response_neighbors_cp = response_neighbors
         for i in range(len(filtered_received_neighbors)):
 
             random_neighbor = random.choice(filtered_received_neighbors)
             filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
-            random_response_neighbor = random.choice(response_neighbors_cp)
-            response_neighbors_cp = remove_from_list(response_neighbors_cp, random_response_neighbor)
+            random_response_neighbor = random.choice(response_neighbors)
+            response_neighbors = remove_from_list(response_neighbors, random_response_neighbor)
 
             neighbors = remove_from_list(neighbors, random_response_neighbor)
             neighbors.append(random_neighbor)
