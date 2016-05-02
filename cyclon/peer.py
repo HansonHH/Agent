@@ -147,7 +147,10 @@ class Peer(Thread):
             selected_subset, sent_subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
 
             # Send selected subset to the oldest neighbor
-            self.send_to_oldest_neighbor(oldest_neighbor, selected_subset, sent_subset)
+            try:
+                self.send_to_oldest_neighbor(oldest_neighbor, selected_subset, sent_subset)
+            except:
+                pass
 
 
     # Pick up the oldest neighbor from neighbors list
@@ -283,7 +286,6 @@ def pick_neighbors_at_random(neighbors, number):
 def update_neighbors_cache(neighbors, received_neighbors, selected_neighbors):
 
     print '!'*150
-    print len(neighbors)
     # Discard entries pointing to agent, and entries that are already in anget's cache
     filtered_received_neighbors = []
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
@@ -311,22 +313,9 @@ def update_neighbors_cache(neighbors, received_neighbors, selected_neighbors):
             else:
                 break
 
-                '''
-                else:
-                    # Update neighbor's age
-                    updated_neighbors = []
-                    for neighbor in neighbors:
-                        if neighbor.ip_address == random_neighbor.ip_address:
-                            updated_neighbor = Neighbor(neighbor.ip_address, 0)
-                            updated_neighbors.append(updated_neighbors)
-                        else:
-                            updated_neighbors.append(neighbor)
-                    mc.set("neighbors", updated_neighbors, 0)
-                '''
-
     print len(neighbors)
     for neighbor in neighbors:
-        print neighbor.ip_address
+        print '%s, %s' % (neighbor.ip_address, neighbor.age)
 
     # Secondly, replace entries among the ones originally sent to the other peer
     if len(neighbors) == FIXED_SIZE_CACHE:
@@ -351,11 +340,8 @@ def update_neighbors_cache(neighbors, received_neighbors, selected_neighbors):
             	    #random_response_neighbor = random.choice(response_neighbors)
             	    selected_neighbors = remove_from_list(selected_neighbors, random_selected_neighbor)
 
-                    print 'length of neighbors: %d' % len(neighbors)
             	    neighbors = remove_from_list(neighbors, random_selected_neighbor)
-                    print 'length of neighbors: %d' % len(neighbors)
             	    neighbors.append(random_neighbor)
-                    print 'length of neighbors: %d' % len(neighbors)
             else:
                 break
     print '!'*150
