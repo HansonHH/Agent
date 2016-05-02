@@ -351,6 +351,7 @@ def update_neighbors_cache(neighbors, received_neighbors, sent_neighbors):
             	    sent_neighbors = remove_from_list(sent_neighbors, random_sent_neighbor)
                     print 'length of sent_neighbors: %d' % len(sent_neighbors)
 
+                    print 'length of neighbors: %d' % len(neighbors)
             	    neighbors = remove_from_list(neighbors, random_sent_neighbor)
                     print 'length of neighbors: %d' % len(neighbors)
             	    neighbors.append(random_neighbor)
