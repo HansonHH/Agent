@@ -113,9 +113,10 @@ def agent_cyclon_new_peer_join(env):
     
     print 'CYCLON New Peer Join'
     # Get neighbor list from memory cache
-    lock.acquire()
-    neighbors = mc.get("neighbors")
-    lock.release()
+    #lock.acquire()
+    #neighbors = mc.get("neighbors")
+    #lock.release()
+    neighbors = read_from_memory_cache("neighbors")
     
     # Get new peer's request
     PostData = env['wsgi.input'].read()
@@ -186,9 +187,10 @@ def init_random_walk(new_peer_ip_address, n, TTL):
     print 'Initiating %d Random Walks... TTL = %d' % (n, TTL)
     
     # Get neighbor list from memory cache
-    lock.acquire()
-    neighbors = mc.get("neighbors")
-    lock.release()
+    #lock.acquire()
+    #neighbors = mc.get("neighbors")
+    #lock.release()
+    neighbors = read_from_memory_cache("neighbors")
 
     headers = {'Content-Type': 'application/json'}
     post_data = {"new_peer_ip_address":new_peer_ip_address, 'TTL':TTL}
@@ -218,9 +220,10 @@ def agent_cyclon_deliver_random_walk_message(env):
     
     new_peer_ip_address = received_data['new_peer_ip_address']
 
-    lock.acquire()
-    neighbors = mc.get("neighbors")
-    lock.release()
+    #lock.acquire()
+    #neighbors = mc.get("neighbors")
+    #lock.release()
+    neighbors = read_from_memory_cache("neighbors")
 
     headers = {'Content-Type': 'application/json'}
 
@@ -247,9 +250,10 @@ def agent_cyclon_deliver_random_walk_message(env):
             new_peer = Neighbor(new_peer_ip_address, 0)
             neighbors_list.append(new_peer)
             
-            lock.acquire()
-            mc.set('neighbors', neighbors_list, 0)
-            lock.release()
+            #lock.acquire()
+            #mc.set('neighbors', neighbors_list, 0)
+            #lock.release()
+	    write_to_memory_cache("neighbors", neighbors_list)
 
     # Continue with random walk, randomly pick up a neighbor and send random walk message to it
     else:
@@ -275,9 +279,10 @@ def agent_cyclon_handle_peer_join_notification(env):
     
     recevied_data = json.loads(env['wsgi.input'].read())
 
-    lock.acquire()
-    neighbors = mc.get("neighbors")
-    lock.release()
+    #lock.acquire()
+    #neighbors = mc.get("neighbors")
+    #lock.release()
+    neighbors = read_from_memory_cache("neighbors")
 
     # Randomly pick up a neighbor as response
     random_neighbor = random.choice(neighbors)
@@ -287,9 +292,10 @@ def agent_cyclon_handle_peer_join_notification(env):
     	new_neighbor = Neighbor(recevied_data['new_peer'], 0)
 	neighbors.append(new_neighbor)
         
-        lock.acquire()
-    	mc.set("neighbors", neighbors, 0)
-        lock.release()
+        #lock.acquire()
+    	#mc.set("neighbors", neighbors, 0)
+        #lock.release()
+	write_to_memory_cache("neighbors", neighbors)
     
     headers = {'Content-Type': 'application/json'}
     url = recevied_data['new_peer'] + '/v1/agent/cyclon/receive_from_introducer_neighbors'
@@ -313,9 +319,10 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
     res_neighbor_ip = received_data['neighbor']['ip_address']
     res_neighbor_age = received_data['neighbor']['age']
     
-    lock.acquire()
-    neighbors = mc.get("neighbors")
+    #lock.acquire()
+    #neighbors = mc.get("neighbors")
     #lock.release()
+    neighbors = read_from_memory_cache("neighbors")
     
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
     if len(neighbors) < FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, res_neighbor_ip):
@@ -323,8 +330,9 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
         neighbors.append(new_neighbor)
         
         #lock.acquire()
-        mc.set("neighbors", neighbors, 0)
-    lock.release()
+        #mc.set("neighbors", neighbors, 0)
+	write_to_memory_cache("neighbors", neighbors)
+    #lock.release()
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
@@ -340,9 +348,10 @@ def agent_cyclon_receive_view_exchange_request(env):
     received_data = json.loads(env['wsgi.input'].read())
     received_neighbors = received_data['neighbors']
 
-    lock.acquire()
-    neighbors = mc.get("neighbors")
-    lock.release()
+    #lock.acquire()
+    #neighbors = mc.get("neighbors")
+    #lock.release()
+    neighbors = read_from_memory_cache("neighbors")
 
     # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
     selected_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)

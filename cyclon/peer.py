@@ -50,9 +50,11 @@ class Peer(Thread):
             introducer = Neighbor(INTRODUCER_IP, 0)
             self.neighbors.append(introducer)
             # Save neighbor list to memcached (expiration up to 30 days)
-            mc.set("neighbors", self.neighbors, 0)
+            #mc.set("neighbors", self.neighbors, 0)
+            write_to_memory_cache("neighbors", self.neighbors)
         else:
-            mc.set("neighbors", [], 0)
+            #mc.set("neighbors", [], 0)
+            write_to_memory_cache("neighbors", [])
     
     #def __str__(self):
     #    return "neighbors: %" % (self.neighbors)
@@ -110,9 +112,7 @@ class Peer(Thread):
     # Update peer's all neighbors' age by one
     def update_age(self):
 
-    	lock.acquire()
-        self.neighbors = mc.get("neighbors")
-    	lock.release()
+        self.neighbors = read_from_memory_cache("neighbors")
 
         if len(self.neighbors) == 0:
             pass
@@ -124,13 +124,9 @@ class Peer(Thread):
             for i in range(len(self.neighbors)):
                 # Update neighbor's age by one                
                 self.neighbors[i].age = self.neighbors[i].age + 1
-                print "age: %s" % self.neighbors[i].age
-                print "ip_address: %s" % self.neighbors[i].ip_address
+                
                 # Save neighbor list to memcached (expiration up to 30 days)
-    		
-		lock.acquire()
-                mc.set("neighbors", self.neighbors, 0)
-    		lock.release()
+                write_to_memory_cache("neighbors", self.neighbors)
             
 	    print '-'*50
 
@@ -139,9 +135,7 @@ class Peer(Thread):
 	
 	print 'Peer View Exchange...'
 
-    	lock.acquire()
-	self.neighbors = mc.get("neighbors")
-    	lock.release()
+        self.neighbors = read_from_memory_cache("neighbors")
 	
 	if len(self.neighbors) == 0:
             print 'No neighbor exists, waiting for neighbor to join...'
@@ -152,14 +146,6 @@ class Peer(Thread):
             # Create a subset containing SHUFFLE_LENGTH neighbors
             selected_subset, sent_subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
 
-	    #print '!'*80
-            #print 'Oldest Neighbor IP Address: %s' % oldest_neighbor.ip_address
-            #print 'Oldest Neighbor Age: %s' % oldest_neighbor.age
-            #print 'Subset Length: %d' % len(subset)
-            #for item in subset:
-            #    print item.ip_address
-            #    print item.age
-	    #print '!'*80
             # Send selected subset to the oldest neighbor
             self.send_to_oldest_neighbor(oldest_neighbor, selected_subset, sent_subset)
 
@@ -197,9 +183,8 @@ class Peer(Thread):
                 selected_subset.append(random.choice(temp_list))
                 sent_subset.append(random.choice(temp_list))
     
-        # Replace oldest neighbor's entry with a new entry of age 0 and with agent's ip address
-        #agent_ip = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
         selected_subset.append(oldest_neighbor)
+        # Replace oldest neighbor's entry with a new entry of age 0 and with agent's ip address
         sent_subset.append(Neighbor(AGENT_IP, 0))
 
         return selected_subset, sent_subset
@@ -219,20 +204,36 @@ class Peer(Thread):
         post_data = {"neighbors":sent_neighbors_data}
         res = POST_request_to_cloud(url, headers, json.dumps(post_data))
 
-        #sent_neighbors = res.json()['received_neighbors']
         response_neighbors = res.json()['neighbors']
     
-    	lock.acquire()
-        neighbors = mc.get("neighbors")
-    	lock.release()
+    	#lock.acquire()
+        #neighbors = mc.get("neighbors")
+    	#lock.release()
+        self.neighbors = read_from_memory_cache("neighbors")
 
         # Update local neighbors list in memeory cache    
-    	lock.acquire()
+    	#lock.acquire()
         update_neighbors_cache(neighbors, response_neighbors, selected_subset)
         #def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
-    	lock.release()
+    	#lock.release()
 
-        
+
+# Read neighbors list from memory cache
+def read_from_memory_cache(key):
+    lock.acquire()
+    try:
+        neighbors = mc.get(key)
+    finally:
+        lock.release()
+        return neighbors
+
+# Write neighbor list to memory cache
+def write_to_memory_cache(key, value):
+    lock.acquire()
+    try:
+        mc.set(key, value, 0)
+    finally:
+        lock.release()
 
 # Remove a item from a list
 def remove_from_list(items, target):
@@ -359,9 +360,7 @@ def update_neighbors_cache(neighbors, received_neighbors, selected_neighbors):
                 break
     print '!'*150
     
-    #lock.acquire()
-    mc.set("neighbors", neighbors, 0)
-    #lock.release()
+    write_to_memory_cache("neighbors", neighbors)
 
 
 
