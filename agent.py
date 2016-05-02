@@ -348,16 +348,20 @@ def agent_cyclon_receive_view_exchange_request(env):
     received_data = json.loads(env['wsgi.input'].read())
     received_neighbors = received_data['neighbors']
 
-    #lock.acquire()
-    #neighbors = mc.get("neighbors")
-    #lock.release()
     neighbors = read_from_memory_cache("neighbors")
+
+    print '^'*200
+    print len(neighbors)
+    print '^'*200
 
     # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
     try:
         selected_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
     except:
         selected_neighbors = []
+        print '!'*200
+        print 'SELECTED_NEIGHBORS = []'
+        print '!'*200
 
     # Update local neighbors list in memeory cache    
     #update_neighbors_cache(neighbors, received_neighbors, selected_neighbors)

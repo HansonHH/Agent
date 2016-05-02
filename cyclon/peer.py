@@ -320,8 +320,8 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
             else:
                 break
 
-    print len(neighbors)
-    for neighbor in neighbors:
+    print len(selected_neighbors)
+    for neighbor in selected_neighbors:
         print '%s, %s' % (neighbor.ip_address, neighbor.age)
 
     # Secondly, replace entries among the ones originally sent to the other peer
