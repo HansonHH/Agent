@@ -342,9 +342,9 @@ def update_neighbors_cache(neighbors, received_neighbors, sent_neighbors):
                     print 'random_sent_neighbor: %s' % random_sent_neighbor.ip_address
 
             	    #random_neighbor = random.choice(filtered_received_neighbors)
-                    print 'length of filtered_received_neighbors: %d' % len(filtered_received__neighbors)
+                    print 'length of filtered_received_neighbors: %d' % len(filtered_received_neighbors)
             	    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
-                    print 'length of filtered_received_neighbors: %d' % len(filtered_received__neighbors)
+                    print 'length of filtered_received_neighbors: %d' % len(filtered_received_neighbors)
 
             	    #random_response_neighbor = random.choice(response_neighbors)
                     print 'length of sent_neighbors: %d' % len(sent_neighbors)
