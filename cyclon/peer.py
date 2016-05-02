@@ -229,8 +229,8 @@ class Peer(Thread):
         post_data = {"neighbors":sent_neighbors_data}
         
         try:
-            #res = POST_request_to_timeout(url, headers, 1, json.dumps(post_data))
-            res = POST_request_to_cloud(url, headers, json.dumps(post_data))
+            res = POST_request_to_timeout(url, headers, 5, json.dumps(post_data))
+            #res = POST_request_to_cloud(url, headers, json.dumps(post_data))
             response_neighbors = res.json()['neighbors']
             # Update local neighbors list in memeory cache    
             update_neighbors_cache(response_neighbors, selected_subset)
@@ -239,6 +239,8 @@ class Peer(Thread):
             print 'TIMEOUT '*40
             if view_exchange_lock.locked():
                 view_exchange_lock.release()
+            else:
+                pass
 
             # Remove the oldest neighbor from local memory cache
             #view_exchange_lock.release()
@@ -315,7 +317,7 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
 
     neighbors = read_from_memory_cache("neighbors")
  
-    print '$'*100
+    #print '$'*100
     # Discard entries pointing to agent, and entries that are already in anget's cache
     filtered_received_neighbors = []
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
@@ -345,8 +347,8 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
     # Remove redundant neighbors
     selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
     
-    for neighbor in selected_neighbors:
-        print '%s, %s' % (neighbor.ip_address, neighbor.age)
+    #for neighbor in selected_neighbors:
+    #    print '%s, %s' % (neighbor.ip_address, neighbor.age)
 
     # Secondly, replace entries among the ones originally sent to the other peer
     if len(neighbors) == FIXED_SIZE_CACHE:
@@ -376,7 +378,7 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
             	    neighbors.append(random_neighbor)
             else:
                 break
-    print '$'*100
+    #print '$'*100
     
     write_to_memory_cache("neighbors", neighbors)
 
