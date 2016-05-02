@@ -354,7 +354,10 @@ def agent_cyclon_receive_view_exchange_request(env):
     neighbors = read_from_memory_cache("neighbors")
 
     # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
-    selected_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
+    try:
+        selected_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
+    except:
+        selected_neighbors = []
 
     # Update local neighbors list in memeory cache    
     update_neighbors_cache(neighbors, received_neighbors, selected_neighbors)

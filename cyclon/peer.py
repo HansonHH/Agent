@@ -135,16 +135,20 @@ class Peer(Thread):
 	
 	print 'Peer View Exchange...'
 
-        self.neighbors = read_from_memory_cache("neighbors")
-	
+	#self.neighbors = read_from_memory_cache("neighbors")
+
 	if len(self.neighbors) == 0:
             print 'No neighbor exists, waiting for neighbor to join...'
 	    pass
     	else:
             # Pick up a oldest neighbor from neighbors list
 	    oldest_neighbor = self.pick_neighbor_with_highest_age(self.neighbors)
-            # Create a subset containing SHUFFLE_LENGTH neighbors
-            selected_subset, sent_subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
+        
+	    #self.neighbors = read_from_memory_cache("neighbors")
+            
+	    # Create a subset containing SHUFFLE_LENGTH neighbors
+            #selected_subset, sent_subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
+            selected_subset, sent_subset = self.select_subnet_randomly(oldest_neighbor)
 
             # Send selected subset to the oldest neighbor
             try:
@@ -166,13 +170,22 @@ class Peer(Thread):
         for neighbor in neighbors:
             if neighbor.age == oldest_neighbor.age:
                 oldest_neighbors.append(oldest_neighbor)
+        
+	oldest_neighbor = random.choice(oldest_neighbors)
 	
-	return random.choice(oldest_neighbors)
+	# Remove the oldest neighbor from local memory cahce
+        neighbors = remove_from_list(neighbors, oldest_neighbor)
+        write_to_memory_cache("neighbors", neighbors)
+	
+	return oldest_neighbor
 	
 
     # Select SHUFFLE_LENGTH - 1 random neighbors
-    def select_subnet_randomly(self, neighbors, oldest_neighbor):
+    #def select_subnet_randomly(self, neighbors, oldest_neighbor):
+    def select_subnet_randomly(self, oldest_neighbor):
         print 'Select Subnet Randomly...'
+	
+	neighbors = read_from_memory_cache("neighbors")
 
         temp_list = []
         for neighbor in neighbors:
@@ -210,13 +223,6 @@ class Peer(Thread):
         response_neighbors = res.json()['neighbors']
     
         neighbors = read_from_memory_cache("neighbors")
-
-
-
-        # Remove the oldest neighbor from local memory cahce
-        neighbors = remove_from_list(neighbors, oldest_neighbor)
-        write_to_memory_cache("neighbors", neighbors)
-
 
 
         # Update local neighbors list in memeory cache    
@@ -294,7 +300,6 @@ def update_neighbors_cache(neighbors, received_neighbors, selected_neighbors):
 
     for neighbor in received_neighbors:
         #if neighbor['ip_address'] not in neighbors_ip_list and neighbor['ip_address'] != AGENT_IP:
-        #agent_ip = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
         if neighbor['ip_address'] != AGENT_IP:
             neighbor = Neighbor(neighbor['ip_address'], int(neighbor['age']))
             filtered_received_neighbors.append(neighbor)
