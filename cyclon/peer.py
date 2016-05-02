@@ -203,6 +203,10 @@ class Peer(Thread):
             for i in range(SHUFFLE_LENGTH-1):
                 selected_subset.append(random.choice(temp_list))
                 sent_subset.append(random.choice(temp_list))
+
+        # Remove redundant neighbors
+        selected_subset = remove_neighbors_with_same_ip(selected_subset)
+        sent_subset = remove_neighbors_with_same_ip(sent_subset)
     
         selected_subset.append(oldest_neighbor)
         # Replace oldest neighbor's entry with a new entry of age 0 and with agent's ip address

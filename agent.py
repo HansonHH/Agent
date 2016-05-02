@@ -332,6 +332,7 @@ def agent_cyclon_receive_view_exchange_request(env):
     # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
     try:
         selected_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
+        selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
     except:
         selected_neighbors = []
         print '!'*100
