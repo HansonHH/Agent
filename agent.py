@@ -332,9 +332,9 @@ def agent_cyclon_receive_view_exchange_request(env):
         selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
     except:
         selected_neighbors = []
-        print '!'*100
-        print 'SELECTED_NEIGHBORS = []'
-        print '!'*100
+        #print '!'*100
+        #print 'SELECTED_NEIGHBORS = []'
+        #print '!'*100
 
     # Update local neighbors list in memeory cache    
     #update_neighbors_cache(neighbors, received_neighbors, selected_neighbors)
