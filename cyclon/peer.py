@@ -222,11 +222,9 @@ class Peer(Thread):
 
         response_neighbors = res.json()['neighbors']
     
-        neighbors = read_from_memory_cache("neighbors")
-
 
         # Update local neighbors list in memeory cache    
-        update_neighbors_cache(neighbors, response_neighbors, selected_subset)
+        update_neighbors_cache(response_neighbors, selected_subset)
 
 
 # Read neighbors list from memory cache
@@ -291,8 +289,10 @@ def pick_neighbors_at_random(neighbors, number):
 
 
 #update_neighbors_cache(neighbors, response_neighbors, sent_neighbors)
-def update_neighbors_cache(neighbors, received_neighbors, selected_neighbors):
+def update_neighbors_cache(received_neighbors, selected_neighbors):
 
+    neighbors = read_from_memory_cache("neighbors")
+ 
     print '!'*150
     # Discard entries pointing to agent, and entries that are already in anget's cache
     filtered_received_neighbors = []
@@ -338,7 +338,7 @@ def update_neighbors_cache(neighbors, received_neighbors, selected_neighbors):
                 random_selected_neighbor = random.choice(selected_neighbors)
 
                 if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
-                    print '%'*300
+                    print '%'*100
                     print 'random_selected_neighbor: %s' % random_selected_neighbor.ip_address
 
             	    #random_neighbor = random.choice(filtered_received_neighbors)
@@ -348,6 +348,7 @@ def update_neighbors_cache(neighbors, received_neighbors, selected_neighbors):
             	    selected_neighbors = remove_from_list(selected_neighbors, random_selected_neighbor)
 
             	    neighbors = remove_from_list(neighbors, random_selected_neighbor)
+                    #if len(neighbors) <= FIXED_SIZE_CACHE:
             	    neighbors.append(random_neighbor)
             else:
                 break
