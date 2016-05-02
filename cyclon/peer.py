@@ -207,7 +207,7 @@ class Peer(Thread):
         
         headers = {'Content-Type': 'application/json'}
         url = oldest_neighbor.ip_address + '/v1/agent/cyclon/receive_view_exchange_request'
-        sent_neighbor_data = []
+        sent_neighbors_data = []
         for neighbor in subset:
             #dic = {"neighbor":{"ip_address":neighbor.ip_address, "age":neighbor.age}}
             dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
@@ -351,7 +351,9 @@ def update_neighbors_cache(neighbors, received_neighbors, sent_neighbors):
             	    sent_neighbors = remove_from_list(sent_neighbors, random_sent_neighbor)
 
             	    neighbors = remove_from_list(neighbors, random_sent_neighbor)
+                    print 'length of neighbors: %d' % len(neighbors)
             	    neighbors.append(random_neighbor)
+                    print 'length of neighbors: %d' % len(neighbors)
             else:
                 break
     print '!'*150
