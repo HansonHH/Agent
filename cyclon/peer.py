@@ -237,10 +237,10 @@ class Peer(Thread):
         
         except:
             print 'TIMEOUT '*40
-            if view_exchange_lock.locked():
-                view_exchange_lock.release()
-            else:
-                pass
+            #if view_exchange_lock.locked():
+            #    view_exchange_lock.release()
+            #else:
+            #    pass
 
             # Remove the oldest neighbor from local memory cache
             #view_exchange_lock.release()
