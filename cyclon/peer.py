@@ -313,7 +313,7 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
             random_neighbor = random.choice(filtered_received_neighbors)
             random_response_neighbor = random.choice(response_neighbors)
 	    
-            if len(neighbors) <= FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+            if len(neighbors) == FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
 
             	#random_neighbor = random.choice(filtered_received_neighbors)
             	filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
