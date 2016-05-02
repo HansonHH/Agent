@@ -293,7 +293,7 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
 
     neighbors = read_from_memory_cache("neighbors")
  
-    print '!'*150
+    print '!'*100
     # Discard entries pointing to agent, and entries that are already in anget's cache
     filtered_received_neighbors = []
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
@@ -326,7 +326,6 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
 
     # Secondly, replace entries among the ones originally sent to the other peer
     if len(neighbors) == FIXED_SIZE_CACHE:
-        print 'len(neighbors) == FIXED_SIZE_CACHE !!!!!!!!!!!'
         #response_neighbors_cp = response_neighbors
         for i in range(len(filtered_received_neighbors)):
 
@@ -338,8 +337,6 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
                 random_selected_neighbor = random.choice(selected_neighbors)
 
                 if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
-                    print '%'*100
-                    print 'random_selected_neighbor: %s' % random_selected_neighbor.ip_address
 
             	    #random_neighbor = random.choice(filtered_received_neighbors)
             	    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
@@ -352,7 +349,7 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
             	    neighbors.append(random_neighbor)
             else:
                 break
-    print '!'*150
+    print '!'*100
     
     write_to_memory_cache("neighbors", neighbors)
 
