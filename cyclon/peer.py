@@ -283,7 +283,7 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
     # Firstly, use empty cache slots (if any)
     if len(neighbors) < FIXED_SIZE_CACHE:
         for i in range(FIXED_SIZE_CACHE-len(neighbors)):
-            if len(filtered_received_neighbors) != 0:
+            if len(filtered_received_neighbors) != 0 and len(neighbors) < FIXED_SIZE_CACHE:
                 neighbors_ip_list = get_neighbors_ip_list(neighbors)
                 random_neighbor = random.choice(filtered_received_neighbors)
                 if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
