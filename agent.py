@@ -226,7 +226,8 @@ def agent_cyclon_deliver_random_walk_message(env):
     new_peer_ip_address = received_data['new_peer_ip_address']
     neighbors = mc.get("neighbors")
     headers = {'Content-Type': 'application/json'}
-    # Exchange view with new peer
+
+    # Random walk ends here, then exchange view with new peer
     if TTL == 0:
         print 'Random Walk Ends Here...'
         print '$'*500
