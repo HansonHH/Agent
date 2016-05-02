@@ -150,7 +150,7 @@ class Peer(Thread):
             # Pick up a oldest neighbor from neighbors list
 	    oldest_neighbor = self.pick_neighbor_with_highest_age(self.neighbors)
             # Create a subset containing SHUFFLE_LENGTH neighbors
-            subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
+            selected_subset, sent_subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
 
 	    #print '!'*80
             #print 'Oldest Neighbor IP Address: %s' % oldest_neighbor.ip_address
@@ -161,7 +161,7 @@ class Peer(Thread):
             #    print item.age
 	    #print '!'*80
             # Send selected subset to the oldest neighbor
-            self.send_to_oldest_neighbor(oldest_neighbor, subset)
+            self.send_to_oldest_neighbor(oldest_neighbor, selected_subset, sent_subset)
 
 
     # Pick up the oldest neighbor from neighbors list
@@ -193,22 +193,24 @@ class Peer(Thread):
         subset = []
         if len(temp_list) != 0:
             for i in range(SHUFFLE_LENGTH-1):
-                subset.append(random.choice(temp_list))
+                selected_subset.append(random.choice(temp_list))
+                sent_subset.append(random.choice(temp_list))
     
         # Replace oldest neighbor's entry with a new entry of age 0 and with agent's ip address
         #agent_ip = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
-        subset.append(Neighbor(AGENT_IP, 0))
+        selected_subset.append(oldest_neighbor)
+        sent_subset.append(Neighbor(AGENT_IP, 0))
 
-        return subset
+        return selected_subset, sent_subset
 
 
-    def send_to_oldest_neighbor(self, oldest_neighbor, subset):
+    def send_to_oldest_neighbor(self, oldest_neighbor, selected_subset, sent_subset):
         print 'Send to oldest neighbor -> ip_address: %s, age: %s' % (oldest_neighbor.ip_address, oldest_neighbor.age)
         
         headers = {'Content-Type': 'application/json'}
         url = oldest_neighbor.ip_address + '/v1/agent/cyclon/receive_view_exchange_request'
         sent_neighbors_data = []
-        for neighbor in subset:
+        for neighbor in sent_subset:
             #dic = {"neighbor":{"ip_address":neighbor.ip_address, "age":neighbor.age}}
             dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
             sent_neighbors_data.append(dic)
@@ -225,7 +227,7 @@ class Peer(Thread):
 
         # Update local neighbors list in memeory cache    
     	lock.acquire()
-        update_neighbors_cache(neighbors, response_neighbors, subset)
+        update_neighbors_cache(neighbors, response_neighbors, selected_subset)
         #def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
     	lock.release()
 
@@ -276,7 +278,7 @@ def pick_neighbors_at_random(neighbors, number):
 
 
 #update_neighbors_cache(neighbors, response_neighbors, sent_neighbors)
-def update_neighbors_cache(neighbors, received_neighbors, sent_neighbors):
+def update_neighbors_cache(neighbors, received_neighbors, selected_neighbors):
 
     print '!'*150
     print len(neighbors)
@@ -335,21 +337,17 @@ def update_neighbors_cache(neighbors, received_neighbors, sent_neighbors):
             
                 neighbors_ip_list = get_neighbors_ip_list(neighbors)
                 random_neighbor = random.choice(filtered_received_neighbors)
-                random_sent_neighbor = random.choice(sent_neighbors)
+                random_selected_neighbor = random.choice(selected_neighbors)
 
                 if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
                     print '%'*300
-                    print 'random_sent_neighbor: %s' % random_sent_neighbor.ip_address
+                    print 'random_selected_neighbor: %s' % random_selected_neighbor.ip_address
 
             	    #random_neighbor = random.choice(filtered_received_neighbors)
-                    print 'length of filtered_received_neighbors: %d' % len(filtered_received_neighbors)
             	    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
-                    print 'length of filtered_received_neighbors: %d' % len(filtered_received_neighbors)
 
             	    #random_response_neighbor = random.choice(response_neighbors)
-                    print 'length of sent_neighbors: %d' % len(sent_neighbors)
-            	    sent_neighbors = remove_from_list(sent_neighbors, random_sent_neighbor)
-                    print 'length of sent_neighbors: %d' % len(sent_neighbors)
+            	    selected_neighbors = remove_from_list(selected_neighbors, random_sent_neighbor)
 
                     print 'length of neighbors: %d' % len(neighbors)
             	    neighbors = remove_from_list(neighbors, random_sent_neighbor)

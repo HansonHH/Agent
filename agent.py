@@ -345,19 +345,19 @@ def agent_cyclon_receive_view_exchange_request(env):
     lock.release()
 
     # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
-    sent_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
+    selected_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
 
     # Update local neighbors list in memeory cache    
-    update_neighbors_cache(neighbors, received_neighbors, sent_neighbors)
+    update_neighbors_cache(neighbors, received_neighbors, selected_neighbors)
 
-    sent_neighbors_data = []
-    for neighbor in sent_neighbors:
+    selected_neighbors_data = []
+    for neighbor in selected_neighbors:
         dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
-        sent_neighbors_data.append(dic)
+        selected_neighbors_data.append(dic)
     
     
     #response = {"response_neighbors":response_neighbors_data, "received_neighbors":received_data['neighbors']}
-    response = {"neighbors":sent_neighbors_data}
+    response = {"neighbors":selected_neighbors_data}
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
