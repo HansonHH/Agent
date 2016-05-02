@@ -304,26 +304,32 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
                 #neighbors.append(random_neighbor)
                 #filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
+    print '!'*150
+    print len(neighbors)
     # Secondly, replace entries among the ones originally sent to the other peer
     if len(neighbors) == FIXED_SIZE_CACHE:
         #response_neighbors_cp = response_neighbors
         for i in range(len(filtered_received_neighbors)):
 
-            neighbors_ip_list = get_neighbors_ip_list(neighbors)
-            random_neighbor = random.choice(filtered_received_neighbors)
-            random_response_neighbor = random.choice(response_neighbors)
 	    
-            if len(neighbors) == FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+            #if len(neighbors) == FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+            if len(neighbors) == FIXED_SIZE_CACHE:
+            
+                neighbors_ip_list = get_neighbors_ip_list(neighbors)
+                random_neighbor = random.choice(filtered_received_neighbors)
+                random_response_neighbor = random.choice(response_neighbors)
 
-            	#random_neighbor = random.choice(filtered_received_neighbors)
-            	filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+                if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
 
-            	#random_response_neighbor = random.choice(response_neighbors)
-            	response_neighbors = remove_from_list(response_neighbors, random_response_neighbor)
+            	    #random_neighbor = random.choice(filtered_received_neighbors)
+            	    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
-            	neighbors = remove_from_list(neighbors, random_response_neighbor)
-            	neighbors.append(random_neighbor)
+            	    #random_response_neighbor = random.choice(response_neighbors)
+            	    response_neighbors = remove_from_list(response_neighbors, random_response_neighbor)
 
+            	    neighbors = remove_from_list(neighbors, random_response_neighbor)
+            	    neighbors.append(random_neighbor)
+    print '!'*150
     mc.set("neighbors", neighbors, 0)
 
 
