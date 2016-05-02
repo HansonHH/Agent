@@ -149,14 +149,14 @@ class Peer(Thread):
             # Pick up a oldest neighbor from neighbors list
 	    oldest_neighbor = self.pick_neighbor_with_highest_age(self.neighbors)
         
-	    self.neighbors = read_from_memory_cache("neighbors")
+	    #self.neighbors = read_from_memory_cache("neighbors")
 	    # Create a subset containing SHUFFLE_LENGTH neighbors
             selected_subset, sent_subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
             #selected_subset, sent_subset = self.select_subnet_randomly(oldest_neighbor)
 
             # Send selected subset to the oldest neighbor
             try:
-	    	self.neighbors = read_from_memory_cache("neighbors")
+	    	#self.neighbors = read_from_memory_cache("neighbors")
                 self.send_to_oldest_neighbor(self.neighbors, oldest_neighbor, selected_subset, sent_subset)
             except:
                 pass
@@ -227,16 +227,23 @@ class Peer(Thread):
             sent_neighbors_data.append(dic)
 
         post_data = {"neighbors":sent_neighbors_data}
+        
         try:
-            res = POST_request_to_peer(url, headers, 1,json.dumps(post_data))
+            #res = POST_request_to_timeout(url, headers, 1, json.dumps(post_data))
+            res = POST_request_to_cloud(url, headers, json.dumps(post_data))
+            response_neighbors = res.json()['neighbors']
+            # Update local neighbors list in memeory cache    
+            update_neighbors_cache(response_neighbors, selected_subset)
+        
         except:
             print 'TIMEOUT '*40
+            # Remove the oldest neighbor from local memory cache
+            #view_exchange_lock.release()
 
-        response_neighbors = res.json()['neighbors']
-    
+        #response_neighbors = res.json()['neighbors']
 
         # Update local neighbors list in memeory cache    
-        update_neighbors_cache(response_neighbors, selected_subset)
+        #update_neighbors_cache(response_neighbors, selected_subset)
 
 
 # Read neighbors list from memory cache

@@ -22,7 +22,7 @@ def POST_request_to_cloud(url, headers, PostData):
     return res
 
 # POST request cloud
-def POST_request_to_peer(url, headers, timeout, PostData):
+def POST_request_to_timeout(url, headers, timeout, PostData):
     
     res = requests.post(url, headers = headers, timeout = timeout, data = PostData)
     
