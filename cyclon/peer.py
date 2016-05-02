@@ -228,7 +228,9 @@ class Peer(Thread):
     	lock.release()
 
         # Update local neighbors list in memeory cache    
+    	lock.acquire()
         update_neighbors_cache(neighbors, response_neighbors, sent_neighbors)
+    	lock.release()
 
         
 
@@ -349,9 +351,9 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
                 break
     print '!'*150
     
-    lock.acquire()
+    #lock.acquire()
     mc.set("neighbors", neighbors, 0)
-    lock.release()
+    #lock.release()
 
 
 
