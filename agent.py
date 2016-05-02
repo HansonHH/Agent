@@ -17,8 +17,8 @@ from models import *
 import time
 from cyclon.peer import *
 
-from threading import Lock
-lock = Lock()
+#from threading import Lock
+#lock = Lock()
 
 # Agent upload binary image data to selected cloud from temporary file
 def agent_upload_binary_image_data_to_selected_cloud(env):
@@ -348,6 +348,8 @@ def agent_cyclon_receive_view_exchange_request(env):
     received_data = json.loads(env['wsgi.input'].read())
     received_neighbors = received_data['neighbors']
 
+    view_exchange_lock.acquire()
+
     neighbors = read_from_memory_cache("neighbors")
 
     print '^'*100
@@ -372,12 +374,13 @@ def agent_cyclon_receive_view_exchange_request(env):
         dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
         selected_neighbors_data.append(dic)
     
-    
     #response = {"response_neighbors":response_neighbors_data, "received_neighbors":received_data['neighbors']}
     response = {"neighbors":selected_neighbors_data}
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    
+    view_exchange_lock.release()
     
     return status_code, headers, json.dumps(response)
 

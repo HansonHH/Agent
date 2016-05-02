@@ -19,6 +19,7 @@ from cyclon.common import *
 
 from threading import Lock
 lock = Lock()
+view_exchange_lock = Lock()
 
 # Get introducer's ip address (CYCLON Protocol)
 INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip') 
@@ -84,7 +85,9 @@ class Peer(Thread):
             self.update_age()
             #self.lock.acquire()
             #print 'CYCLON Thread Lock Acquire...'
+            view_exchange_lock.acquire()
 	    self.view_exchange()
+            view_exchange_lock.release()
             #self.lock.release()
             #print 'CYCLON Thread Lock Release...'
     
@@ -220,7 +223,10 @@ class Peer(Thread):
             sent_neighbors_data.append(dic)
 
         post_data = {"neighbors":sent_neighbors_data}
-        res = POST_request_to_cloud(url, headers, json.dumps(post_data))
+        try:
+            res = POST_request_to_peer(url, headers, 1,json.dumps(post_data))
+        except:
+            print 'TIMEOUT '*40
 
         response_neighbors = res.json()['neighbors']
     

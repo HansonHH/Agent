@@ -21,6 +21,13 @@ def POST_request_to_cloud(url, headers, PostData):
     
     return res
 
+# POST request cloud
+def POST_request_to_peer(url, headers, timeout, PostData):
+    
+    res = requests.post(url, headers = headers, timeout = timeout, data = PostData)
+    
+    return res
+
 # Close connection immediately after sending POST request
 def POST_request_connection_close(url ,headers, PostData):
     
