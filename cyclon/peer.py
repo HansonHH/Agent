@@ -190,7 +190,8 @@ class Peer(Thread):
             if neighbor != oldest_neighbor:
                 temp_list.append(neighbor)
 
-        subset = []
+        selected_subset = []
+        sent_subset = []
         if len(temp_list) != 0:
             for i in range(SHUFFLE_LENGTH-1):
                 selected_subset.append(random.choice(temp_list))
