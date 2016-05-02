@@ -226,7 +226,7 @@ class Peer(Thread):
     
 
         # Update local neighbors list in memeory cache    
-        update_neighbors_cache(neighbors, response_neighbors, selected_subset)
+        update_neighbors_cache(response_neighbors, selected_subset)
 
 
 # Read neighbors list from memory cache
@@ -290,10 +290,10 @@ def pick_neighbors_at_random(neighbors, number):
     return random_neighbors
 
 
-def update_neighbors_cache(neighbors, response_neighbors, sent_neighbors):
+def update_neighbors_cache(received_neighbors, selected_neighbors):
 #def update_neighbors_cache(received_neighbors, selected_neighbors):
 
-    #neighbors = read_from_memory_cache("neighbors")
+    neighbors = read_from_memory_cache("neighbors")
  
     print '$'*100
     # Discard entries pointing to agent, and entries that are already in anget's cache

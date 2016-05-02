@@ -365,7 +365,7 @@ def agent_cyclon_receive_view_exchange_request(env):
 
     # Update local neighbors list in memeory cache    
     #update_neighbors_cache(neighbors, received_neighbors, selected_neighbors)
-    update_neighbors_cache(neighbors, received_neighbors, selected_neighbors)
+    update_neighbors_cache(received_neighbors, selected_neighbors)
 
     selected_neighbors_data = []
     for neighbor in selected_neighbors:
