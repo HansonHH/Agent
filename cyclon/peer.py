@@ -125,6 +125,8 @@ class Peer(Thread):
                 # Update neighbor's age by one                
                 self.neighbors[i].age = self.neighbors[i].age + 1
                 
+		print self.neighbors[i].ip_address
+
                 # Save neighbor list to memcached (expiration up to 30 days)
                 write_to_memory_cache("neighbors", self.neighbors)
             
@@ -135,7 +137,7 @@ class Peer(Thread):
 	
 	print 'Peer View Exchange...'
 
-	#self.neighbors = read_from_memory_cache("neighbors")
+	self.neighbors = read_from_memory_cache("neighbors")
 
 	if len(self.neighbors) == 0:
             print 'No neighbor exists, waiting for neighbor to join...'
@@ -144,15 +146,15 @@ class Peer(Thread):
             # Pick up a oldest neighbor from neighbors list
 	    oldest_neighbor = self.pick_neighbor_with_highest_age(self.neighbors)
         
-	    #self.neighbors = read_from_memory_cache("neighbors")
-            
+	    self.neighbors = read_from_memory_cache("neighbors")
 	    # Create a subset containing SHUFFLE_LENGTH neighbors
-            #selected_subset, sent_subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
-            selected_subset, sent_subset = self.select_subnet_randomly(oldest_neighbor)
+            selected_subset, sent_subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
+            #selected_subset, sent_subset = self.select_subnet_randomly(oldest_neighbor)
 
             # Send selected subset to the oldest neighbor
             try:
-                self.send_to_oldest_neighbor(oldest_neighbor, selected_subset, sent_subset)
+	    	self.neighbors = read_from_memory_cache("neighbors")
+                self.send_to_oldest_neighbor(self.neighbors, oldest_neighbor, selected_subset, sent_subset)
             except:
                 pass
 
@@ -181,8 +183,8 @@ class Peer(Thread):
 	
 
     # Select SHUFFLE_LENGTH - 1 random neighbors
-    #def select_subnet_randomly(self, neighbors, oldest_neighbor):
-    def select_subnet_randomly(self, oldest_neighbor):
+    def select_subnet_randomly(self, neighbors, oldest_neighbor):
+    #def select_subnet_randomly(self, oldest_neighbor):
         print 'Select Subnet Randomly...'
 	
 	neighbors = read_from_memory_cache("neighbors")
@@ -206,7 +208,7 @@ class Peer(Thread):
         return selected_subset, sent_subset
 
 
-    def send_to_oldest_neighbor(self, oldest_neighbor, selected_subset, sent_subset):
+    def send_to_oldest_neighbor(self, neighbors, oldest_neighbor, selected_subset, sent_subset):
         print 'Send to oldest neighbor -> ip_address: %s, age: %s' % (oldest_neighbor.ip_address, oldest_neighbor.age)
         
         headers = {'Content-Type': 'application/json'}
@@ -224,7 +226,7 @@ class Peer(Thread):
     
 
         # Update local neighbors list in memeory cache    
-        update_neighbors_cache(response_neighbors, selected_subset)
+        update_neighbors_cache(neighbors, response_neighbors, selected_subset)
 
 
 # Read neighbors list from memory cache
@@ -288,12 +290,12 @@ def pick_neighbors_at_random(neighbors, number):
     return random_neighbors
 
 
-#update_neighbors_cache(neighbors, response_neighbors, sent_neighbors)
-def update_neighbors_cache(received_neighbors, selected_neighbors):
+def update_neighbors_cache(neighbors, response_neighbors, sent_neighbors)
+#def update_neighbors_cache(received_neighbors, selected_neighbors):
 
-    neighbors = read_from_memory_cache("neighbors")
+    #neighbors = read_from_memory_cache("neighbors")
  
-    print '!'*100
+    print '$'*100
     # Discard entries pointing to agent, and entries that are already in anget's cache
     filtered_received_neighbors = []
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
@@ -349,7 +351,7 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
             	    neighbors.append(random_neighbor)
             else:
                 break
-    print '!'*100
+    print '$'*100
     
     write_to_memory_cache("neighbors", neighbors)
 
