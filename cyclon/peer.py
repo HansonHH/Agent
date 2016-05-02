@@ -229,26 +229,15 @@ class Peer(Thread):
         post_data = {"neighbors":sent_neighbors_data}
         
         try:
-            res = POST_request_to_timeout(url, headers, 5, json.dumps(post_data))
+            res = POST_request_to_timeout(url, headers, INTERVAL, json.dumps(post_data))
             #res = POST_request_to_cloud(url, headers, json.dumps(post_data))
             response_neighbors = res.json()['neighbors']
             # Update local neighbors list in memeory cache    
             update_neighbors_cache(response_neighbors, selected_subset)
         
         except:
-            print 'TIMEOUT '*40
-            #if view_exchange_lock.locked():
-            #    view_exchange_lock.release()
-            #else:
-            #    pass
-
-            # Remove the oldest neighbor from local memory cache
-            #view_exchange_lock.release()
-
-        #response_neighbors = res.json()['neighbors']
-
-        # Update local neighbors list in memeory cache    
-        #update_neighbors_cache(response_neighbors, selected_subset)
+            print 'TIMEOUT '*20
+            print 'Peer %s left from the P2P network...' & oldest_neighbor.ip_address
 
 
 # Read neighbors list from memory cache
