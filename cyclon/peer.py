@@ -17,6 +17,8 @@ from request import *
 from cyclon.config import *
 from cyclon.common import *
 
+from threading import Lock
+lock = Lock()
 
 # Get introducer's ip address (CYCLON Protocol)
 INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip') 
