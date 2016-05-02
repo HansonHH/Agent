@@ -114,7 +114,7 @@ def agent_cyclon_new_peer_join(env):
     
     print 'CYCLON New Peer Join'
     # Get neighbor list from memory cache
-    lock.acquire()
+    #lock.acquire()
     neighbors = mc.get("neighbors")
     
     # Get new peer's request
@@ -144,7 +144,7 @@ def agent_cyclon_new_peer_join(env):
         # Initiate n random walk, TTL (time to live) = 4
         init_random_walk(new_peer_ip_address, len(neighbors), RANDOM_WALK_TTL)
         status_code = '202'
-    lock.release()
+    #lock.release()
 
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     response = ''
@@ -216,9 +216,12 @@ def agent_cyclon_deliver_random_walk_message(env):
     received_data = json.loads(env['wsgi.input'].read())
     TTL = int(received_data['TTL'])
     
-    lock.acquire()
     new_peer_ip_address = received_data['new_peer_ip_address']
+
+    lock.acquire()
     neighbors = mc.get("neighbors")
+    lock.release()
+
     headers = {'Content-Type': 'application/json'}
 
     # Random walk ends here, then exchange view with new peer
@@ -243,7 +246,10 @@ def agent_cyclon_deliver_random_walk_message(env):
             # Update neighbors list in memory cache
             new_peer = Neighbor(new_peer_ip_address, 0)
             neighbors_list.append(new_peer)
+            
+            lock.acquire()
             mc.set('neighbors', neighbors_list, 0)
+            lock.release()
 
     # Continue with random walk, randomly pick up a neighbor and send random walk message to it
     else:
@@ -254,7 +260,6 @@ def agent_cyclon_deliver_random_walk_message(env):
         # Decrease TTL by one
         post_data = {"new_peer_ip_address":new_peer_ip_address, 'TTL':TTL-1}
         POST_request_connection_close(url, headers, json.dumps(post_data))
-    lock.release()
 
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
@@ -271,6 +276,8 @@ def agent_cyclon_handle_peer_join_notification(env):
 
     lock.acquire()
     neighbors = mc.get("neighbors")
+    lock.release()
+
     # Randomly pick up a neighbor as response
     random_neighbor = random.choice(neighbors)
     
@@ -278,8 +285,10 @@ def agent_cyclon_handle_peer_join_notification(env):
     if len(neighbors) < FIXED_SIZE_CACHE:
     	new_neighbor = Neighbor(recevied_data['new_peer'], 0)
 	neighbors.append(new_neighbor)
+        
+        lock.acquire()
     	mc.set("neighbors", neighbors, 0)
-    lock.release()
+        lock.release()
     
     headers = {'Content-Type': 'application/json'}
     url = recevied_data['new_peer'] + '/v1/agent/cyclon/receive_from_introducer_neighbors'
@@ -304,12 +313,16 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
     
     lock.acquire()
     neighbors = mc.get("neighbors")
+    lock.release()
+    
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
     if len(neighbors) < FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, res_neighbor_ip):
         new_neighbor = Neighbor(res_neighbor_ip, res_neighbor_age)
         neighbors.append(new_neighbor)
+        
+        lock.acquire()
         mc.set("neighbors", neighbors, 0)
-    lock.release()
+        lock.release()
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
@@ -327,13 +340,13 @@ def agent_cyclon_receive_view_exchange_request(env):
 
     lock.acquire()
     neighbors = mc.get("neighbors")
+    lock.release()
 
     # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
     response_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
 
     # Update local neighbors list in memeory cache    
     update_neighbors_cache(neighbors, received_neighbors, response_neighbors)
-    lock.release()
 
     response_neighbors_data = []
     for neighbor in response_neighbors:

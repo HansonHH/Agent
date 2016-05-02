@@ -108,7 +108,9 @@ class Peer(Thread):
     # Update peer's all neighbors' age by one
     def update_age(self):
 
+    	lock.acquire()
         self.neighbors = mc.get("neighbors")
+    	lock.release()
 
         if len(self.neighbors) == 0:
             pass
@@ -123,15 +125,21 @@ class Peer(Thread):
                 print "age: %s" % self.neighbors[i].age
                 print "ip_address: %s" % self.neighbors[i].ip_address
                 # Save neighbor list to memcached (expiration up to 30 days)
+    		
+		lock.acquire()
                 mc.set("neighbors", self.neighbors, 0)
-            print '-'*50
+    		lock.release()
+            
+	    print '-'*50
 
     # Peer exchanges it view of neighbors with one of its oldest neighbor
     def view_exchange(self):
 	
 	print 'Peer View Exchange...'
 
+    	lock.acquire()
 	self.neighbors = mc.get("neighbors")
+    	lock.release()
 	
 	if len(self.neighbors) == 0:
             print 'No neighbor exists, waiting for neighbor to join...'
@@ -213,7 +221,10 @@ class Peer(Thread):
         sent_neighbors = res.json()['received_neighbors']
         response_neighbors = res.json()['response_neighbors']
     
+    	lock.acquire()
         neighbors = mc.get("neighbors")
+    	lock.release()
+
         # Update local neighbors list in memeory cache    
         update_neighbors_cache(neighbors, response_neighbors, sent_neighbors)
 
@@ -335,7 +346,10 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
             else:
                 break
     print '!'*150
+    
+    lock.acquire()
     mc.set("neighbors", neighbors, 0)
+    lock.release()
 
 
 
