@@ -209,7 +209,7 @@ class Peer(Thread):
     	#lock.acquire()
         #neighbors = mc.get("neighbors")
     	#lock.release()
-        self.neighbors = read_from_memory_cache("neighbors")
+        neighbors = read_from_memory_cache("neighbors")
 
         # Update local neighbors list in memeory cache    
     	#lock.acquire()
