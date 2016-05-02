@@ -207,13 +207,13 @@ class Peer(Thread):
         
         headers = {'Content-Type': 'application/json'}
         url = oldest_neighbor.ip_address + '/v1/agent/cyclon/receive_view_exchange_request'
-        sent_neighbors = []
+        sent_neighbor_data = []
         for neighbor in subset:
             #dic = {"neighbor":{"ip_address":neighbor.ip_address, "age":neighbor.age}}
             dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
-            sent_neighbors.append(dic)
+            sent_neighbors_data.append(dic)
 
-        post_data = {"neighbors":sent_neighbors}
+        post_data = {"neighbors":sent_neighbors_data}
         res = POST_request_to_cloud(url, headers, json.dumps(post_data))
 
         #sent_neighbors = res.json()['received_neighbors']
@@ -225,7 +225,7 @@ class Peer(Thread):
 
         # Update local neighbors list in memeory cache    
     	lock.acquire()
-        update_neighbors_cache(neighbors, response_neighbors, sent_neighbors)
+        update_neighbors_cache(neighbors, response_neighbors, subset)
         #def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
     	lock.release()
 
@@ -339,8 +339,8 @@ def update_neighbors_cache(neighbors, received_neighbors, sent_neighbors):
 
                 print filtered_received_neighbors
                 print sent_neighbors
-                #print 'random_neighbor: %s' % random_neighbor.ip_address
-                #print 'random_sent_neighbor: %s' % random_sent_neighbor.ip_address
+                print 'random_neighbor: %s' % random_neighbor.ip_address
+                print 'random_sent_neighbor: %s' % random_sent_neighbor.ip_address
 
                 if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
 
