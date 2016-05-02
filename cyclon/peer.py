@@ -125,7 +125,7 @@ class Peer(Thread):
                 # Update neighbor's age by one                
                 self.neighbors[i].age = self.neighbors[i].age + 1
                 
-		print self.neighbors[i].ip_address
+		print '%s, %d' % (self.neighbors[i].ip_address, self.neighbors[i].age)
 
                 # Save neighbor list to memcached (expiration up to 30 days)
                 write_to_memory_cache("neighbors", self.neighbors)
