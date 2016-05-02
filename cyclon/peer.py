@@ -328,8 +328,9 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
             else:
                 break
 
+    # Remove redundant neighbors
     selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
-    print len(selected_neighbors)
+    
     for neighbor in selected_neighbors:
         print '%s, %s' % (neighbor.ip_address, neighbor.age)
 
@@ -337,6 +338,9 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
     if len(neighbors) == FIXED_SIZE_CACHE:
         #response_neighbors_cp = response_neighbors
         for i in range(len(filtered_received_neighbors)):
+
+            if len(selected_neighbors) == 0:
+                break
 
             #if len(neighbors) == FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
             if len(neighbors) == FIXED_SIZE_CACHE:
