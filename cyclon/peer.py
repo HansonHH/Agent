@@ -207,21 +207,17 @@ class Peer(Thread):
         
         headers = {'Content-Type': 'application/json'}
         url = oldest_neighbor.ip_address + '/v1/agent/cyclon/receive_view_exchange_request'
-        neighbors = []
+        sent_neighbors = []
         for neighbor in subset:
             #dic = {"neighbor":{"ip_address":neighbor.ip_address, "age":neighbor.age}}
             dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
-            neighbors.append(dic)
+            sent_neighbors.append(dic)
 
-        post_data = {"neighbors":neighbors}
+        post_data = {"neighbors":sent_neighbors}
         res = POST_request_to_cloud(url, headers, json.dumps(post_data))
 
-        #print 'HAHA '*80
-        #print res.json()
-        #print 'HAHA '*80
-
-        sent_neighbors = res.json()['received_neighbors']
-        response_neighbors = res.json()['response_neighbors']
+        #sent_neighbors = res.json()['received_neighbors']
+        response_neighbors = res.json()['neighbors']
     
     	lock.acquire()
         neighbors = mc.get("neighbors")
@@ -230,6 +226,7 @@ class Peer(Thread):
         # Update local neighbors list in memeory cache    
     	lock.acquire()
         update_neighbors_cache(neighbors, response_neighbors, sent_neighbors)
+        #def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
     	lock.release()
 
         
@@ -278,7 +275,8 @@ def pick_neighbors_at_random(neighbors, number):
     return random_neighbors
 
 
-def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
+#update_neighbors_cache(neighbors, response_neighbors, sent_neighbors)
+def update_neighbors_cache(neighbors, received_neighbors, sent_neighbors):
 
     print '!'*150
     print len(neighbors)
@@ -321,12 +319,14 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
                             updated_neighbors.append(neighbor)
                     mc.set("neighbors", updated_neighbors, 0)
                 '''
-                #neighbors.append(random_neighbor)
-                #filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
     print len(neighbors)
+    for neighbor in neighbors:
+        print neighbor.ip_address
+
     # Secondly, replace entries among the ones originally sent to the other peer
     if len(neighbors) == FIXED_SIZE_CACHE:
+        print 'len(neighbors) == FIXED_SIZE_CACHE !!!!!!!!!!!'
         #response_neighbors_cp = response_neighbors
         for i in range(len(filtered_received_neighbors)):
 
@@ -335,7 +335,10 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
             
                 neighbors_ip_list = get_neighbors_ip_list(neighbors)
                 random_neighbor = random.choice(filtered_received_neighbors)
-                random_response_neighbor = random.choice(response_neighbors)
+                random_sent_neighbor = random.choice(sent_neighbors)
+
+                print 'random_neighbor: %s' % random_neighbor.ip_address
+                print 'random_sent_neighbor: %s' % random_sent_neighbor.ip_address
 
                 if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
 
@@ -343,9 +346,9 @@ def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
             	    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
 
             	    #random_response_neighbor = random.choice(response_neighbors)
-            	    response_neighbors = remove_from_list(response_neighbors, random_response_neighbor)
+            	    sent_neighbors = remove_from_list(sent_neighbors, random_sent_neighbor)
 
-            	    neighbors = remove_from_list(neighbors, random_response_neighbor)
+            	    neighbors = remove_from_list(neighbors, random_sent_neighbor)
             	    neighbors.append(random_neighbor)
             else:
                 break
