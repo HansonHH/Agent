@@ -328,6 +328,7 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
             else:
                 break
 
+    selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
     print len(selected_neighbors)
     for neighbor in selected_neighbors:
         print '%s, %s' % (neighbor.ip_address, neighbor.age)
