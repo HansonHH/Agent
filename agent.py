@@ -18,6 +18,7 @@ from models import *
 import time
 from cyclon.peer import *
 
+from threading import Lock
 lock = Lock()
 
 # Agent upload binary image data to selected cloud from temporary file
