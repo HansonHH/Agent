@@ -209,16 +209,18 @@ class Peer(Thread):
 
         response_neighbors = res.json()['neighbors']
     
-    	#lock.acquire()
-        #neighbors = mc.get("neighbors")
-    	#lock.release()
         neighbors = read_from_memory_cache("neighbors")
 
+
+
+        # Remove the oldest neighbor from local memory cahce
+        neighbors = remove_from_list(neighbors, oldest_neighbor)
+        write_to_memory_cache("neighbors", neighbors)
+
+
+
         # Update local neighbors list in memeory cache    
-    	#lock.acquire()
         update_neighbors_cache(neighbors, response_neighbors, selected_subset)
-        #def update_neighbors_cache(neighbors, received_neighbors, response_neighbors):
-    	#lock.release()
 
 
 # Read neighbors list from memory cache
