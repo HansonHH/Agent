@@ -337,12 +337,8 @@ def update_neighbors_cache(neighbors, received_neighbors, sent_neighbors):
                 random_neighbor = random.choice(filtered_received_neighbors)
                 random_sent_neighbor = random.choice(sent_neighbors)
 
-                #print filtered_received_neighbors
-                #print sent_neighbors
-                #print 'random_neighbor: %s' % random_neighbor.ip_address
-                #print 'random_sent_neighbor: %s' % random_sent_neighbor.ip_address
-
                 if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+                    print '%'*300
 
             	    #random_neighbor = random.choice(filtered_received_neighbors)
             	    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
