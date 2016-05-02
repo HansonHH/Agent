@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # vim:fenc=utf-8
 #
-# Distributed under terms of the MIT license.
 
 """
 
@@ -114,8 +113,9 @@ def agent_cyclon_new_peer_join(env):
     
     print 'CYCLON New Peer Join'
     # Get neighbor list from memory cache
-    #lock.acquire()
+    lock.acquire()
     neighbors = mc.get("neighbors")
+    lock.release()
     
     # Get new peer's request
     PostData = env['wsgi.input'].read()
@@ -254,6 +254,7 @@ def agent_cyclon_deliver_random_walk_message(env):
     # Continue with random walk, randomly pick up a neighbor and send random walk message to it
     else:
         print 'Random Walk TTL = %d' % TTL
+        print '&'*500
         # Randomly pick up a neighbor as response
         random_neighbor = random.choice(neighbors)
         url = random_neighbor.ip_address + '/v1/agent/cyclon/deliver_random_walk_message'
@@ -306,6 +307,7 @@ def agent_cyclon_handle_peer_join_notification(env):
 # New peer receives response from its introducer's neighbors
 def agent_cyclon_receive_from_introducer_neighbors(env):
     print 'New Peer Receives Response from Introducer\'s Neighbors...'
+    print '1 '*200
     
     received_data = json.loads(env['wsgi.input'].read())
     res_neighbor_ip = received_data['neighbor']['ip_address']
@@ -313,16 +315,16 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
     
     lock.acquire()
     neighbors = mc.get("neighbors")
-    lock.release()
+    #lock.release()
     
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
     if len(neighbors) < FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, res_neighbor_ip):
         new_neighbor = Neighbor(res_neighbor_ip, res_neighbor_age)
         neighbors.append(new_neighbor)
         
-        lock.acquire()
+        #lock.acquire()
         mc.set("neighbors", neighbors, 0)
-        lock.release()
+    lock.release()
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
