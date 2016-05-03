@@ -48,8 +48,11 @@ class Peer(Thread):
         
         if INTRODUCER_IP != AGENT_IP:
             introducer = Neighbor(INTRODUCER_IP, 0)
-            self.neighbors.append(introducer)
-            write_to_memory_cache("neighbors", self.neighbors)
+            #self.neighbors.append(introducer)
+            neighbors = []
+            neighbors.append(introducer)
+            #write_to_memory_cache("neighbors", self.neighbors)
+            write_to_memory_cache("neighbors", neighbors)
         else:
             write_to_memory_cache("neighbors", [])
     
