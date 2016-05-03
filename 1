@@ -1,699 +1,360 @@
-from nova.nova_agent import *
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+# vim:fenc=utf-8
+#
+
+"""
+
+agent.py
+Proxy functions for communication between agents
+
+"""
+
 from request import *
 from common import *
 from db import *
 from models import *
-import uuid
+import time
+from cyclon.peer import *
 
+#from threading import Lock
+#lock = Lock()
 
-# List networks
-def neutron_list_networks(env):
-    
-    QUERY = True
-    try:
-        QUERY_LIST = env['QUERY_STRING'].split('&')
-        
-        # Retrive query keyword and modify user request (env)
-        for item in QUERY_LIST:
-            if item.startswith('name'):
-                QUERY_NAME = item.split('=')[1]
-                env['PATH_INFO'] = env['PATH_INFO'].split('.json')[0] + '/' + QUERY_NAME
-                del env['QUERY_STRING']
-    except:
-        QUERY = False
+# Agent upload binary image data to selected cloud from temporary file
+def agent_upload_binary_image_data_to_selected_cloud(env):
 
-    if QUERY == True:
-
-        status_code, headers, response = neutron_show_network_details(env)
-        
-        response_body = {'networks':[]}
-        network_info = []
-        network_info.append(json.loads(response)['network'])
-        response_body['networks']=network_info
-
-        # Modify response header's Content-Length
-        headers = modify_response_header(headers, response)
-        
-        return status_code, headers, json.dumps(response_body)
-
-    else:
-        
-        # Get all rows of Netowrk object
-        network_result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Network)
-    
-        # If network does not exist
-        if len(network_result) == 0:
-    
-            response_body = {"networks": []}
-            return non_exist_response('200', response_body)
-        
-        # If network exists then delete
-        else:
-            # Retrive token from request
-            X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-    
-            # Create request header
-            headers = {'X-Auth-Token': X_AUTH_TOKEN}
-        
-            # Create suffix of service url
-            url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/'  
-            urls = []
-            for network in network_result:
-                urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
-        
-            # Get generated threads 
-            threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
-
-            # Launch threads
-            for i in range(len(threads)):
-	        threads[i].start()
-
-            threads_res = []
-            # Wait until threads terminate
-            for i in range(len(threads)):
-	
-	        # Parse response from site	
-	        res = threads[i].join()
-                # If user has right to get access to the resource
-                if res.status_code == 200:
-                    threads_res.append(res)
-
-            response_body = {'networks':[]}
-        
-            for network in threads_res:
-    
-                res = network.json()
-            
-                # Network's uuid_cloud
-                network_uuid_cloud = res['network']['id']
-                result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_cloud], keywords = [network_uuid_cloud])
-
-                # Replace network's id by uuid_agent
-                res['network']['id'] = result[0].uuid_agent
-            
-                subnets = res['network']['subnets']
-                # If network has subnets
-                if len(subnets) != 0:
-                    new_subnets = [] 
-                    for subnet in subnets:
-                        subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [subnet])
-                        new_subnets.append(subnet_result[0].uuid_agent)
-                    res['network']['subnets'] = new_subnets
-            
-                # Add cloud site information to response
-                new_network_info = add_cloud_info_to_response(result[0].cloud_address, res['network'])
-                response_body['networks'].append(new_network_info)
-            
-            if response_body['networks'] != 0:
-                # Remove duplicate subnets        
-                response_body['networks'] = remove_duplicate_info(response_body['networks'], 'id')
-
-            return generate_formatted_response(threads_res[0], response_body)
-
-
-
-# Show network details
-def neutron_show_network_details(env):
-	
-    try:
-        QUERY_NAME = env['QUERY_STRING'].split('=')[1]
-        network_id = QUERY_NAME
-    except:
-        site_pattern = re.compile(r'(?<=/v2.0/networks/).*')
-        match = site_pattern.search(env['PATH_INFO'])
-        network_id = match.group()
-    
-            
-    network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent], keywords = [network_id])
-
-    # If network does not exist
-    if network_result.count() == 0:
-        
-        message = "Network %s could not be found" % network_id
-        response_body = {"NeutronError":{"detail":"","message":message,"type":"NetworkNotFound"}}
-        return non_exist_response('404', response_body)
-        
-    # If network exists then delete
-    else:
-        # Retrive token from request
-        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-        
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
-
-        # Create url
-        url = network_result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/' + network_result[0].uuid_cloud
-
-        res = GET_request_to_cloud(url, headers)
-    
-        response_body = None
-        # Successfully get response from cloud
-        if res.status_code == 200:
-        
-            response_body = res.json()
-
-            # Replace network's id by uuid_agent
-            response_body['network']['id'] = network_result[0].uuid_agent
-            # If network has subnets
-            subnets = response_body['network']['subnets']
-            # Replace subnets' ids
-            if len(subnets) != 0:
-                new_subnets = [] 
-                for subnet in subnets:
-                    subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [subnet])
-                    new_subnets.append(subnet_result[0].uuid_agent)
-                response_body['network']['subnets'] = new_subnets
-            
-            # Add cloud info to response 
-            #for i in range(network_result.count()):
-            #    response_body['network'] = add_cloud_info_to_response(network_result[i].cloud_address, response_body['network'])
-
-        else:
-            response_body = res.text
-
-        return generate_formatted_response(res, response_body)
-
-
-# Create network                    
-def neutron_create_network(env):
-    
     # Retrive token from request
     X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-    
+
     # Request data 
-    PostData = env['wsgi.input'].read()
+    post_data_json = json.loads(env['wsgi.input'].read())
+
+    original_image_uuid_cloud = post_data_json['image']['original_image_uuid_cloud']
+    created_image_uuid_cloud = post_data_json['image']['created_image_uuid_cloud']
+    cloud_address = post_data_json['image']['cloud_address']
     
-    # Select site to create network 
-    cloud_name, cloud_address = select_site_to_create_object()
-    
-    # Construct url for creating network
-    url = cloud_address + ':' + config.get('Neutron','neutron_public_interface') + env['PATH_INFO'] 
     # Create header
-    headers = {'Content-Type': 'application/json', 'X-Auth-Token': X_AUTH_TOKEN}
-    
-    res = POST_request_to_cloud(url, headers, PostData)
-    
-    # If network is successfully created in cloud
-    if res.status_code == 201:
-
-        # Retrive information from response
-        response_body = res.json()
-        tenant_id = response_body['network']['tenant_id'] 
-        network_id = response_body['network']['id'] 
-        network_name = response_body['network']['name']
-        uuid_agent = str(uuid.uuid4())
+    headers = {'Content-Type': 'application/octet-stream', 'X-Auth-Token': X_AUTH_TOKEN}
         
-        new_network = Network(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = network_id, network_name = network_name, cloud_name = cloud_name, cloud_address = cloud_address)
-        
-        # Add data to DB
-        add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_network)
+    url_suffix = config.get('Glance', 'glance_public_interface') + '/v2/images/'  
+    url = cloud_address + ':' + url_suffix + created_image_uuid_cloud + '/file'
 
-        response_body['network']['id'] =  uuid_agent
-        response_body['network'] = add_cloud_info_to_response(cloud_address, response_body['network'])
-        
-        return generate_formatted_response(res, response_body)
-    
-    else:
+    # Upload binary image data to selected cloud
+    image_file_path = IMAGE_FILE_PATH + original_image_uuid_cloud 
 
-        return generate_formatted_response(res, res.json())
-
-
-# Delete network
-def neutron_delete_network(env):
-   
-    site_pattern = re.compile(r'(?<=/networks/).*')
-    match = site_pattern.search(env['PATH_INFO'])
-    network_id = match.group()   
-    
-    # Request from CLI
-    if network_id.endswith('.json'):
-        network_id = network_id.split('.')[0]
-    
-    res = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent], keywords = [network_id])
-    
-    # If network does not exist
-    if res.count() == 0:
-    
-        message = "Network %s could not be found" % network_id
-        response_body = {"NeutronError":{"detail":"","message":message,"type":"NetworkNotFound"}}
-        
-        return non_exist_response('404', response_body)
-    
-    # If network exists then delete
-    else:
-    
-        # Retrive token from request
-        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-        
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
-    
-        # Create suffix of service url
-        url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/networks/'  
-        urls = []
-        for network in res:
-            urls.append(network.cloud_address + ':' + url_suffix + network.uuid_cloud)
-
-        # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, DELETE_request_to_cloud)
-
-        # Launch threads
-        for i in range(len(threads)):
-	    threads[i].start()
-
-        threads_res = []
-    
-        # Wait until threads terminate
-        for i in range(len(threads)):
-	
-	    # Parse response from site	
-	    res = threads[i].join()
-	    threads_res.append(res)
-    
-        SUCCESS_threads = []
-        FAIL_threads = []
-        for i in range(len(threads_res)):
-        
-            # If Network deleted successfully
-	    if threads_res[i].status_code == 204:
-	   
-                # Retrive network uuid_cloud 
-                request_url = vars(threads[i])['_Thread__args'][0]
-                match = site_pattern.search(request_url)
-                uuid_cloud = match.group()   
-            
-                # Delete subnet information in agent DB 
-                delete_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.network_uuid_cloud, uuid_cloud)
-                # Delete network information in agent DB 
-                delete_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, Network.uuid_cloud, uuid_cloud)
-                SUCCESS_threads.append(threads_res[i])
-            else:
-                FAIL_threads.append(threads_res[i])
-
-        if len(SUCCESS_threads) != 0:
-            return generate_formatted_response(SUCCESS_threads[0], SUCCESS_threads[0].text)
-        else:
-            return generate_formatted_response(FAIL_threads[0], FAIL_threads[0].text)
-
-
-# List subnets
-def neutron_list_subnets(env):
-    
-    QUERY = True
     try:
-        QUERY_LIST = env['QUERY_STRING'].split('&')
-        
-        # Retrive query keyword and modify user request (env)
-        for item in QUERY_LIST:
-            if item.startswith('name'):
-                QUERY_NAME = item.split('=')[1]
-                env['PATH_INFO'] = env['PATH_INFO'].split('.json')[0] + '/' + QUERY_NAME
-                del env['QUERY_STRING']
+        # Get generated thread 
+        threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, [url], PUT_request_to_cloud, [image_file_path])
+
+        # Launch thread
+        threads[0].start()
+
+        res = threads[0].join()
+    # If image file does not exist
     except:
-        QUERY = False
-
-    if QUERY == True:
-
-        status_code, headers, response = neutron_show_network_details(env)
         
-        response_body = {'networks':[]}
-        network_info = []
-        network_info.append(json.loads(response)['network'])
-        response_body['networks']=network_info
+        print 'image file does not exist ' * 30
+        status_code = '409'
+        headers = ''
+        response = ''
+        headers = res.headers
+        headers['Content-Length'] = str(len(json.dumps(response)))
+        headers = ast.literal_eval(str(headers)).items()
 
-        # Modify response header's Content-Length
-        headers = modify_response_header(headers, response)
-        
-        return status_code, headers, json.dumps(response_body)
+        return status_code, headers, json.dumps(response)
 
-    else:
 
-        # Get all rows of Subnet object
-        subnet_result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet)
-    
-        # If network does not exist
-        if len(subnet_result) == 0:
-    
-            response_body = {"subnets": []}
-            return non_exist_response('200', response_body)
-    
-        # If network exists then delete
-        else:
-        
-            # Retrive token from request
-            X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-        
-            # Create request header
-            headers = {'X-Auth-Token': X_AUTH_TOKEN}
-        
-            # Create suffix of service url
-            url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
-            urls = []
-            for subnet in subnet_result:
-                urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
-        
-            # Get generated threads 
-            threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
-
-            # Launch threads
-            for i in range(len(threads)):
-	        threads[i].start()
-
-            threads_res = []
-    
-            # Wait until threads terminate
-            for i in range(len(threads)):
-	
-	        res = threads[i].join()
-                # If user has access to the resource
-                if res.status_code == 200:
-                    threads_res.append(res)
-    
-            response_body = {'subnets':[]}
-            for subnet in threads_res:
-
-                res = subnet.json()
+    if res.status_code == 204:
+        print 'Image uploaded successfully !!!'
             
-                # Subnet's uuid_cloud
-                subnet_uuid_cloud = res['subnet']['id']
-                network_uuid_cloud = res['subnet']['network_id']
-            
-                # Replace subnet's id by subnet's uuid_agent
-                result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [subnet_uuid_cloud])
-                res['subnet']['id'] = result[0].uuid_agent
-            
-                # Replace subnet's network_id by network's uuid_agent
-                result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_cloud], keywords = [network_uuid_cloud])
-                res['subnet']['network_id'] = result[0].uuid_agent
-           
-                # Add cloud info to response
-                new_subnet_info = add_cloud_info_to_response(result[0].cloud_address, res['subnet'])
-                response_body['subnets'].append(new_subnet_info)
-         
-            if response_body['subnets'] != 0:
-                # Remove duplicate subnets        
-                response_body['subnets'] = remove_duplicate_info(response_body['subnets'], 'id')
-        
-            return generate_formatted_response(threads_res[0], response_body)
-
-
-    '''
-    # Get all rows of Subnet object
-    subnet_result = read_all_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet)
-    
-    # If network does not exist
-    if len(subnet_result) == 0:
-    
-        response_body = {"subnets": []}
-        return non_exist_response('200', response_body)
-    
-    # If network exists then delete
-    else:
-        
-        # Retrive token from request
-        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-        
-        # Create request header
+        ACTIVE = False
         headers = {'X-Auth-Token': X_AUTH_TOKEN}
+        url = cloud_address + ':' + config.get('Glance', 'glance_public_interface') + '/v2/images/' + created_image_uuid_cloud  
         
-        # Create suffix of service url
-        url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
-        urls = []
-        for subnet in subnet_result:
-            urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
+        while not ACTIVE:
+            print 'Check if image status is active'
+            time.sleep(5)
+
+            threads = generate_threads_multicast(X_AUTH_TOKEN, headers, [url], GET_request_to_cloud)
+            threads[0].start()
+            res = threads[0].join()
+
+            #res = GET_request_to_cloud(url, headers)
+            if res.json()['status'] == "active":
+                ACTIVE = True
         
-        # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, GET_request_to_cloud)
-
-        # Launch threads
-        for i in range(len(threads)):
-	    threads[i].start()
-
-        threads_res = []
+        status_code = '204'
     
-        # Wait until threads terminate
-        for i in range(len(threads)):
-	
-	    res = threads[i].join()
-            # If user has access to the resource
-            if res.status_code == 200:
-                threads_res.append(res)
-    
-        response_body = {'subnets':[]}
-        for subnet in threads_res:
-    
-            res = subnet.json()
-            
-            # Subnet's uuid_cloud
-            subnet_uuid_cloud = res['subnet']['id']
-            network_uuid_cloud = res['subnet']['network_id']
-            
-            # Replace subnet's id by subnet's uuid_agent
-            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [subnet_uuid_cloud])
-            res['subnet']['id'] = result[0].uuid_agent
-            
-            # Replace subnet's network_id by network's uuid_agent
-            result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_cloud], keywords = [network_uuid_cloud])
-            res['subnet']['network_id'] = result[0].uuid_agent
-           
-            # Add cloud info to response
-            new_subnet_info = add_cloud_info_to_response(result[0].cloud_address, res['subnet'])
-            response_body['subnets'].append(new_subnet_info)
-         
-        if response_body['subnets'] != 0:
-            # Remove duplicate subnets        
-            response_body['subnets'] = remove_duplicate_info(response_body['subnets'], 'id')
-        
-        return generate_formatted_response(threads_res[0], response_body)
-    '''
-
-
-# Show subnet details
-def neutron_show_subnet_details(env):
-            
-    site_pattern = re.compile(r'(?<=/v2.0/subnets/).*')
-    match = site_pattern.search(env['PATH_INFO'])        
-    subnet_id = match.group()
-
-    subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_agent], keywords = [subnet_id])
-
-    # If network does not exist
-    if subnet_result.count() == 0:
-        
-        message = "Subnet %s could not be found" % subnet_id
-        response_body = {"NeutronError":{"detail":"","message":message,"type":"SubnetNotFound"}}
-        return non_exist_response('404', response_body)
-    
-    # If network exists then delete
     else:
-        # Retrive token from request
-        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-        
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
+        print 'Failed to upload binary image data !!!'
+        status_code = '409'
 
-        # Create url
-        url = subnet_result[0].cloud_address + ':' + config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/' + subnet_result[0].uuid_cloud
+    headers = ''
+    response = ''
+    headers = res.headers
+    headers['Content-Length'] = str(len(json.dumps(response)))
+    headers = ast.literal_eval(str(headers)).items()
 
-        # Forward request to the relevant cloud
-        res = GET_request_to_cloud(url, headers)
-        
-        response_body = None
-        # Successfully get response from cloud
-        if res.status_code == 200:
-            
-            response_body = res.json()
-        
-            network_uuid_cloud = response_body['subnet']['network_id']
-            # Replace network's id by uuid_agent
-            response_body['subnet']['id'] = subnet_result[0].uuid_agent
-        
-            # Replace subnet's network_id by network's uuid_agent
-            network_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_cloud], keywords = [network_uuid_cloud])
-            response_body['subnet']['network_id'] = network_result[0].uuid_agent
-            
-            # Add cloud info to response 
-            for i in range(subnet_result.count()):
-                response_body['subnet'] = add_cloud_info_to_response(subnet_result[i].cloud_address, response_body['subnet'])
-
-        else:
-            response_body = res.json()
-
-        return generate_formatted_response(res, response_body)
+    return status_code, headers, json.dumps(response)
 
 
-# Create subnet                    
-def neutron_create_subnet(env):
+# Launch Peer thread in order to make peer run CYCLON Protocol periodically
+def agent_launch_cyclon_peer_thread():
+
+    #import threading
+    #lock = threading.Lock()
+    peer = Peer(INTERVAL, [])
+    peer.setDaemon(True)
+    peer.start()
+
+
+# Act as introducer and handle request of new peer join
+def agent_cyclon_new_peer_join(env):
     
-    # Request data 
+    print 'CYCLON New Peer Join'
+    # Get neighbor list from memory cache
+    neighbors = read_from_memory_cache("neighbors")
+    
+    # Get new peer's request
     PostData = env['wsgi.input'].read()
-    
-    network_id = json.loads(PostData)['subnet']['network_id']
-    network_uuid_agent = network_id
-    
-    # Query from local DB
-    res = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Network, columns = [Network.uuid_agent], keywords = [network_id])
-    
-    # If network does not exist
-    if res.count() == 0:
-        message = "Network %s could not be found" % json.loads(PostData)['subnet']['network_id']
-        response_body = {"NeutronError":{"detail":"","message":message,"type":"NetworkNotFound"}}
-        return non_exist_response('404', response_body)
+    post_data_json = json.loads(PostData)
 
-    # If network exists
+    new_peer_ip_address = post_data_json['new_peer']['ip_address']
+
+    status_code = ''
+    response = None
+    # SIZE CACHE is not filled up yet, add new peer's information to agent's (act as introducer) memory cache
+    if len(neighbors) < FIXED_SIZE_CACHE and not is_in_neighbors(get_neighbors_ip_list(neighbors), new_peer_ip_address):
+        print 'SIZE CACHE is not yet filled up, send peer join notification to neighbors...'
+        # Introducer sends notification of peer joining to its neighbors, instead of initiating random walk
+        send_peer_join_notification(neighbors, new_peer_ip_address)
+
+        #response = generate_neighbors_response(neighbors)
+        new_peer = Neighbor(new_peer_ip_address, 0)
+        neighbors.append(new_peer)
+        # Update neighbors list
+        mc.set("neighbors", neighbors, 0)
+        status_code = '201'
+    
+    # SIZE CACHE is already filled up, then initiate random walk
     else:
-    
-        # Retrive token from request
-        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-    
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
-    
-        # Create suffix of service url
-        url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets'  
-        urls = []
-        data_set = []
-        for network in res:
-            urls.append(network.cloud_address + ':' + url_suffix)
-            post_data = PostData
-            post_data_json = json.loads(post_data)
-            post_data_json['subnet']['network_id'] = network.uuid_cloud
-            data_set.append(json.dumps(post_data_json))
+        print 'SIZE CACHE is already filled up, then initiate random walk...'
+        # Initiate n random walk, TTL (time to live) = 4
+        init_random_walk(new_peer_ip_address, len(neighbors), RANDOM_WALK_TTL)
+        status_code = '202'
+    #lock.release()
 
-        # Get generated threads 
-        threads = generate_threads_multicast_with_data(X_AUTH_TOKEN, headers, urls, POST_request_to_cloud, data_set)
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    response = ''
 
+    return status_code, headers, json.dumps(response)
+
+
+# Introducer sends notification of peer joining to neighbors
+def send_peer_join_notification(neighbors, new_peer_ip_address):
+
+    print 'Introducer Sends Notification of Peer Join to Neighbors...'
+
+    headers = {'Content-Type': 'application/json'}
+    agent_ip = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
+    post_data = {"new_peer":new_peer_ip_address}
+    data_set = []
+    neighbors_list = []
+    for neighbor in neighbors:
+        if agent_ip != neighbor.ip_address:
+            url = neighbor.ip_address + '/v1/agent/cyclon/handle_peer_join_notification'
+            neighbors_list.append(url)
+	    data_set.append(json.dumps(post_data))
+
+    if len(neighbors_list) != 0:
+
+	threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_connection_close, data_set)
+    
         # Launch threads
         for i in range(len(threads)):
-	    threads[i].start()
+            threads[i].start()
 
-        threads_res = []
-    
         # Wait until threads terminate
         for i in range(len(threads)):
-	
-	    # Parse response from site	
 	    res = threads[i].join()
-	    threads_res.append(res)
-
-        SUCCESS_threads = []
-        FAIL_threads = []
-        uuid_agent = uuid.uuid4()
-        # Retrive information from threads
-        for i in range(len(threads_res)):
-        
-            # If Subnet created successfully
-	    if threads_res[i].status_code == 201:
-	    
-                # Retrive network uuuid at cloud side
-                request_url = vars(threads[i])['_Thread__args'][0]
-                
-                # Retrive information from response
-                response_json = threads_res[i].json()
-                tenant_id = response_json['subnet']['tenant_id'] 
-                subnet_id = response_json['subnet']['id'] 
-                subnet_name = response_json['subnet']['name']
-                network_id = response_json['subnet']['network_id']
-                # Retrive cloud name and cloud address
-                site_pattern1 = re.compile(r'.*(?=/v2.0/)')
-                match1 = site_pattern1.search(request_url)
-                cloud_address_with_port = match1.group()   
-                site_pattern2 = re.compile(r'.*(?=:)')
-                match2 = site_pattern2.search(cloud_address_with_port)
-                cloud_address = match2.group()   
-                cloud_name = SITES.keys()[SITES.values().index(cloud_address)]
-                
-                new_subnet = Subnet(tenant_id = tenant_id, uuid_agent = uuid_agent, uuid_cloud = subnet_id, subnet_name = subnet_name, cloud_name = cloud_name, cloud_address = cloud_address, network_uuid_cloud = network_id)
-                
-                # Add data to DB
-                add_to_DB(AGENT_DB_ENGINE_CONNECTION, new_subnet)
-                
-                SUCCESS_threads.append(threads_res[i])
-        
-            # If subnet failed to be created
-            else:
-                FAIL_threads.append(threads_res[i])
-
-        if len(SUCCESS_threads) != 0:
-        
-            response_body = SUCCESS_threads[0].json()
-            subnet_result = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_cloud], keywords = [response_body['subnet']['id']])
-            response_body['subnet']['id'] = subnet_result[0].uuid_agent
-            response_body['subnet']['network_id'] =  network_uuid_agent
-            response_body['subnet'] = add_cloud_info_to_response(subnet_result[0].cloud_address, response_body['subnet'])
-        
-            return generate_formatted_response(SUCCESS_threads[0], response_body)
-
-        elif len(FAIL_threads) != 0:
-
-            return generate_formatted_response(FAIL_threads[0], FAIL_threads[0].json())
 
 
-# Delete subnet
-def neutron_delete_subnet(env):
-
-    site_pattern = re.compile(r'(?<=/subnets/).*')
-    match = site_pattern.search(env['PATH_INFO'])
-    subnet_id = match.group()   
+# Initiate n random walks
+def init_random_walk(new_peer_ip_address, n, TTL):
+    print 'Initiating %d Random Walks... TTL = %d' % (n, TTL)
     
-    res = query_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, columns = [Subnet.uuid_agent], keywords = [subnet_id])
-    
-    # If subnet does not exist
-    if res.count() == 0:
-    
-        message = "Subnet %s could not be found" % subnet_id
-        response_body = {"NeutronError":{"detail":"","message":message,"type":"SubnetNotFound"}}
-        return non_exist_response('404', response_body)
-    
-    # If subnet exists then delete
-    else:
-    
-        # Retrive token from request
-        X_AUTH_TOKEN = env['HTTP_X_AUTH_TOKEN']
-        
-        # Create request header
-        headers = {'X-Auth-Token': X_AUTH_TOKEN}
-        
-        # Create suffix of service url
-        url_suffix = config.get('Neutron', 'neutron_public_interface') + '/v2.0/subnets/'  
-        urls = []
-        for subnet in res:
-            urls.append(subnet.cloud_address + ':' + url_suffix + subnet.uuid_cloud)
+    neighbors = read_from_memory_cache("neighbors")
 
-        # Get generated threads 
-        threads = generate_threads_multicast(X_AUTH_TOKEN, headers, urls, DELETE_request_to_cloud)
-
-        # Launch threads
-        for i in range(len(threads)):
-	    threads[i].start()
-
-        threads_res = []
-        # Wait until threads terminate
-        for i in range(len(threads)):	    
-            res = threads[i].join()
-	    threads_res.append(res)
+    headers = {'Content-Type': 'application/json'}
+    post_data = {"new_peer_ip_address":new_peer_ip_address, 'TTL':TTL}
+    data_set = []
+    neighbors_list = []
+    for i in range(n):
+        neighbors_list.append(random.choice(neighbors).ip_address + '/v1/agent/cyclon/deliver_random_walk_message')
+	data_set.append(json.dumps(post_data))
     
-        SUCCESS_threads = []
-        FAIL_threads = []
-        for i in range(len(threads_res)):
+    threads = generate_threads_multicast_with_data("", headers, neighbors_list, POST_request_connection_close, data_set)
+    
+    # Launch threads
+    for i in range(len(threads)):
+        threads[i].start()
+
+    # Wait until threads terminate
+    for i in range(len(threads)):
+	res = threads[i].join()
+
+
+# Peer delivers random walk message
+def agent_cyclon_deliver_random_walk_message(env):
+    print 'Peer Delivers Random Walk Message...'
+    
+    received_data = json.loads(env['wsgi.input'].read())
+    TTL = int(received_data['TTL'])
+    
+    new_peer_ip_address = received_data['new_peer_ip_address']
+
+    neighbors = read_from_memory_cache("neighbors")
+
+    headers = {'Content-Type': 'application/json'}
+
+    # Random walk ends here, then exchange view with new peer
+    if TTL == 0:
+        print 'Random Walk Ends Here...'
         
-            # If Network deleted successfully
-	    if threads_res[i].status_code == 204:
-	   
-                # Retrive network uuuid at cloud side
-                request_url = vars(threads[i])['_Thread__args'][0]
-                match = site_pattern.search(request_url)
-                uuid_cloud = match.group()   
+        random_neighbor = random.choice(neighbors)
+        url = new_peer_ip_address + '/v1/agent/cyclon/receive_from_introducer_neighbors'
+        
+        # Decrease TTL by one
+        post_data = {"neighbor":{'ip_address': random_neighbor.ip_address, 'age':random_neighbor.age}}
+        POST_request_connection_close(url, headers, json.dumps(post_data))
+        
+        # Replace randomly selected neighbor with the new peer
+        if not is_in_neighbors(get_neighbors_ip_list(neighbors), new_peer_ip_address):
+            neighbors_list = []
+            for neighbor in neighbors:
+                if neighbor != random_neighbor:
+                    neighbors_list.append(neighbor)
+
+            # Update neighbors list in memory cache
+            new_peer = Neighbor(new_peer_ip_address, 0)
+            neighbors_list.append(new_peer)
             
-                # Delete network information in agent DB 
-                delete_from_DB(AGENT_DB_ENGINE_CONNECTION, Subnet, Subnet.uuid_cloud, uuid_cloud)
-                SUCCESS_threads.append(threads_res[i])
-            else:
-                FAIL_threads.append(threads_res[i])
+	    write_to_memory_cache("neighbors", neighbors_list)
+    
+    # Continue with random walk, randomly pick up a neighbor and send random walk message to it
+    else:
+        print 'Random Walk TTL = %d' % TTL
+        
+        # Randomly pick up a neighbor as response
+        random_neighbor = random.choice(neighbors)
+        url = random_neighbor.ip_address + '/v1/agent/cyclon/deliver_random_walk_message'
+        # Decrease TTL by one
+        post_data = {"new_peer_ip_address":new_peer_ip_address, 'TTL':TTL-1}
+        POST_request_connection_close(url, headers, json.dumps(post_data))
 
-        if len(SUCCESS_threads) != 0:
-            return generate_formatted_response(SUCCESS_threads[0], SUCCESS_threads[0].text)
-        else:
-            return generate_formatted_response(FAIL_threads[0], FAIL_threads[0].text)
+    status_code = '200'
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    response = ''
+
+    return status_code, headers, json.dumps(response)
+
+
+# Handles peer join notification sent from new peer's introducer
+def agent_cyclon_handle_peer_join_notification(env):
+    print 'Neighbor of New Peer\'s Introducer Handles Peer Join Notification...'
+    
+    recevied_data = json.loads(env['wsgi.input'].read())
+
+    neighbors = read_from_memory_cache("neighbors")
+
+    if len(neighbors) != 0:
+
+        # Randomly pick up a neighbor as response
+        random_neighbor = random.choice(neighbors)
+
+        # Set new peer's age to 0 and add its information to memory cache 
+        if len(neighbors) < FIXED_SIZE_CACHE:
+    	    new_neighbor = Neighbor(recevied_data['new_peer'], 0)
+	    neighbors.append(new_neighbor)
+	    write_to_memory_cache("neighbors", neighbors)
+    
+        headers = {'Content-Type': 'application/json'}
+        url = recevied_data['new_peer'] + '/v1/agent/cyclon/receive_from_introducer_neighbors'
+        dic = {'neighbor':{'ip_address':random_neighbor.ip_address, 'age':random_neighbor.age}}
+        res = POST_request_to_cloud(url, headers, json.dumps(dic))
+        res.connection.close()
+
+    status_code = '200'
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    response = ''
+
+    return status_code, headers, json.dumps(response)
+
+
+# New peer receives response from its introducer's neighbors
+def agent_cyclon_receive_from_introducer_neighbors(env):
+    print 'New Peer Receives Response from Introducer\'s Neighbors...'
+    
+    received_data = json.loads(env['wsgi.input'].read())
+    res_neighbor_ip = received_data['neighbor']['ip_address']
+    res_neighbor_age = received_data['neighbor']['age']
+    
+    neighbors = read_from_memory_cache("neighbors")
+    
+    neighbors_ip_list = get_neighbors_ip_list(neighbors)
+    if len(neighbors) < FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, res_neighbor_ip):
+        new_neighbor = Neighbor(res_neighbor_ip, res_neighbor_age)
+        neighbors.append(new_neighbor)
+	write_to_memory_cache("neighbors", neighbors)
+    
+    status_code = '200'
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    response = ''
+            
+    return status_code, headers, json.dumps(response)
+
+
+# Peer receives request of view exchange from its neighbor
+def agent_cyclon_receive_view_exchange_request(env):
+    print 'Peer Receives Request of View Exchange From Its Neighbor...'
+
+    received_data = json.loads(env['wsgi.input'].read())
+    received_neighbors = received_data['neighbors']
+
+    if view_exchange_lock.locked:
+        print 'LOCK1... '*100
+    view_exchange_lock.acquire()
+
+    neighbors = read_from_memory_cache("neighbors")
+
+    # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
+    try:
+        selected_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
+        selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
+    except:
+        selected_neighbors = []
+
+    # Update local neighbors list in memeory cache    
+    update_neighbors_cache(received_neighbors, selected_neighbors)
+
+    selected_neighbors_data = []
+    for neighbor in selected_neighbors:
+        dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
+        selected_neighbors_data.append(dic)
+    
+    response = {"neighbors":selected_neighbors_data}
+    
+    status_code = '200'
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    
+    if view_exchange_lock.locked():
+        print 'LOCK2... '*100
+    view_exchange_lock.release()
+    
+    return status_code, headers, json.dumps(response)
+
+
+
+    
 
 
