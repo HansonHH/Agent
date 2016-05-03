@@ -86,7 +86,7 @@ class Peer(Thread):
             
 	    # Peer exchanges its view with the peer with highest age from its neighbros list
 	    self.view_exchange()
-            #view_exchange_lock.release()
+            view_exchange_lock.release()
     
 
     # New peer sends a request to its introducer to join the P2P network
@@ -328,7 +328,9 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
 
     # Update peer's cache to include all remaining entries 
     # Firstly, use empty cache slots (if any)
-    if len(neighbors) < FIXED_SIZE_CACHE:
+    #if len(neighbors) < FIXED_SIZE_CACHE:
+    if len(read_from_memory_cache("neighbors")) < FIXED_SIZE_CACHE:
+
         for i in range(FIXED_SIZE_CACHE-len(neighbors)):
             if len(filtered_received_neighbors) != 0 and len(neighbors) < FIXED_SIZE_CACHE:
                 neighbors_ip_list = get_neighbors_ip_list(neighbors)
@@ -346,31 +348,27 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
     #    print '%s, %s' % (neighbor.ip_address, neighbor.age)
 
     # Secondly, replace entries among the ones originally sent to the other peer
-    if len(neighbors) == FIXED_SIZE_CACHE:
+    #if len(neighbors) == FIXED_SIZE_CACHE:
+    if len(read_from_memory_cache("neighbors")) == FIXED_SIZE_CACHE:
         #response_neighbors_cp = response_neighbors
         for i in range(len(filtered_received_neighbors)):
 
             if len(selected_neighbors) == 0:
                 break
 
-            #if len(neighbors) == FIXED_SIZE_CACHE and not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
-            if len(neighbors) == FIXED_SIZE_CACHE:
-            
-                neighbors_ip_list = get_neighbors_ip_list(neighbors)
-                random_neighbor = random.choice(filtered_received_neighbors)
-                random_selected_neighbor = random.choice(selected_neighbors)
+            #if len(read_from_memory_cache("neighbors")) == FIXED_SIZE_CACHE:
+              	#neighbors_ip_list = get_neighbors_ip_list(neighbors)
+            neighbors_ip_list = get_neighbors_ip_list(neighbors)
+            random_neighbor = random.choice(filtered_received_neighbors)
+            random_selected_neighbor = random.choice(selected_neighbors)
 
-                if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
+            if not is_in_neighbors(neighbors_ip_list, random_neighbor.ip_address):
 
-            	    #random_neighbor = random.choice(filtered_received_neighbors)
-            	    filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+                filtered_received_neighbors = remove_from_list(filtered_received_neighbors, random_neighbor)
+            	selected_neighbors = remove_from_list(selected_neighbors, random_selected_neighbor)
+            	neighbors = remove_from_list(neighbors, random_selected_neighbor)
 
-            	    #random_response_neighbor = random.choice(response_neighbors)
-            	    selected_neighbors = remove_from_list(selected_neighbors, random_selected_neighbor)
-
-            	    neighbors = remove_from_list(neighbors, random_selected_neighbor)
-                    #if len(neighbors) <= FIXED_SIZE_CACHE:
-            	    neighbors.append(random_neighbor)
+            	neighbors.append(random_neighbor)
             else:
                 break
     #print '$'*100
