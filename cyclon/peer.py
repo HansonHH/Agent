@@ -83,12 +83,10 @@ class Peer(Thread):
             # Update all neighbors' age by one
             view_exchange_lock.acquire()
             self.update_age()
-            view_exchange_lock.release()
             
-            # Peer exchanges its view with the peer with highest age from its neighbros list
-            view_exchange_lock.acquire()
+	    # Peer exchanges its view with the peer with highest age from its neighbros list
 	    self.view_exchange()
-            view_exchange_lock.release()
+            #view_exchange_lock.release()
     
 
     # New peer sends a request to its introducer to join the P2P network

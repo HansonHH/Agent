@@ -15,7 +15,8 @@ from common import *
 from db import *
 from models import *
 import time
-from cyclon.peer import *
+#from cyclon.peer import *
+import cyclon.peer
 
 #from threading import Lock
 #lock = Lock()
