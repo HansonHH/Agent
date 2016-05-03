@@ -325,7 +325,7 @@ def agent_cyclon_receive_view_exchange_request(env):
     #if view_exchange_lock.locked:
     #    print 'LOCK1..'*100
     #print view_exchange_lock.locked
-    #view_exchange_lock.acquire()
+    view_exchange_lock.acquire()
 
     neighbors = read_from_memory_cache("neighbors")
 
