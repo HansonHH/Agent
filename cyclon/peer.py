@@ -84,13 +84,11 @@ class Peer(Thread):
             view_exchange_lock.acquire()
             self.update_age()
             view_exchange_lock.release()
-            #self.lock.acquire()
-            #print 'CYCLON Thread Lock Acquire...'
+            
+            # Peer exchanges its view with the peer with highest age from its neighbros list
             view_exchange_lock.acquire()
 	    self.view_exchange()
             view_exchange_lock.release()
-            #self.lock.release()
-            #print 'CYCLON Thread Lock Release...'
     
 
     # New peer sends a request to its introducer to join the P2P network
@@ -195,7 +193,7 @@ class Peer(Thread):
     #def select_subnet_randomly(self, oldest_neighbor):
         print 'Select Subnet Randomly...'
 	
-	neighbors = read_from_memory_cache("neighbors")
+	#neighbors = read_from_memory_cache("neighbors")
 
         temp_list = []
         for neighbor in neighbors:
@@ -225,20 +223,19 @@ class Peer(Thread):
         
         headers = {'Content-Type': 'application/json'}
         url = oldest_neighbor.ip_address + '/v1/agent/cyclon/receive_view_exchange_request'
+        
         sent_neighbors_data = []
         for neighbor in sent_subset:
-            #dic = {"neighbor":{"ip_address":neighbor.ip_address, "age":neighbor.age}}
             dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
             sent_neighbors_data.append(dic)
-
         post_data = {"neighbors":sent_neighbors_data}
         
         try:
             #res = POST_request_to_timeout(url, headers, INTERVAL, json.dumps(post_data))
             res = POST_request_to_cloud(url, headers, json.dumps(post_data))
-            response_neighbors = res.json()['neighbors']
+            received_neighbors = res.json()['neighbors']
             # Update local neighbors list in memeory cache    
-            update_neighbors_cache(response_neighbors, selected_subset)
+            update_neighbors_cache(received_neighbors, selected_subset)
         
         except:
             print 'TIMEOUT '*20
@@ -307,10 +304,8 @@ def pick_neighbors_at_random(neighbors, number):
     return random_neighbors
 
 
-def update_neighbors_cache(received_neighbors, selected_neighbors):
-
-    neighbors = read_from_memory_cache("neighbors")
- 
+def filter_received_neighbor_response(neighbors, received_neighbors):
+    
     # Discard entries pointing to agent, and entries that are already in anget's cache
     filtered_received_neighbors = []
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
@@ -323,6 +318,13 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
     
     # Remove redundant neighbors	
     filtered_received_neighbors = remove_neighbors_with_same_ip(filtered_received_neighbors)
+
+# Update local neighbros list based on list of neighbros received and sent
+def update_neighbors_cache(received_neighbors, selected_neighbors):
+
+    neighbors = read_from_memory_cache("neighbors")
+ 
+    filtered_received_neighbors = filter_received_neighbors_response(neighbors, received_neighbors)
 
     # Update peer's cache to include all remaining entries 
     # Firstly, use empty cache slots (if any)
@@ -338,7 +340,7 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
                 break
 
     # Remove redundant neighbors
-    selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
+    #selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
     
     #for neighbor in selected_neighbors:
     #    print '%s, %s' % (neighbor.ip_address, neighbor.age)
