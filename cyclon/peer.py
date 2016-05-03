@@ -45,16 +45,12 @@ class Peer(Thread):
         self.STOP = False
         self.interval = interval
         self.neighbors = neighbors
-        #self.lock = lock
         
         if INTRODUCER_IP != AGENT_IP:
             introducer = Neighbor(INTRODUCER_IP, 0)
             self.neighbors.append(introducer)
-            # Save neighbor list to memcached (expiration up to 30 days)
-            #mc.set("neighbors", self.neighbors, 0)
             write_to_memory_cache("neighbors", self.neighbors)
         else:
-            #mc.set("neighbors", [], 0)
             write_to_memory_cache("neighbors", [])
     
     #def __str__(self):
@@ -82,7 +78,9 @@ class Peer(Thread):
             print 'CYCLON protocol runs every %d seconds, %s' % (self.interval, strftime("%Y-%m-%d %H:%M:%S", gmtime())) 
             
             # Update all neighbors' age by one
+            view_exchange_lock.acquire()
             self.update_age()
+            view_exchange_lock.release()
             #self.lock.acquire()
             #print 'CYCLON Thread Lock Acquire...'
             view_exchange_lock.acquire()
@@ -115,7 +113,8 @@ class Peer(Thread):
     # Update peer's all neighbors' age by one
     def update_age(self):
 
-        self.neighbors = read_from_memory_cache("neighbors")
+        #self.neighbors = read_from_memory_cache("neighbors")
+        neighbors = read_from_memory_cache("neighbors")
 
         if len(self.neighbors) == 0:
             pass
@@ -123,15 +122,17 @@ class Peer(Thread):
             print '-'*50
             print 'FIXED_SIZE_CACHE: %s' % FIXED_SIZE_CACHE
             print 'SHUFFLE_LENGTH: %s' % SHUFFLE_LENGTH
-            print 'len of neighbors list: %d' % len(self.neighbors)
-            for i in range(len(self.neighbors)):
+            #print 'len of neighbors list: %d' % len(self.neighbors)
+            print 'len of neighbors list: %d' % len(neighbors)
+            #for i in range(len(self.neighbors)):
+            for i in range(len(neighbors)):
                 # Update neighbor's age by one                
-                self.neighbors[i].age = self.neighbors[i].age + 1
+                neighbors[i].age = neighbors[i].age + 1
                 
-		print '%s, %d' % (self.neighbors[i].ip_address, self.neighbors[i].age)
+		print '%s, %d' % (neighbors[i].ip_address, neighbors[i].age)
 
                 # Save neighbor list to memcached (expiration up to 30 days)
-                write_to_memory_cache("neighbors", self.neighbors)
+                write_to_memory_cache("neighbors", neighbors)
             
 	    print '-'*50
 
@@ -140,24 +141,25 @@ class Peer(Thread):
 	
 	print 'Peer View Exchange...'
 
-	self.neighbors = read_from_memory_cache("neighbors")
+	#self.neighbors = read_from_memory_cache("neighbors")
+	neighbors = read_from_memory_cache("neighbors")
 
-	if len(self.neighbors) == 0:
+	if len(neighbors) == 0:
             print 'No neighbor exists, waiting for neighbor to join...'
 	    pass
     	else:
             # Pick up a oldest neighbor from neighbors list
-	    oldest_neighbor = self.pick_neighbor_with_highest_age(self.neighbors)
+	    oldest_neighbor = self.pick_neighbor_with_highest_age(neighbors)
         
 	    #self.neighbors = read_from_memory_cache("neighbors")
 	    # Create a subset containing SHUFFLE_LENGTH neighbors
-            selected_subset, sent_subset = self.select_subnet_randomly(self.neighbors, oldest_neighbor)
+            selected_subset, sent_subset = self.select_subnet_randomly(neighbors, oldest_neighbor)
             #selected_subset, sent_subset = self.select_subnet_randomly(oldest_neighbor)
 
             # Send selected subset to the oldest neighbor
             try:
 	    	#self.neighbors = read_from_memory_cache("neighbors")
-                self.send_to_oldest_neighbor(self.neighbors, oldest_neighbor, selected_subset, sent_subset)
+                self.send_to_oldest_neighbor(neighbors, oldest_neighbor, selected_subset, sent_subset)
             except:
                 pass
 
@@ -253,6 +255,7 @@ def read_from_memory_cache(key):
 def write_to_memory_cache(key, value):
     lock.acquire()
     try:
+        # Save to memcached (expiration up to 30 days)
         mc.set(key, value, 0)
     finally:
         lock.release()
@@ -302,11 +305,9 @@ def pick_neighbors_at_random(neighbors, number):
 
 
 def update_neighbors_cache(received_neighbors, selected_neighbors):
-#def update_neighbors_cache(received_neighbors, selected_neighbors):
 
     neighbors = read_from_memory_cache("neighbors")
  
-    #print '$'*100
     # Discard entries pointing to agent, and entries that are already in anget's cache
     filtered_received_neighbors = []
     neighbors_ip_list = get_neighbors_ip_list(neighbors)
