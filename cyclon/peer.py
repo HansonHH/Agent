@@ -44,7 +44,7 @@ class Peer(Thread):
         self.isJoined = False
         self.STOP = False
         self.interval = interval
-        self.neighbors = neighbors
+        #self.neighbors = neighbors
         
         if INTRODUCER_IP != AGENT_IP:
             introducer = Neighbor(INTRODUCER_IP, 0)
@@ -116,7 +116,7 @@ class Peer(Thread):
         #self.neighbors = read_from_memory_cache("neighbors")
         neighbors = read_from_memory_cache("neighbors")
 
-        if len(self.neighbors) == 0:
+        if len(neighbors) == 0:
             pass
         else:
             print '-'*50
