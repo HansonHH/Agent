@@ -15,8 +15,7 @@ from common import *
 from db import *
 from models import *
 import time
-#from cyclon.peer import *
-import cyclon.peer
+from cyclon.peer import *
 
 #from threading import Lock
 #lock = Lock()
@@ -323,10 +322,10 @@ def agent_cyclon_receive_view_exchange_request(env):
     received_neighbors = received_data['neighbors']
 
     #if not view_exchange_lock.locked:
-    if cyclon.peer.view_exchange_lock.locked:
+    if view_exchange_lock.locked:
         print 'LOCK1..'*100
-    print cyclon.peer.view_exchange_lock.locked
-    cyclon.peer.view_exchange_lock.acquire()
+    print view_exchange_lock.locked
+    view_exchange_lock.acquire()
 
     neighbors = read_from_memory_cache("neighbors")
 
@@ -350,10 +349,10 @@ def agent_cyclon_receive_view_exchange_request(env):
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
     
-    #if view_exchange_lock.locked():
-    #    print 'LOCK2..'*100
-    #print view_exchange_lock.locked
-    #view_exchange_lock.release()
+    if view_exchange_lock.locked():
+        print 'LOCK2..'*100
+    print view_exchange_lock.locked
+    view_exchange_lock.release()
     
     return status_code, headers, json.dumps(response)
 
