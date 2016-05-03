@@ -319,6 +319,8 @@ def filter_received_neighbor_response(neighbors, received_neighbors):
     # Remove redundant neighbors	
     filtered_received_neighbors = remove_neighbors_with_same_ip(filtered_received_neighbors)
 
+    return filtered_received_neighbors
+
 # Update local neighbros list based on list of neighbros received and sent
 def update_neighbors_cache(received_neighbors, selected_neighbors):
 
