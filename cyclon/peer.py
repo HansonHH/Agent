@@ -324,7 +324,7 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
 
     neighbors = read_from_memory_cache("neighbors")
  
-    filtered_received_neighbors = filter_received_neighbors_response(neighbors, received_neighbors)
+    filtered_received_neighbors = filter_received_neighbor_response(neighbors, received_neighbors)
 
     # Update peer's cache to include all remaining entries 
     # Firstly, use empty cache slots (if any)
