@@ -316,7 +316,7 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
 
 # Peer receives request of view exchange from its neighbor
 def agent_cyclon_receive_view_exchange_request(env):
-    print 'Peer Receives Request of View Exchange From Its Neighbor...'
+    #print 'Peer Receives Request of View Exchange From Its Neighbor...'
 
     received_data = json.loads(env['wsgi.input'].read())
     received_neighbors = received_data['neighbors']
@@ -335,11 +335,11 @@ def agent_cyclon_receive_view_exchange_request(env):
     # Randomly selects a subset of its own neighbros, of size equals to SHUFFLE_LENGTH, sends it to the initiating node 
     try:
         selected_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
-        print '='*40
-        print selected_neighbors
-        for neighbor in selected_neighbors:
-            print 'ip_address: %s, age: %d' % (neighbor.ip_address, neighbor.age)
-        print '='*40
+        #print '='*40
+        #print selected_neighbors
+        #for neighbor in selected_neighbors:
+        #    print 'ip_address: %s, age: %d' % (neighbor.ip_address, neighbor.age)
+        #print '='*40
         selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
     except:
         selected_neighbors = []
@@ -357,7 +357,7 @@ def agent_cyclon_receive_view_exchange_request(env):
     
     response = {"neighbors":selected_neighbors_data}
 
-    print 'agent.pt response: %s' % response
+    #print 'agent.pt response: %s' % response
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
