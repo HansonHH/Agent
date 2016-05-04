@@ -81,9 +81,9 @@ class Peer(Thread):
             print 'CYCLON protocol runs every %d seconds, %s' % (self.interval, strftime("%Y-%m-%d %H:%M:%S", gmtime())) 
             
             # Update all neighbors' age by one
-    	    print 'peer.py waiting for view_exchange_lock.acquire()'
+    	    #print 'peer.py waiting for view_exchange_lock.acquire()'
             view_exchange_lock.acquire()
-    	    print 'peer.py view_exchange_lock.acquire()'
+    	    #print 'peer.py view_exchange_lock.acquire()'
             self.update_age()
             view_exchange_lock.release()
             
@@ -91,12 +91,12 @@ class Peer(Thread):
             view_exchange_lock.acquire()
 	    self.view_exchange()
             view_exchange_lock.release()
-    	    print 'peer.py view_exchange_lock.release()'
+    	    #print 'peer.py view_exchange_lock.release()'
     
 
     # New peer sends a request to its introducer to join the P2P network
     def peer_join(self, introducer_ip, agent_ip):
-        print 'Peer is joining the P2P network...'
+        #print 'Peer is joining the P2P network...'
         
         headers = {'Content-Type':'application/json; charset=UTF-8'}
         url = introducer_ip + '/v1/agent/cyclon/new_peer_join'
@@ -148,7 +148,7 @@ class Peer(Thread):
     # Peer exchanges it view of neighbors with one of its oldest neighbor
     def view_exchange(self):
 	
-	print 'Peer View Exchange...'
+	#print 'Peer View Exchange...'
 
 	#self.neighbors = read_from_memory_cache("neighbors")
 	neighbors = read_from_memory_cache("neighbors")
@@ -173,7 +173,7 @@ class Peer(Thread):
 
     # Pick up the oldest neighbor from neighbors list
     def pick_neighbor_with_highest_age(self, neighbors):
-        print 'Pick up oldest neighbor...'
+        #print 'Pick up oldest neighbor...'
 
 	oldest_neighbor = neighbors[0]
         oldest_neighbors = []
@@ -196,8 +196,7 @@ class Peer(Thread):
 
     # Select SHUFFLE_LENGTH - 1 random neighbors
     def select_subnet_randomly(self, neighbors, oldest_neighbor):
-    #def select_subnet_randomly(self, oldest_neighbor):
-        print 'Select Subnet Randomly...'
+        #print 'Select Subnet Randomly...'
 	
 	#neighbors = read_from_memory_cache("neighbors")
 
@@ -225,7 +224,7 @@ class Peer(Thread):
 
 
     def send_to_oldest_neighbor(self, neighbors, oldest_neighbor, selected_subset, sent_subset):
-        print 'Send to oldest neighbor -> ip_address: %s, age: %s' % (oldest_neighbor.ip_address, oldest_neighbor.age)
+        #print 'Send to oldest neighbor -> ip_address: %s, age: %s' % (oldest_neighbor.ip_address, oldest_neighbor.age)
         
         headers = {'Content-Type': 'application/json'}
         url = oldest_neighbor.ip_address + '/v1/agent/cyclon/receive_view_exchange_request'
@@ -351,10 +350,10 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
                 break
 
     
-    print '$'*100
-    for neighbor in selected_neighbors:
-        print '%s, %s' % (neighbor.ip_address, neighbor.age)
-    print '$'*100
+    #print '$'*100
+    #for neighbor in selected_neighbors:
+    #    print '%s, %s' % (neighbor.ip_address, neighbor.age)
+    #print '$'*100
 
     # Secondly, replace entries among the ones originally sent to the other peer
     #if len(neighbors) == FIXED_SIZE_CACHE:

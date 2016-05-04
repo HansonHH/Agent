@@ -111,7 +111,7 @@ def agent_launch_cyclon_peer_thread():
 # Act as introducer and handle request of new peer join
 def agent_cyclon_new_peer_join(env):
     
-    print 'CYCLON New Peer Join'
+    #print 'CYCLON New Peer Join'
     # Get neighbor list from memory cache
     neighbors = read_from_memory_cache("neighbors")
     
@@ -153,7 +153,7 @@ def agent_cyclon_new_peer_join(env):
 # Introducer sends notification of peer joining to neighbors
 def send_peer_join_notification(neighbors, new_peer_ip_address):
 
-    print 'Introducer Sends Notification of Peer Join to Neighbors...'
+    #print 'Introducer Sends Notification of Peer Join to Neighbors...'
 
     headers = {'Content-Type': 'application/json'}
     agent_ip = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
@@ -181,7 +181,7 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
 
 # Initiate n random walks
 def init_random_walk(new_peer_ip_address, n, TTL):
-    print 'Initiating %d Random Walks... TTL = %d' % (n, TTL)
+    #print 'Initiating %d Random Walks... TTL = %d' % (n, TTL)
     
     neighbors = read_from_memory_cache("neighbors")
 
@@ -206,7 +206,7 @@ def init_random_walk(new_peer_ip_address, n, TTL):
 
 # Peer delivers random walk message
 def agent_cyclon_deliver_random_walk_message(env):
-    print 'Peer Delivers Random Walk Message...'
+    #print 'Peer Delivers Random Walk Message...'
     
     received_data = json.loads(env['wsgi.input'].read())
     TTL = int(received_data['TTL'])
@@ -219,7 +219,7 @@ def agent_cyclon_deliver_random_walk_message(env):
 
     # Random walk ends here, then exchange view with new peer
     if TTL == 0:
-        print 'Random Walk Ends Here...'
+        #print 'Random Walk Ends Here...'
         
         random_neighbor = random.choice(neighbors)
         url = new_peer_ip_address + '/v1/agent/cyclon/receive_from_introducer_neighbors'
@@ -261,7 +261,7 @@ def agent_cyclon_deliver_random_walk_message(env):
 
 # Handles peer join notification sent from new peer's introducer
 def agent_cyclon_handle_peer_join_notification(env):
-    print 'Neighbor of New Peer\'s Introducer Handles Peer Join Notification...'
+    #print 'Neighbor of New Peer\'s Introducer Handles Peer Join Notification...'
     
     recevied_data = json.loads(env['wsgi.input'].read())
 
@@ -293,7 +293,7 @@ def agent_cyclon_handle_peer_join_notification(env):
 
 # New peer receives response from its introducer's neighbors
 def agent_cyclon_receive_from_introducer_neighbors(env):
-    print 'New Peer Receives Response from Introducer\'s Neighbors...'
+    #print 'New Peer Receives Response from Introducer\'s Neighbors...'
     
     received_data = json.loads(env['wsgi.input'].read())
     res_neighbor_ip = received_data['neighbor']['ip_address']
@@ -316,7 +316,7 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
 
 # Peer receives request of view exchange from its neighbor
 def agent_cyclon_receive_view_exchange_request(env):
-    print 'Peer Receives Request of View Exchange From Its Neighbor...'
+    #print 'Peer Receives Request of View Exchange From Its Neighbor...'
 
     received_data = json.loads(env['wsgi.input'].read())
     received_neighbors = received_data['neighbors']
@@ -325,9 +325,10 @@ def agent_cyclon_receive_view_exchange_request(env):
     #if view_exchange_lock.locked:
     #    print 'LOCK1..'*100
     #print view_exchange_lock.locked
-    print 'agent.py waiting for view_exchange_lock.acquire()'
+    
+    #print 'agent.py waiting for view_exchange_lock.acquire()'
     view_exchange_lock.acquire()
-    print 'agent.py view_exchange_lock.acquire()'
+    #print 'agent.py view_exchange_lock.acquire()'
 
     neighbors = read_from_memory_cache("neighbors")
 
@@ -342,7 +343,7 @@ def agent_cyclon_receive_view_exchange_request(env):
     update_neighbors_cache(received_neighbors, selected_neighbors)
     
     view_exchange_lock.release()
-    print 'agent.py view_exchange_lock.release()'
+    #print 'agent.py view_exchange_lock.release()'
 
     selected_neighbors_data = []
     for neighbor in selected_neighbors:
