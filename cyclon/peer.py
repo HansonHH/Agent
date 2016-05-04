@@ -81,12 +81,15 @@ class Peer(Thread):
             print 'CYCLON protocol runs every %d seconds, %s' % (self.interval, strftime("%Y-%m-%d %H:%M:%S", gmtime())) 
             
             # Update all neighbors' age by one
+    	    print 'peer.py waiting for view_exchange_lock.acquire()'
             view_exchange_lock.acquire()
+    	    print 'peer.py view_exchange_lock.acquire()'
             self.update_age()
             
 	    # Peer exchanges its view with the peer with highest age from its neighbros list
 	    self.view_exchange()
             view_exchange_lock.release()
+    	    print 'peer.py view_exchange_lock.release()'
     
 
     # New peer sends a request to its introducer to join the P2P network

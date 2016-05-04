@@ -325,7 +325,9 @@ def agent_cyclon_receive_view_exchange_request(env):
     #if view_exchange_lock.locked:
     #    print 'LOCK1..'*100
     #print view_exchange_lock.locked
+    print 'agent.py waiting for view_exchange_lock.acquire()'
     view_exchange_lock.acquire()
+    print 'agent.py view_exchange_lock.acquire()'
 
     neighbors = read_from_memory_cache("neighbors")
 
@@ -338,6 +340,9 @@ def agent_cyclon_receive_view_exchange_request(env):
 
     # Update local neighbors list in memeory cache    
     update_neighbors_cache(received_neighbors, selected_neighbors)
+    
+    view_exchange_lock.release()
+    print 'agent.py view_exchange_lock.release()'
 
     selected_neighbors_data = []
     for neighbor in selected_neighbors:
@@ -352,7 +357,6 @@ def agent_cyclon_receive_view_exchange_request(env):
     #if view_exchange_lock.locked():
     #    print 'LOCK2..'*100
     #print view_exchange_lock.locked
-    view_exchange_lock.release()
     
     return status_code, headers, json.dumps(response)
 
