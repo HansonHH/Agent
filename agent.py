@@ -351,6 +351,8 @@ def agent_cyclon_receive_view_exchange_request(env):
         selected_neighbors_data.append(dic)
     
     response = {"neighbors":selected_neighbors_data}
+
+    print 'agent.pt response: %s' % response
     
     status_code = '200'
     headers = [('Content-Type', 'application/json; charset=UTF-8')]
