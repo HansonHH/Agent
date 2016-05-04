@@ -121,6 +121,7 @@ class Peer(Thread):
 
             if len(neighbors) > FIXED_SIZE_CACHE:
                 print 'SHIT HAPPENED!!! '*500
+                time.sleep(30)
 
             print '-'*50
             print 'FIXED_SIZE_CACHE: %s' % FIXED_SIZE_CACHE
@@ -332,8 +333,8 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
 
     # Update peer's cache to include all remaining entries 
     # Firstly, use empty cache slots (if any)
-    if len(neighbors) < FIXED_SIZE_CACHE:
-    #if len(read_from_memory_cache("neighbors")) < FIXED_SIZE_CACHE:
+    #if len(neighbors) < FIXED_SIZE_CACHE:
+    if len(read_from_memory_cache("neighbors")) < FIXED_SIZE_CACHE:
 
         for i in range(FIXED_SIZE_CACHE-len(neighbors)):
             if len(filtered_received_neighbors) != 0 and len(neighbors) < FIXED_SIZE_CACHE:
@@ -345,8 +346,6 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
             else:
                 break
 
-    # Remove redundant neighbors
-    #selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
     
     print '$'*100
     for neighbor in selected_neighbors:
@@ -354,8 +353,8 @@ def update_neighbors_cache(received_neighbors, selected_neighbors):
     print '$'*100
 
     # Secondly, replace entries among the ones originally sent to the other peer
-    if len(neighbors) == FIXED_SIZE_CACHE:
-    #if len(read_from_memory_cache("neighbors")) == FIXED_SIZE_CACHE:
+    #if len(neighbors) == FIXED_SIZE_CACHE:
+    if len(read_from_memory_cache("neighbors")) == FIXED_SIZE_CACHE:
         #response_neighbors_cp = response_neighbors
         for i in range(len(filtered_received_neighbors)):
 
