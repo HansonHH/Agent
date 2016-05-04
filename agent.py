@@ -178,6 +178,36 @@ def send_peer_join_notification(neighbors, new_peer_ip_address):
         for i in range(len(threads)):
 	    res = threads[i].join()
 
+# Handles peer join notification sent from new peer's introducer
+def agent_cyclon_handle_peer_join_notification(env):
+    #print 'Neighbor of New Peer\'s Introducer Handles Peer Join Notification...'
+    
+    recevied_data = json.loads(env['wsgi.input'].read())
+
+    neighbors = read_from_memory_cache("neighbors")
+
+    if len(neighbors) != 0:
+
+        # Randomly pick up a neighbor as response
+        random_neighbor = random.choice(neighbors)
+
+        # Set new peer's age to 0 and add its information to memory cache 
+        if len(neighbors) < FIXED_SIZE_CACHE:
+    	    new_neighbor = Neighbor(recevied_data['new_peer'], 0)
+	    neighbors.append(new_neighbor)
+	    write_to_memory_cache("neighbors", neighbors)
+    
+        headers = {'Content-Type': 'application/json'}
+        url = recevied_data['new_peer'] + '/v1/agent/cyclon/receive_from_introducer_neighbors'
+        dic = {'neighbor':{'ip_address':random_neighbor.ip_address, 'age':random_neighbor.age}}
+        res = POST_request_to_cloud(url, headers, json.dumps(dic))
+        res.connection.close()
+
+    status_code = '200'
+    headers = [('Content-Type', 'application/json; charset=UTF-8')]
+    response = ''
+
+    return status_code, headers, json.dumps(response)
 
 # Initiate n random walks
 def init_random_walk(new_peer_ip_address, n, TTL):
@@ -259,36 +289,6 @@ def agent_cyclon_deliver_random_walk_message(env):
     return status_code, headers, json.dumps(response)
 
 
-# Handles peer join notification sent from new peer's introducer
-def agent_cyclon_handle_peer_join_notification(env):
-    #print 'Neighbor of New Peer\'s Introducer Handles Peer Join Notification...'
-    
-    recevied_data = json.loads(env['wsgi.input'].read())
-
-    neighbors = read_from_memory_cache("neighbors")
-
-    if len(neighbors) != 0:
-
-        # Randomly pick up a neighbor as response
-        random_neighbor = random.choice(neighbors)
-
-        # Set new peer's age to 0 and add its information to memory cache 
-        if len(neighbors) < FIXED_SIZE_CACHE:
-    	    new_neighbor = Neighbor(recevied_data['new_peer'], 0)
-	    neighbors.append(new_neighbor)
-	    write_to_memory_cache("neighbors", neighbors)
-    
-        headers = {'Content-Type': 'application/json'}
-        url = recevied_data['new_peer'] + '/v1/agent/cyclon/receive_from_introducer_neighbors'
-        dic = {'neighbor':{'ip_address':random_neighbor.ip_address, 'age':random_neighbor.age}}
-        res = POST_request_to_cloud(url, headers, json.dumps(dic))
-        res.connection.close()
-
-    status_code = '200'
-    headers = [('Content-Type', 'application/json; charset=UTF-8')]
-    response = ''
-
-    return status_code, headers, json.dumps(response)
 
 
 # New peer receives response from its introducer's neighbors
@@ -316,7 +316,7 @@ def agent_cyclon_receive_from_introducer_neighbors(env):
 
 # Peer receives request of view exchange from its neighbor
 def agent_cyclon_receive_view_exchange_request(env):
-    #print 'Peer Receives Request of View Exchange From Its Neighbor...'
+    print 'Peer Receives Request of View Exchange From Its Neighbor...'
 
     received_data = json.loads(env['wsgi.input'].read())
     received_neighbors = received_data['neighbors']

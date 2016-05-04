@@ -164,10 +164,6 @@ class Peer(Thread):
             selected_subset, sent_subset = self.select_subnet_randomly(neighbors, oldest_neighbor)
 
             # Send selected subset to the oldest neighbor
-            #try:
-            #    self.send_to_oldest_neighbor(neighbors, oldest_neighbor, selected_subset, sent_subset)
-            #except:
-            #    pass
             self.send_to_oldest_neighbor(neighbors, oldest_neighbor, selected_subset, sent_subset)
 
 
@@ -234,12 +230,19 @@ class Peer(Thread):
             dic = {"ip_address":neighbor.ip_address, "age":neighbor.age}
             sent_neighbors_data.append(dic)
         post_data = {"neighbors":sent_neighbors_data}
+
+	print 'Send to the oldest neighbor'
+	print post_data
         
         try:
             #res = POST_request_to_timeout(url, headers, INTERVAL, json.dumps(post_data))
             res = POST_request_to_timeout(url, headers, 10, json.dumps(post_data))
             #res = POST_request_to_cloud(url, headers, json.dumps(post_data))
             received_neighbors = res.json()['neighbors']
+
+	    print 'Received from the oldest neighbor: %s' % oldest_neighbor.ip_address
+	    print received_neighbors
+
             # Update local neighbors list in memeory cache    
             update_neighbors_cache(received_neighbors, selected_subset)
         
