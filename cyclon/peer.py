@@ -118,6 +118,10 @@ class Peer(Thread):
         if len(neighbors) == 0:
             pass
         else:
+
+            if len(neighbors) > FIXED_SIZE_CACHE:
+                print 'SHIT HAPPENED!!! '*500
+
             print '-'*50
             print 'FIXED_SIZE_CACHE: %s' % FIXED_SIZE_CACHE
             print 'SHUFFLE_LENGTH: %s' % SHUFFLE_LENGTH
