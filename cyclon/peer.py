@@ -85,8 +85,10 @@ class Peer(Thread):
             view_exchange_lock.acquire()
     	    print 'peer.py view_exchange_lock.acquire()'
             self.update_age()
+            view_exchange_lock.release()
             
 	    # Peer exchanges its view with the peer with highest age from its neighbros list
+            view_exchange_lock.acquire()
 	    self.view_exchange()
             view_exchange_lock.release()
     	    print 'peer.py view_exchange_lock.release()'
@@ -158,17 +160,15 @@ class Peer(Thread):
             # Pick up a oldest neighbor from neighbors list
 	    oldest_neighbor = self.pick_neighbor_with_highest_age(neighbors)
         
-	    #self.neighbors = read_from_memory_cache("neighbors")
 	    # Create a subset containing SHUFFLE_LENGTH neighbors
             selected_subset, sent_subset = self.select_subnet_randomly(neighbors, oldest_neighbor)
-            #selected_subset, sent_subset = self.select_subnet_randomly(oldest_neighbor)
 
             # Send selected subset to the oldest neighbor
-            try:
-	    	#self.neighbors = read_from_memory_cache("neighbors")
-                self.send_to_oldest_neighbor(neighbors, oldest_neighbor, selected_subset, sent_subset)
-            except:
-                pass
+            #try:
+            #    self.send_to_oldest_neighbor(neighbors, oldest_neighbor, selected_subset, sent_subset)
+            #except:
+            #    pass
+            self.send_to_oldest_neighbor(neighbors, oldest_neighbor, selected_subset, sent_subset)
 
 
     # Pick up the oldest neighbor from neighbors list
@@ -238,7 +238,7 @@ class Peer(Thread):
         
         try:
             #res = POST_request_to_timeout(url, headers, INTERVAL, json.dumps(post_data))
-            res = POST_request_to_timeout(url, headers, 0.001, json.dumps(post_data))
+            res = POST_request_to_timeout(url, headers, 10, json.dumps(post_data))
             #res = POST_request_to_cloud(url, headers, json.dumps(post_data))
             received_neighbors = res.json()['neighbors']
             # Update local neighbors list in memeory cache    
