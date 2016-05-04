@@ -246,7 +246,7 @@ class Peer(Thread):
         
         except:
             print 'TIMEOUT '*20
-            print 'Peer %s left from the P2P network...' & oldest_neighbor.ip_address
+            print 'Peer %s left from the P2P network...' % oldest_neighbor.ip_address
 
 
 # Read neighbors list from memory cache
