@@ -224,7 +224,7 @@ class Peer(Thread):
 
 
     def send_to_oldest_neighbor(self, neighbors, oldest_neighbor, selected_subset, sent_subset):
-        #print 'Send to oldest neighbor -> ip_address: %s, age: %s' % (oldest_neighbor.ip_address, oldest_neighbor.age)
+        print 'Send to oldest neighbor -> ip_address: %s, age: %s' % (oldest_neighbor.ip_address, oldest_neighbor.age)
         
         headers = {'Content-Type': 'application/json'}
         url = oldest_neighbor.ip_address + '/v1/agent/cyclon/receive_view_exchange_request'

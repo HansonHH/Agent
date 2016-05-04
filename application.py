@@ -293,9 +293,9 @@ def application(env, start_response):
         return response
 
     elif PATH_INFO.startswith('/v1/agent/cyclon/view_exchange'):
-        print '*'*30
-        print 'Agent v1.0 CYCLON View Exchange'
-        print '*'*30
+        #print '*'*30
+        #print 'Agent v1.0 CYCLON View Exchange'
+        #print '*'*30
 
         status_code, headers, response = agent_cyclon_view_exchange(env)
         start_response(status_code, headers)
@@ -304,9 +304,9 @@ def application(env, start_response):
 
     # Introducer handles new peer join event
     elif PATH_INFO.startswith('/v1/agent/cyclon/new_peer_join'):
-        print '*'*30
-        print 'Agent v1.0 CYCLON New Peer Join'
-        print '*'*30
+        #print '*'*30
+        #print 'Agent v1.0 CYCLON New Peer Join'
+        #print '*'*30
 
         status_code, headers, response = agent_cyclon_new_peer_join(env)
         start_response(status_code, headers)
@@ -316,9 +316,9 @@ def application(env, start_response):
 
     # Introducer's neighbors handle new peer join notification
     elif PATH_INFO.startswith('/v1/agent/cyclon/handle_peer_join_notification'):
-        print '*'*30
-        print 'Agent v1.0 CYCLON Handle Peer Join Notification'
-        print '*'*30
+        #print '*'*30
+        #print 'Agent v1.0 CYCLON Handle Peer Join Notification'
+        #print '*'*30
 
         status_code, headers, response = agent_cyclon_handle_peer_join_notification(env)
         start_response(status_code, headers)
@@ -327,9 +327,9 @@ def application(env, start_response):
      
     # Peer delivers random walk message
     elif PATH_INFO.startswith('/v1/agent/cyclon/deliver_random_walk_message'):
-        print '*'*30
-        print 'Agent v1.0 CYCLON Deliver Random Walk'
-        print '*'*30
+        #print '*'*30
+        #print 'Agent v1.0 CYCLON Deliver Random Walk'
+        #print '*'*30
 
         status_code, headers, response = agent_cyclon_deliver_random_walk_message(env)
         start_response(status_code, headers)
@@ -338,9 +338,9 @@ def application(env, start_response):
 
     # New peer receives response from introducer's neighbors
     elif PATH_INFO.startswith('/v1/agent/cyclon/receive_from_introducer_neighbors'):
-        print '*'*30
-        print 'Agent v1.0 CYCLON New Peer Receives from Introducer Neighbors'
-        print '*'*30
+        #print '*'*30
+        #print 'Agent v1.0 CYCLON New Peer Receives from Introducer Neighbors'
+        #print '*'*30
 
         status_code, headers, response = agent_cyclon_receive_from_introducer_neighbors(env)
         start_response(status_code, headers)
@@ -349,9 +349,9 @@ def application(env, start_response):
 
     # Peer receives request of view exchange
     elif PATH_INFO.startswith('/v1/agent/cyclon/receive_view_exchange_request'):
-        print '*'*30
-        print 'Agent v1.0 CYCLON Peer Receives Request of View Exhcange'
-        print '*'*30
+        #print '*'*30
+        #print 'Agent v1.0 CYCLON Peer Receives Request of View Exhcange'
+        #print '*'*30
 
         status_code, headers, response = agent_cyclon_receive_view_exchange_request(env)
         start_response(status_code, headers)
