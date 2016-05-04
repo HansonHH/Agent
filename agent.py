@@ -337,6 +337,8 @@ def agent_cyclon_receive_view_exchange_request(env):
         selected_neighbors = pick_neighbors_at_random(neighbors, SHUFFLE_LENGTH)
         print '='*40
         print selected_neighbors
+        for neighbor in selected_neighbors:
+            print 'ip_address: %s, age: %d' % (neighbor.ip_address, neighbor.age)
         print '='*40
         selected_neighbors = remove_neighbors_with_same_ip(selected_neighbors)
     except:
