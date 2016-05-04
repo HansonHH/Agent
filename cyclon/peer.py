@@ -238,7 +238,8 @@ class Peer(Thread):
         
         try:
             #res = POST_request_to_timeout(url, headers, INTERVAL, json.dumps(post_data))
-            res = POST_request_to_cloud(url, headers, json.dumps(post_data))
+            res = POST_request_to_timeout(url, headers, 0.001, json.dumps(post_data))
+            #res = POST_request_to_cloud(url, headers, json.dumps(post_data))
             received_neighbors = res.json()['neighbors']
             # Update local neighbors list in memeory cache    
             update_neighbors_cache(received_neighbors, selected_subset)
