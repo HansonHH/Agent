@@ -4,9 +4,10 @@ import ConfigParser
 from application import application
 from models import *
 
-from eventlet.green import socket
-from eventlet.green import threading
-from eventlet.green import asyncore
+#from eventlet.green import socket
+#from eventlet.green import threading
+#from eventlet.green import asyncore
+# Everything is monkey patched
 eventlet.monkey_patch()
 
 config = ConfigParser.ConfigParser()
