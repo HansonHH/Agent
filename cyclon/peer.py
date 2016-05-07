@@ -21,7 +21,8 @@ lock = Lock()
 view_exchange_lock = Lock()
 
 # Get introducer's ip address (CYCLON Protocol)
-INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip') + ':' + config.get('Agent', 'listen_port') 
+#INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip') + ':' + config.get('Agent', 'listen_port') 
+INTRODUCER_IP = config.get('CYCLON', 'introducer_ip') 
 AGENT_IP = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
 NEIGHBORS = []
 

@@ -18,7 +18,7 @@ import random
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
-#SITES = ast.literal_eval(config.get('Clouds','sites'))
+SITES = ast.literal_eval(config.get('Clouds','sites'))
 
 DATABASE_NAME = config.get('Database', 'DATABASE_NAME')
 DATABASE_USERNAME = config.get('Database', 'DATABASE_USERNAME')
@@ -40,7 +40,7 @@ def non_exist_response(status_code, response_body):
     elif type(response_body) == dict:
         return status_code, headers, json.dumps(response_body)
 
-'''
+
 # A function to add cloud name and cloud ip to user response
 def add_cloud_info_to_response(search_context, response):
 
@@ -59,7 +59,7 @@ def add_cloud_info_to_response(search_context, response):
         response['site'] = site + '-' + site_ip	
 
     return response
-'''
+
 
 # Remove duplication information of response
 def remove_duplicate_info(items, keyword):

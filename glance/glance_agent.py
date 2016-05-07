@@ -76,10 +76,12 @@ def glance_list_images(env):
                 # Add cloud info to response
                 new_image_info = add_cloud_info_to_response(result[0].cloud_address, res)
                 response_body['images'].append(new_image_info)
+
+		#response_body['images'].append(res)
          
             if response_body['images'] != 0:
                	# Remove duplicate subnets        
-			   	response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
+		response_body['images'] = remove_duplicate_info(response_body['images'], 'id')
 
             return generate_formatted_response(threads_res[0], response_body)
 
