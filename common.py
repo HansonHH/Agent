@@ -40,7 +40,6 @@ def non_exist_response(status_code, response_body):
     elif type(response_body) == dict:
         return status_code, headers, json.dumps(response_body)
 
-
 # A function to add cloud name and cloud ip to user response
 def add_cloud_info_to_response(search_context, response):
 
@@ -50,13 +49,17 @@ def add_cloud_info_to_response(search_context, response):
     # IP address of cloud
     site_ip = match.group()
     # Find name of cloud
-    site = SITES.keys()[SITES.values().index('http://'+site_ip)]
+    #site = SITES.keys()[SITES.values().index('http://'+site_ip)]
 
     # Add site information to json response
+    #try:
+    #    response['site'] = response['site'] + ', ' + site + '-' + site_ip
+    #except:
+    #    response['site'] = site + '-' + site_ip	
     try:
-        response['site'] = response['site'] + ', ' + site + '-' + site_ip
+    	response['site'] = response['site'] + site_ip
     except:
-        response['site'] = site + '-' + site_ip	
+	response['site'] = site_ip 
 
     return response
 
