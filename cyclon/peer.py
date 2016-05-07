@@ -7,7 +7,7 @@ CYCLON Protocol Peer Class
 
 """
 
-from threading import Thread
+from threading import Thread, Lock
 import time
 from time import gmtime, strftime
 #from common import *
@@ -17,7 +17,6 @@ from request import *
 from cyclon.config import *
 from cyclon.common import *
 
-from threading import Lock
 lock = Lock()
 view_exchange_lock = Lock()
 
@@ -25,7 +24,6 @@ view_exchange_lock = Lock()
 INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip') + ':' + config.get('Agent', 'listen_port') 
 AGENT_IP = 'http://' + get_lan_ip() + ':' + config.get('Agent', 'listen_port')
 NEIGHBORS = []
-
 
 # Neighbor object
 class Neighbor(object):
