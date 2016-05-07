@@ -18,7 +18,7 @@ import random
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
-SITES = ast.literal_eval(config.get('Clouds','sites'))
+#SITES = ast.literal_eval(config.get('Clouds','sites'))
 
 DATABASE_NAME = config.get('Database', 'DATABASE_NAME')
 DATABASE_USERNAME = config.get('Database', 'DATABASE_USERNAME')
@@ -40,6 +40,7 @@ def non_exist_response(status_code, response_body):
     elif type(response_body) == dict:
         return status_code, headers, json.dumps(response_body)
 
+'''
 # A function to add cloud name and cloud ip to user response
 def add_cloud_info_to_response(search_context, response):
 
@@ -58,6 +59,7 @@ def add_cloud_info_to_response(search_context, response):
         response['site'] = site + '-' + site_ip	
 
     return response
+'''
 
 # Remove duplication information of response
 def remove_duplicate_info(items, keyword):
@@ -74,9 +76,9 @@ def remove_duplicate_info(items, keyword):
                     item2['site'] = item2['site'] + ', ' + item['site']
     return rs
 
-
 # Modify response header in terms of Content-Length
 def modify_response_header(headers, response_body):
+
     headers_dict = dict(headers)
     headers_dict['Content-Length'] = str(len(json.dumps(response_body)))
     headers = ast.literal_eval(str(headers_dict)).items()
@@ -101,7 +103,6 @@ def readInChunks(fileObj, chunkSize = 4096):
             break
         yield data
 
-
 def delete_temp_image_file(temp_file_path):
     # Delete temporary image file
     try:
@@ -114,8 +115,8 @@ def select_site_to_create_object():
     #cloud_name =  random.choice(SITES.keys())
     #cloud_address = SITES[cloud_name]
 
-    cloud_name = 'Cloud10'
-    cloud_address = 'http://10.0.1.20'
+    cloud_name = 'Cloud3'
+    cloud_address = 'http://10.0.1.12'
 
     return cloud_name, cloud_address
 

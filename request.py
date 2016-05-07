@@ -11,8 +11,8 @@ import re
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
-SITES = ast.literal_eval(config.get('Clouds','sites'))
-print SITES
+#SITES = ast.literal_eval(config.get('Clouds','sites'))
+#print SITES
 
 # POST request cloud
 def POST_request_to_cloud(url, headers, PostData):
