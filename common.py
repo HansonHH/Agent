@@ -63,7 +63,6 @@ def add_cloud_info_to_response(search_context, response):
 
     return response
 
-
 # Remove duplication information of response
 def remove_duplicate_info(items, keyword):
 
