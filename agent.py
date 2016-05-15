@@ -289,8 +289,6 @@ def agent_cyclon_deliver_random_walk_message(env):
     return status_code, headers, json.dumps(response)
 
 
-
-
 # New peer receives response from its introducer's neighbors
 def agent_cyclon_receive_from_introducer_neighbors(env):
     #print 'New Peer Receives Response from Introducer\'s Neighbors...'

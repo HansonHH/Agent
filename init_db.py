@@ -20,11 +20,8 @@ DATABASE_USERNAME = config.get('Database', 'DATABASE_USERNAME')
 DATABASE_PASSWORD = config.get('Database', 'DATABASE_PASSWORD')
 SITES = ast.literal_eval(config.get('Clouds','sites'))
 AGENT_SITE_NAME = config.get('Agent', 'site')
-#AGENT_SITE_IP = SITES[AGENT_SITE_NAME]
-AGENT_SITE_IP = 'http://' + get_lan_ip()
-# Get introducer's ip address (CYCLON Protocol)
-#INTRODUCER_IP = 'http://' + config.get('CYCLON', 'introducer_ip')
-
+#AGENT_SITE_IP = 'http://' + get_lan_ip()
+AGENT_SITE_IP = config.get('Agent', 'site_ip') 
 
 # Configuration of DB engine connection
 GLANCE_ENGINE_CONNECTION = 'mysql+mysqldb://%s:%s@localhost/glance' % (DATABASE_USERNAME, DATABASE_PASSWORD)

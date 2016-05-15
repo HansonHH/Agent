@@ -18,7 +18,7 @@ import random
 
 config = ConfigParser.ConfigParser()
 config.read('agent.conf')
-SITES = ast.literal_eval(config.get('Clouds','sites'))
+#SITES = ast.literal_eval(config.get('Clouds','sites'))
 
 DATABASE_NAME = config.get('Database', 'DATABASE_NAME')
 DATABASE_USERNAME = config.get('Database', 'DATABASE_USERNAME')
